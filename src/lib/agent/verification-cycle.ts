@@ -456,16 +456,18 @@ export function composeClientNote(order: Order, items: ItemVerdict[], state: Cyc
 }
 
 async function emailClientAboutNote(order: Order & { id: string }, text: string) {
-  const email = order.documentContact === 'partner' ? order.customerEmail : (order.endCustomerEmail || order.customerEmail);
+  const email = order.customerEmail;
   if (!email) return;
   const { notifyOfNewNote } = await import('@/app/actions/notifications');
+  const isPartnerOrder = !!(order.resellerId || order.partnerId || order.source === 'Partner');
+  const portalPath = isPartnerOrder ? `/partner/orders/${order.id}` : `/dashboard/orders/${order.id}`;
   await notifyOfNewNote({
     recipientEmail: email,
-    recipientName: order.endCustomerName || order.customerName || 'Client',
+    recipientName: order.customerName || 'Client',
     senderName: 'My Accountant',
     orderId: String(order.originalOrderId || order.id),
     notePreview: text.length > 600 ? text.slice(0, 600) + '…' : text,
-    actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`,
+    actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}${portalPath}`,
     isToClient: true,
     resellerId: order.resellerId,
   });

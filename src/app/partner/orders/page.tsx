@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot, setDoc, serverTimestamp, increment, or } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  onSnapshot,
+  or,
+} from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
+import { Order, Service } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePartner } from '@/contexts/PartnerContext';
 import { services as staticServices } from '@/lib/data';
-import { isStaffActive, isEligibleOrderStaff } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -18,8 +25,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, ArrowRight, CheckCircle2, Wallet2, AlertCircle, Search, Filter, ShoppingBag } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  MoreHorizontal,
+  Loader2,
+  PlusCircle,
+  ArrowRight,
+  Search,
+  ShoppingBag,
+  CreditCard,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,106 +49,73 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format, formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import CreatePartnerOrderForm from '@/components/partner/CreatePartnerOrderForm';
-import { useRouter } from 'next/navigation';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { cn, formatDate } from '@/lib/utils';
-import { render } from '@react-email/components';
-import React from 'react';
-import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
-import { sendPartnerOrderEmail } from '@/app/actions/email-gateway';
-import { getAuth } from 'firebase/auth';
-import { getNextOrderId } from '@/lib/sequence';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import {
+  FirestorePermissionError,
+  type SecurityRuleContext,
+} from '@/firebase/errors';
 import { ProcessOrderModal } from '@/components/partner/ProcessOrderModal';
-import { completeOrderWithRoyalty, outsourceOrderFromWallet } from '@/app/actions/wallet-actions';
 import { getStatusVariant } from '@/lib/order-status';
 
-
 const db = getFirestore(firebaseApp);
-
-async function getIdToken(): Promise<string> {
-    const token = await getAuth(firebaseApp).currentUser?.getIdToken();
-    if (!token) throw new Error('You must be signed in to do this.');
-    return token;
-}
 
 export default function PartnerOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [allServices, setAllServices] = useState<Service[]>(staticServices);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
   const { user } = useAuth();
-  const { isGrowthActive, hasPlatformFee } = usePartner();
-  const [allStaff, setAllStaff] = useState<User[]>([]);
+  const { tierPlan, discountPercent } = usePartner();
   const [processModalOpen, setProcessModalOpen] = useState(false);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
-  const [selectedOrderForProcess, setSelectedOrderForProcess] = useState<Order | null>(null);
+  const [selectedOrderForProcess, setSelectedOrderForProcess] =
+    useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const staffCounters = useRef<{ [key: string]: number }>({});
-  const router = useRouter();
-    
-  const orderStatuses: Order['status'][] = ['Pending Payment', 'Processing', 'Waiting on Customer', 'Waiting on External', 'Completed', 'Cancelled'];
+
   const partnerId = user?.role === 'partner' ? user.uid : user?.partnerId;
 
   const statusCounts = useMemo(() => {
     return {
       all: orders.length,
-      processing: orders.filter(o => o.status === 'Processing').length,
-      pending: orders.filter(o => o.status === 'Pending Payment').length,
-      completed: orders.filter(o => o.status === 'Completed').length,
-      cancelled: orders.filter(o => o.status === 'Cancelled').length,
+      processing: orders.filter((o) => o.status === 'Processing').length,
+      pending: orders.filter((o) => o.status === 'Pending Payment').length,
+      completed: orders.filter((o) => o.status === 'Completed').length,
+      cancelled: orders.filter((o) => o.status === 'Cancelled').length,
     };
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    return orders.filter((order) => {
       if (statusFilter !== 'all' && order.status !== statusFilter) return false;
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const matchesId = order.id.toLowerCase().includes(term);
-        const matchesName = (order.endCustomerName || order.customerName || '').toLowerCase().includes(term);
-        const matchesEmail = (order.endCustomerEmail || order.customerEmail || '').toLowerCase().includes(term);
-        if (!matchesId && !matchesName && !matchesEmail) return false;
+        const matchesName = (
+          order.endCustomerName ||
+          order.customerName ||
+          ''
+        )
+          .toLowerCase()
+          .includes(term);
+        const matchesItems = (order.items || []).some((i) =>
+          (i.title || '').toLowerCase().includes(term)
+        );
+        if (!matchesId && !matchesName && !matchesItems) return false;
       }
       return true;
     });
   }, [orders, statusFilter, searchTerm]);
-
-  const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
-      const activeStaff = allStaff.filter(isEligibleOrderStaff);
-
-      const staffInDept = activeStaff.filter(u => u.department === department && u.role === 'staff');
-      const candidates = staffInDept.length > 0 ? staffInDept : activeStaff;
-      if (candidates.length === 0) return undefined;
-
-      const currentIndex = staffCounters.current[department] || 0;
-      const nextStaff = candidates[currentIndex % candidates.length];
-      
-      staffCounters.current[department] = (currentIndex + 1) % candidates.length;
-      
-      return nextStaff;
-  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
@@ -138,40 +126,25 @@ export default function PartnerOrdersPage() {
     }).format(price);
   };
 
-
   useEffect(() => {
     if (!user?.uid || !partnerId) {
-        setIsLoading(false);
-        return;
+      setIsLoading(false);
+      return;
     }
-    
+
     setIsLoading(true);
 
-    let staffPromise;
-    if (user?.role === 'admin') {
-        const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin']));
-        staffPromise = getDocs(staffQuery);
-    } else if (partnerId) {
-        const staffQuery = query(collection(db, "users"), where('partnerId', '==', partnerId));
-        staffPromise = getDocs(staffQuery);
-    } else {
-        staffPromise = Promise.resolve({ docs: [] } as any);
-    }
-    
-    staffPromise.then(staffSnapshot => {
-        const fetchedStaff = staffSnapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id } as User));
-        setAllStaff(fetchedStaff);
-    }).catch(err => {
-        console.error("Error loading staff:", err);
-    });
-
     const servicesQuery = query(collection(db, 'services'));
-    getDocs(servicesQuery).then(servicesSnapshot => {
-        const fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+    getDocs(servicesQuery)
+      .then((servicesSnapshot) => {
+        const fetchedServices = servicesSnapshot.docs.map(
+          (d) => ({ id: d.id, ...d.data() } as Service)
+        );
         setAllServices(fetchedServices);
-    }).catch(err => {
-        console.error("Error loading services:", err);
-    });
+      })
+      .catch((err) => {
+        console.error('Error loading services:', err);
+      });
 
     const ordersRef = collection(db, 'orders');
     const q = user?.email
@@ -179,461 +152,396 @@ export default function PartnerOrdersPage() {
           ordersRef,
           or(
             where('resellerId', '==', partnerId),
+            where('partnerId', '==', partnerId),
             where('userId', '==', partnerId),
             where('customerEmail', '==', user.email)
           )
         )
-      : query(ordersRef, where('resellerId', '==', partnerId));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedOrders = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                id: doc.id,
-                date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
-            } as Order;
+      : query(
+          ordersRef,
+          or(
+            where('resellerId', '==', partnerId),
+            where('partnerId', '==', partnerId),
+            where('userId', '==', partnerId)
+          )
+        );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedOrders = snapshot.docs.map((d) => {
+          const data = d.data();
+          return {
+            ...data,
+            id: d.id,
+            date: data.date?.toDate
+              ? data.date.toDate().toISOString()
+              : new Date().toISOString(),
+          } as Order;
         });
-        // Sort in memory descending by date
-        fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled' && !order.originalOrderId));
+        fetchedOrders.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        setOrders(
+          fetchedOrders.filter(
+            (order) =>
+              order.status !== 'Cancelled' &&
+              !order.originalOrderId &&
+              !(order.items || []).every(
+                (i) =>
+                  i.id === 'partner_credit_topup' ||
+                  i.id === 'partner_platform_fee'
+              )
+          )
+        );
         setIsLoading(false);
-    }, async (error) => {
+      },
+      async () => {
         const permissionError = new FirestorePermissionError({
-            path: 'orders',
-            operation: 'list',
-          } satisfies SecurityRuleContext);
+          path: 'orders',
+          operation: 'list',
+        } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
-    });
+      }
+    );
 
     return () => unsubscribe();
-  }, [user?.uid, partnerId]);
+  }, [user?.uid, user?.email, partnerId]);
 
-
-
-    const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
-    const orderToUpdate = orders.find(o => o.id === orderId);
-    if (!orderToUpdate || !user || !partnerId) return;
-
-    // Intercept: show modal for Processing (wallet payment required)
-    if (newStatus === 'Processing' && !orderToUpdate.isOutsourced) {
-      setSelectedOrderForProcess(orderToUpdate);
-      setProcessModalOpen(true);
-      return;
-    }
-
-    try {
-      const orderRef = doc(db, 'orders', orderId);
-      updateDoc(orderRef, {
-        status: newStatus,
-      }).catch(async (error) => {
-          const permissionError = new FirestorePermissionError({
-              path: orderRef.path,
-              operation: 'update',
-              requestResourceData: { status: newStatus }
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-      });
-
-      if (newStatus === 'Processing') {
-          // If moving to processing and NOT outsourced, create an internal task
-          if (!orderToUpdate.isOutsourced) {
-              const taskData = {
-                  title: `Process Order: ${orderToUpdate.id}`,
-                  description: `Practice fulfillment for ${orderToUpdate.endCustomerName || orderToUpdate.customerName}. Services: ${orderToUpdate.items.map(i => i.title).join(', ')}.`,
-                  assignedTo: [user.uid],
-                  createdBy: user.uid,
-                  dueDate: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
-                  priority: 'Medium' as const,
-                  status: 'To-Do' as const,
-                  orderId: orderToUpdate.id,
-                  partnerId: partnerId,
-                  comments: [],
-                  createdAt: serverTimestamp(),
-              };
-              addDoc(collection(db, 'tasks'), taskData).catch(async (error) => {
-                  const permissionError = new FirestorePermissionError({
-                      path: 'tasks',
-                      operation: 'create',
-                      requestResourceData: taskData
-                  } satisfies SecurityRuleContext);
-                  errorEmitter.emit('permission-error', permissionError);
-              });
-              toast({ title: 'Task Created', description: 'A task has been added to your dashboard for fulfillment.' });
-          }
-
-          // NOTIFY CLIENT: Confirmation of payment & Request for documents
-          const emailTo = orderToUpdate.isOutsourced && orderToUpdate.documentContact === 'client' 
-              ? orderToUpdate.endCustomerEmail 
-              : orderToUpdate.customerEmail;
-          if (emailTo) {
-              const itemsWithServices = orderToUpdate.items.map(item => {
-                  const service = allServices.find(s => s.id === item.id);
-                  return { ...item, service };
-              }).filter(item => item.service) as { service: Service }[];
-
-              const emailHtml = render(React.createElement(DocumentRequestEmail, {
-                  order: { ...orderToUpdate, id: orderToUpdate.originalOrderId || orderToUpdate.id },
-                  items: itemsWithServices,
-                  reseller: user,
-                  replyTo: user.email,
-              }));
-
-              await sendPartnerOrderEmail({
-                  idToken: await getIdToken(),
-                  partnerId: partnerId!,
-                  to: emailTo,
-                  subject: `Action Required for Your Order #${orderToUpdate.originalOrderId || orderToUpdate.id}`,
-                  html: emailHtml,
-                  resellerId: partnerId,
-              });
-
-              const note: OrderNote = {
-                  text: `Sent "Payment Confirmed & Request Documents" email to ${emailTo}.`,
-                  date: Timestamp.now(),
-                  authorId: user.uid,
-                  type: 'email',
-                  subject: `Action Required for Your Order #${orderToUpdate.originalOrderId || orderToUpdate.id}`,
-                  attachments: null,
-              };
-              updateDoc(orderRef, {
-                  notes: arrayUnion(note)
-              }).catch(async (error) => {
-                  const permissionError = new FirestorePermissionError({
-                      path: orderRef.path,
-                      operation: 'update',
-                      requestResourceData: { notes: arrayUnion(note) }
-                  } satisfies SecurityRuleContext);
-                  errorEmitter.emit('permission-error', permissionError);
-              });
-          }
-      }
-
-      toast({
-        title: 'Status Updated',
-        description: `Order ${orderId} has been marked as ${newStatus}.`,
-      });
-
-    } catch (error) {
-      console.error('Error updating order status: ', error);
-      toast({
-        title: 'Update Failed',
-        description: 'There was a problem updating the order status.',
-        variant: 'destructive',
-      });
-    }
+  const handleOrderCreated = () => {
+    setIsCreateOrderOpen(false);
   };
 
-    
-    const handleOrderCreated = () => {
-        setIsCreateOrderOpen(false);
-    };
+  return (
+    <div className="space-y-8">
+      <ProcessOrderModal
+        open={processModalOpen}
+        onOpenChange={setProcessModalOpen}
+        order={selectedOrderForProcess}
+        allServices={allServices}
+      />
 
-    const handleProcessOrderConfirm = async (choice: 'complete' | 'outsource', documentContact?: 'partner' | 'client') => {
-      if (!selectedOrderForProcess || !partnerId) return;
-      
-      try {
-        if (choice === 'complete') {
-          const walletIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
-          const result = await completeOrderWithRoyalty(selectedOrderForProcess.id, partnerId, walletIdToken);
-          if ('error' in result) {
-            toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
-            return;
-          }
-          toast({ title: 'Order Processing', description: `Royalty of R${result.royalty.toFixed(2)} deducted from your wallet.` });
-        } else {
-          const walletIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
-          const result = await outsourceOrderFromWallet(selectedOrderForProcess.id, partnerId, documentContact || 'partner', walletIdToken);
-          if ('error' in result) {
-            toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
-            return;
-          }
-          toast({ title: 'Order Outsourced', description: `R${result.cost.toFixed(2)} deducted from your wallet. My Accountant will begin work immediately.` });
-        }
-        setProcessModalOpen(false);
-        setSelectedOrderForProcess(null);
-      } catch (err) {
-        console.error('Process order failed:', err);
-        toast({ title: 'Error', description: 'Something went wrong. Please try again.', variant: 'destructive' });
-      }
-    };
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle>Practice Back-Office Orders</CardTitle>
+                <Badge variant="secondary" className="font-semibold">
+                  {tierPlan.name} Tier ({discountPercent}% Off)
+                </Badge>
+              </div>
+              <CardDescription className="mt-1">
+                Manage and track all compliance, tax, and accounting orders fulfilled for your practice clients. All communication happens strictly with you.
+              </CardDescription>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search order #, client ref..."
+                  className="pl-9 h-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Dialog
+                open={isCreateOrderOpen}
+                onOpenChange={setIsCreateOrderOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto justify-center font-bold">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Back-Office Order
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>New Back-Office Order</DialogTitle>
+                    <DialogDescription>
+                      Place an order at your {discountPercent}% wholesale partner rate. We fulfill the work behind the scenes and communicate strictly with your practice.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CreatePartnerOrderForm onOrderCreated={handleOrderCreated} />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
 
-    return (
-        <div className="space-y-8">
-             <ProcessOrderModal
-                open={processModalOpen}
-                onOpenChange={setProcessModalOpen}
-                order={selectedOrderForProcess}
-                walletBalance={user?.creditBalance ?? 0}
-                allServices={allServices}
-                hasPlatformFee={hasPlatformFee}
-                onConfirm={handleProcessOrderConfirm}
-            />
-
-              <Card>
-                <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                    <CardTitle>Your Client Orders</CardTitle>
-                    <CardDescription>
-                        View and manage all orders you've created for your clients.
-                    </CardDescription>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                      <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search orders, customers..." 
-                            className="pl-9 h-10" 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-                      <Dialog open={isCreateOrderOpen} onOpenChange={setIsCreateOrderOpen}>
-                        <DialogTrigger asChild>
-                             <Button className="w-full sm:w-auto justify-center">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Create New Order
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-4xl">
-                             <DialogHeader>
-                                <DialogTitle>New Order Details</DialogTitle>
-                                <DialogDescription>Fill out the form below to create a new order for a client.</DialogDescription>
-                            </DialogHeader>
-                            <CreatePartnerOrderForm onOrderCreated={handleOrderCreated} />
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                </div>
-
-                {/* Quick Status Tabs */}
-                <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border/40">
-                    <Button
-                        type="button"
-                        variant={statusFilter === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
-                        onClick={() => setStatusFilter('all')}
-                    >
-                        All Orders
-                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'all' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground")}>
-                            {statusCounts.all}
-                        </span>
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={statusFilter === 'Processing' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
-                        onClick={() => setStatusFilter('Processing')}
-                    >
-                        Processing
-                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Processing' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-blue-100 text-blue-800")}>
-                            {statusCounts.processing}
-                        </span>
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={statusFilter === 'Pending Payment' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
-                        onClick={() => setStatusFilter('Pending Payment')}
-                    >
-                        Pending Payment
-                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Pending Payment' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-yellow-100 text-yellow-800")}>
-                            {statusCounts.pending}
-                        </span>
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={statusFilter === 'Completed' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
-                        onClick={() => setStatusFilter('Completed')}
-                    >
-                        Completed
-                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Completed' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-green-100 text-green-800")}>
-                            {statusCounts.completed}
-                        </span>
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={statusFilter === 'Cancelled' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
-                        onClick={() => setStatusFilter('Cancelled')}
-                    >
-                        Cancelled
-                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Cancelled' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-red-100 text-red-800")}>
-                            {statusCounts.cancelled}
-                        </span>
-                    </Button>
-                </div>
-                </CardHeader>
-                <CardContent>
-                {isLoading ? (
-                    <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
-                ) : orders.length === 0 ? (
-                    <div className="py-16 text-center space-y-3 max-w-md mx-auto">
-                        <div className="p-3 bg-primary/10 text-primary w-fit rounded-md mx-auto">
-                            <ShoppingBag className="h-6 w-6" />
-                        </div>
-                        <h3 className="font-bold text-lg text-foreground">No Client Orders Yet</h3>
-                        <p className="text-sm text-muted-foreground">When clients purchase compliance or accounting services through your practice storefront, their orders will appear here for processing and fulfillment.</p>
-                        <Button asChild variant="outline" size="sm" className="mt-2">
-                            <Link href="/partner/services">View Your Practice Services</Link>
-                        </Button>
-                    </div>
-                ) : filteredOrders.length === 0 ? (
-                    <div className="py-12 text-center space-y-3">
-                        <p className="text-muted-foreground">No orders matching your search or filters.</p>
-                        <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filters</Button>
-                    </div>
-                ) : (
-                    <>
-                    {/* Mobile Card List (< sm) */}
-                    <div className="space-y-3 sm:hidden">
-                        {filteredOrders.map((order) => (
-                            <div key={order.id} className="p-4 rounded-lg border bg-card/60 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-mono font-bold text-sm">#{order.id}</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <Badge variant={getStatusVariant(order.status)}>
-                                            {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
-                                        </Badge>
-                                        {order.isOutsourced && (
-                                            <Badge variant="outsourced">Outsourced</Badge>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="space-y-1 text-xs">
-                                    <p className="font-medium text-foreground text-sm">{order.endCustomerName || order.customerName}</p>
-                                    <p className="text-muted-foreground">{order.endCustomerEmail || order.customerEmail}</p>
-                                </div>
-                                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                                    <span>{formatDate(order.date)}</span>
-                                    <span className="font-bold text-foreground text-sm">{formatPrice(order.clientTotal || order.total)}</span>
-                                </div>
-                                <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
-                                    <Button variant="outline" size="sm" className="flex-1 justify-between" asChild>
-                                        <Link href={`/partner/orders/${order.id}`}>
-                                            <span>View Details</span>
-                                            <ArrowRight className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-9 w-9 min-h-[44px] min-w-[44px]" aria-label="Order actions">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem asChild>
-                                                <Link href={`/partner/orders/${order.id}`}>View Details</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuSub>
-                                                <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
-                                                <DropdownMenuSubContent>
-                                                    {orderStatuses.map(status => (
-                                                        <DropdownMenuItem
-                                                            key={status}
-                                                            onClick={() => handleUpdateStatus(order.id, status)}
-                                                            disabled={order.status === status}
-                                                        >
-                                                            Mark as {status}
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </DropdownMenuSubContent>
-                                            </DropdownMenuSub>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Desktop / Tablet Table (>= sm) */}
-                    <div className="hidden sm:block">
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Fulfillment</TableHead>
-                            <TableHead className="text-right">Price</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredOrders.map((order) => (
-                            <TableRow key={order.id}>
-                                <TableCell className="font-medium font-mono">#{order.id}</TableCell>
-                                <TableCell>{formatDate(order.date)}</TableCell>
-                                <TableCell>
-                                    <div>
-                                        <p className="font-medium">{order.endCustomerName || order.customerName}</p>
-                                        <p className="text-xs text-muted-foreground">{order.endCustomerEmail || order.customerEmail}</p>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                <Badge variant={getStatusVariant(order.status)}>
-                                    {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
-                                </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    {order.isOutsourced ? (
-                                        <Badge variant="outsourced">Outsourced</Badge>
-                                    ) : (
-                                        <Badge variant="secondary">Internal</Badge>
-                                    )}
-                                </TableCell>
-                                <TableCell className="text-right font-semibold">{formatPrice(order.clientTotal || order.total)}</TableCell>
-                                <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open menu">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem asChild>
-                                        <Link href={`/partner/orders/${order.id}`}>View Details</Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent>
-                                            {orderStatuses.map(status => (
-                                                <DropdownMenuItem
-                                                    key={status}
-                                                    onClick={() => handleUpdateStatus(order.id, status)}
-                                                    disabled={order.status === status}
-                                                >
-                                                    Mark as {status}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuSub>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                        </Table>
-                    </div>
-                    </>
+          {/* Quick Status Tabs */}
+          <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border/40">
+            <Button
+              type="button"
+              variant={statusFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs font-semibold rounded-full gap-1.5"
+              onClick={() => setStatusFilter('all')}
+            >
+              All Orders
+              <span
+                className={cn(
+                  'px-1.5 py-0.2 rounded-full text-[10px]',
+                  statusFilter === 'all'
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
                 )}
-                </CardContent>
-            </Card>
-        </div>
-    );
+              >
+                {statusCounts.all}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant={statusFilter === 'Processing' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs font-semibold rounded-full gap-1.5"
+              onClick={() => setStatusFilter('Processing')}
+            >
+              Processing
+              <span
+                className={cn(
+                  'px-1.5 py-0.2 rounded-full text-[10px]',
+                  statusFilter === 'Processing'
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-blue-100 text-blue-800'
+                )}
+              >
+                {statusCounts.processing}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant={
+                statusFilter === 'Pending Payment' ? 'default' : 'outline'
+              }
+              size="sm"
+              className="h-8 text-xs font-semibold rounded-full gap-1.5"
+              onClick={() => setStatusFilter('Pending Payment')}
+            >
+              Pending Payment
+              <span
+                className={cn(
+                  'px-1.5 py-0.2 rounded-full text-[10px]',
+                  statusFilter === 'Pending Payment'
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-yellow-100 text-yellow-800'
+                )}
+              >
+                {statusCounts.pending}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant={statusFilter === 'Completed' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs font-semibold rounded-full gap-1.5"
+              onClick={() => setStatusFilter('Completed')}
+            >
+              Completed
+              <span
+                className={cn(
+                  'px-1.5 py-0.2 rounded-full text-[10px]',
+                  statusFilter === 'Completed'
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-green-100 text-green-800'
+                )}
+              >
+                {statusCounts.completed}
+              </span>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+              className="flex justify-center items-center h-64"
+            >
+              <Loader2
+                className="h-8 w-8 animate-spin text-primary"
+                aria-hidden="true"
+              />
+              <span className="sr-only">Loading…</span>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="py-16 text-center space-y-3 max-w-md mx-auto">
+              <div className="p-3 bg-primary/10 text-primary w-fit rounded-md mx-auto">
+                <ShoppingBag className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-lg text-foreground">
+                No Practice Orders Yet
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Place your first wholesale back-office order at {discountPercent}% off retail using the button above or browse the Wholesale Catalog.
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-2">
+                <Link href="/partner/services">Browse Wholesale Catalog</Link>
+              </Button>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="py-12 text-center space-y-3">
+              <p className="text-muted-foreground">
+                No orders matching your search or filters.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card List (< sm) */}
+              <div className="space-y-3 sm:hidden">
+                {filteredOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="p-4 rounded-lg border bg-card/60 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-sm">
+                        #{order.id}
+                      </span>
+                      <Badge variant={getStatusVariant(order.status)}>
+                        {(order.status as any) === 'Outsourced'
+                          ? 'Processing'
+                          : order.status}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <p className="font-medium text-foreground text-sm">
+                        {order.endCustomerName || order.customerName}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {(order.items || []).map((i) => i.title).join(', ')}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                      <span>{formatDate(order.date)}</span>
+                      <span className="font-bold text-foreground text-sm">
+                        {formatPrice(order.total)}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 justify-between"
+                        asChild
+                      >
+                        <Link href={`/partner/orders/${order.id}`}>
+                          <span>View Details</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      {order.status === 'Pending Payment' && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOrderForProcess(order);
+                            setProcessModalOpen(true);
+                          }}
+                        >
+                          <CreditCard className="h-3.5 w-3.5 mr-1.5" /> Pay Now
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop / Tablet Table (>= sm) */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Client Reference</TableHead>
+                      <TableHead>Services</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Wholesale Cost</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium font-mono">
+                          #{order.id}
+                        </TableCell>
+                        <TableCell>{formatDate(order.date)}</TableCell>
+                        <TableCell>
+                          <p className="font-medium">
+                            {order.endCustomerName || order.customerName}
+                          </p>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
+                          {(order.items || []).map((i) => i.title).join(', ')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(order.status)}>
+                            {(order.status as any) === 'Outsourced'
+                              ? 'Processing'
+                              : order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatPrice(order.total)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {order.status === 'Pending Payment' && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 text-xs font-bold"
+                                onClick={() => {
+                                  setSelectedOrderForProcess(order);
+                                  setProcessModalOpen(true);
+                                }}
+                              >
+                                <CreditCard className="h-3.5 w-3.5 mr-1" /> Pay
+                              </Button>
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Open menu"
+                                >
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/partner/orders/${order.id}`}>
+                                    View Order & Upload Docs
+                                  </Link>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

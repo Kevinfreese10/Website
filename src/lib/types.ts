@@ -245,6 +245,9 @@ export type Service = {
   price: number;
   isPriceTbc?: boolean;
   resellerPrice?: number;
+  starterPartnerPrice?: number | null;
+  practicePartnerPrice?: number | null;
+  enterprisePartnerPrice?: number | null;
   imageUrl: string;
   imageHint: string;
   seoImageUrl?: string;
@@ -670,14 +673,14 @@ export type PartnerLandingPageConfig = {
 
 // --- Partner Subscription & Staff Types ---
 
-export type PartnerTier = 'free' | 'growth';
+export type PartnerTier = 'starter' | 'practice' | 'enterprise' | 'free' | 'growth';
 
 export type StaffPermissions = {
   orders: 'none' | 'view' | 'full';
   clients: 'none' | 'view' | 'full';
   tasks: 'none' | 'view' | 'full';
   services: 'none' | 'view' | 'full';
-  /** Financials: only 'none' or 'view' — staff can never top up the wallet */
+  /** Financials: only 'none' or 'view' */
   financials: 'none' | 'view';
 };
 
@@ -704,9 +707,9 @@ export type PartnerSubscription = {
   currentPeriodStart?: any;   // Firestore Timestamp
   currentPeriodEnd?: any;     // Firestore Timestamp — primary access gate
   /** Limits derived from tier at subscription time */
-  aiCompanyLimit: number;     // 5 for growth, 0 for free
-  aiPayrollLimit: number;     // 5 for growth, 0 for free
-  staffSeatLimit: number;     // 3 for growth, 0 for free
+  aiCompanyLimit: number;     // 1 for starter, 10 for practice, 999999 for enterprise
+  aiPayrollLimit: number;     // 1 for starter, 10 for practice, 999999 for enterprise
+  staffSeatLimit: number;     // 1 for starter, 5 for practice, 999999 for enterprise
   /** Set when partner signs up during transition — 3 months free grandfather */
   grandfatheredUntil?: any;   // Firestore Timestamp
   cancelledAt?: any;          // Firestore Timestamp

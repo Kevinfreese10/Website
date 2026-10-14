@@ -67,8 +67,12 @@ export async function POST(req: NextRequest) {
         }
         
         await userRef.update({
+            partnerTier: 'starter',
             'partnerSubscription.status': 'cancelled',
             'partnerSubscription.cancelledAt': new Date(),
+            'partnerSubscription.aiCompanyLimit': 1,
+            'partnerSubscription.aiPayrollLimit': 1,
+            'partnerSubscription.staffSeatLimit': 1,
         });
         
         return NextResponse.json({ success: true });

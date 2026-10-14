@@ -561,10 +561,9 @@ export default function AdminOrderDetailsPage() {
           noteText: values.noteText || '',
         }).catch(err => console.error("Failed to send internal note notification:", err));
       } else {
-        const isOutsourced = !!order.resellerId;
-        const isToClient = !(isOutsourced && order.documentContact === 'partner');
-        const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-        const recipientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName || 'Client';
+        const isOutsourced = !!(order.resellerId || order.partnerId || order.source === 'Partner');
+        const emailTo = order.customerEmail;
+        const recipientName = order.customerName || 'Client';
 
         if (emailTo) {
             notifyOfNewNote({
@@ -573,11 +572,11 @@ export default function AdminOrderDetailsPage() {
                 senderName: currentUser.name || 'Admin',
                 orderId: order.originalOrderId || order.id,
                 notePreview: (values.noteText || "").substring(0, 150) + ((values.noteText || "").length > 150 ? '...' : ''),
-                actionUrl: isToClient 
-                    ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`
-                    : `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders/${order.id}`,
-                isToClient: isToClient,
-                resellerId: isToClient ? order.resellerId : undefined
+                actionUrl: isOutsourced
+                    ? `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders/${order.id}`
+                    : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
+                isToClient: !isOutsourced,
+                resellerId: undefined
             }).catch(err => console.error("Failed to send note notification:", err));
         }
       }
@@ -780,9 +779,8 @@ export default function AdminOrderDetailsPage() {
     const handleSendFeedback = async () => {
         if (!order || !order.documentUploads) return;
         
-        const isOutsourced = !!order.resellerId;
-        const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-        const clientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
+        const emailTo = order.customerEmail;
+        const clientName = order.customerName;
 
         if (!emailTo || !clientName) {
             toast({ title: "Cannot send feedback", description: "Missing client contact details.", variant: "destructive" });
@@ -828,9 +826,8 @@ export default function AdminOrderDetailsPage() {
     const handleSendFollowUp = async () => {
         if (!order) return;
         
-        const isOutsourced = !!order.resellerId;
-        const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-        const clientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
+        const emailTo = order.customerEmail;
+        const clientName = order.customerName;
 
         if (!emailTo || !clientName) {
             toast({ title: "Cannot send reminder", description: "Missing client contact details.", variant: "destructive" });
@@ -904,8 +901,7 @@ export default function AdminOrderDetailsPage() {
   
   const isOutsourced = !!order.resellerId;
   const resellerDetails = isOutsourced ? allStaff.find(u => u.uid === order.resellerId) : null;
-  const contactIsClient = isOutsourced && order.documentContact === 'client';
-  const contactName = contactIsClient ? order.endCustomerName : (isOutsourced ? resellerDetails?.companyName || resellerDetails?.name : order.customerName);
+  const contactName = isOutsourced ? (resellerDetails?.companyName || resellerDetails?.name || order.customerName) : order.customerName;
 
   const generateNoteTemplate = (type: 'docs' | 'payment' | 'review' | 'outstanding_docs') => {
       let text = `Hi ${contactName?.split(' ')[0]},\n\n`;

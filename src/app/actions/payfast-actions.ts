@@ -12,6 +12,9 @@ export interface PayFastPaymentRequest {
   customerPhone?: string;
   returnPath?: string;
   cancelPath?: string;
+  customStr1?: string;
+  customStr2?: string;
+  customStr3?: string;
   subscription?: {
     subscription_type?: '1';
     billing_date?: string;
@@ -137,6 +140,9 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
       amount: Number(req.amount).toFixed(2),
       item_name: cleanItemName,
       item_description: cleanItemDesc,
+      custom_str1: req.customStr1,
+      custom_str2: req.customStr2,
+      custom_str3: req.customStr3,
     };
 
     if (req.subscription) {

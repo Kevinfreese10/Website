@@ -272,10 +272,10 @@ export default function StaffManager() {
         </div>
 
         <div className="flex items-center gap-3">
-          {tier === 'free' ? (
-            <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 font-bold" onClick={() => window.location.href = '/partner-signup?upgrade=true'}>
+          {tier === 'starter' ? (
+            <Button className="gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 font-bold" onClick={() => window.location.href = '/partner/settings'}>
               <Sparkles className="h-4 w-4" />
-              Upgrade to Growth to Add Staff
+              Upgrade to Practice Plan to Add Staff
             </Button>
           ) : (
             <InviteStaffDialog
@@ -290,15 +290,17 @@ export default function StaffManager() {
         </div>
       </div>
 
-      {tier !== 'free' && (
+      {tier !== 'starter' && (
         <div className="p-4 bg-muted/40 border rounded-lg max-w-md space-y-2">
           <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
             <span>Seats Used</span>
-            <span>{totalUsedSeats} / {seatLimit} Seats</span>
+            <span>{totalUsedSeats} / {seatLimit >= 999999 ? 'Unlimited' : `${seatLimit} Seats`}</span>
           </div>
-          <Progress value={(totalUsedSeats / seatLimit) * 100} className="h-2" />
+          <Progress value={seatLimit >= 999999 ? 5 : (totalUsedSeats / seatLimit) * 100} className="h-2" />
           <div className="text-[10px] text-muted-foreground leading-relaxed">
-            Your Growth tier includes 3 seats (1 Owner + 2 Staff members/admins). Pending invites count towards your limit.
+            {seatLimit >= 999999
+              ? 'Your Enterprise tier includes Unlimited staff seats.'
+              : `Your Practice tier includes ${seatLimit} seats (1 Owner + ${seatLimit - 1} Staff members/admins). Pending invites count towards your limit.`}
           </div>
         </div>
       )}

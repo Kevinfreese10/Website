@@ -318,9 +318,8 @@ export default function PartnerOrderDetailsPage() {
           noteText: values.noteText || '',
         }).catch(err => console.error("Failed to send internal note notification:", err));
       } else {
-        const isToClient = order.documentContact === 'client';
-        const emailTo = (isToClient ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-        const recipientName = ((isToClient ? order.endCustomerName : order.customerName) || order.customerName) || 'Client';
+        const emailTo = order.customerEmail;
+        const recipientName = order.customerName || 'Partner';
 
         if (emailTo && emailTo !== currentUser.email) {
             notifyOfNewNote({
@@ -329,8 +328,8 @@ export default function PartnerOrderDetailsPage() {
                 senderName: currentUser.name || 'Partner',
                 orderId: order.originalOrderId || order.id,
                 notePreview: (values.noteText || "").substring(0, 150) + ((values.noteText || "").length > 150 ? '...' : ''),
-                actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
-                isToClient: true,
+                actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders/${order.id}`,
+                isToClient: false,
                 resellerId: order.resellerId
             }).catch(err => console.error("Failed to send note notification:", err));
         }
@@ -338,7 +337,7 @@ export default function PartnerOrderDetailsPage() {
 
       toast({ 
         title: isInternalNote ? "Internal Note Added 🔒" : "Note Added", 
-        description: isInternalNote ? "Saved internally for staff and partners." : "Your note has been saved and client notified." 
+        description: isInternalNote ? "Saved internally for staff and partners." : "Your note has been saved." 
       });
       noteForm.reset();
       setAttachedFiles([]);
@@ -376,14 +375,14 @@ export default function PartnerOrderDetailsPage() {
   };
 
   const generateNoteTemplate = (type: 'docs' | 'payment' | 'review') => {
-      const contactName = (order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName) || order?.customerName;
+      const contactName = order?.customerName || 'Partner';
       let text = `Hi ${contactName?.split(' ')[0]},\n\n`;
       const orderId = order?.originalOrderId || order?.id;
 
       if (type === 'payment') {
           text += `Hope you're having a wonderful week!\n\nJust a gentle follow-up regarding the outstanding invoice for order #${orderId}. Once payment reflects, our team will immediately dive into processing your order.\n\nIf you have already processed the payment or need any assistance with an invoice or statement, please let us know!\n\n`;
       } else if (type === 'docs') {
-          text += `Hope you're having a great day!\n\nWe're all set and excited to get started on your order #${orderId}. Whenever you have a moment, please log into your client portal and upload the required documents so we can begin working on this for you right away.\n\nIf you have any questions or need any help with the requested documents, please feel free to reach out—we're here to help!\n\n`;
+          text += `Hope you're having a great day!\n\nWe're all set and excited to get started on your order #${orderId}. Whenever you have a moment, please log into your portal and upload the required documents so we can begin working on this for you right away.\n\nIf you have any questions or need any help with the requested documents, please feel free to reach out—we're here to help!\n\n`;
       } else if (type === 'review') {
           text += `It was truly a pleasure assisting you with order #${orderId}! ⭐\n\n` +
           `We always aim to provide exceptional service, and your feedback means a great deal to our team. If you have just 30 seconds to spare, would you mind sharing your experience with a quick review?\n\n` +
@@ -395,7 +394,7 @@ export default function PartnerOrderDetailsPage() {
 
   const handleGenerateDiscount = async () => {
     if (!order) return;
-    const contactName = (order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName) || order?.customerName;
+    const contactName = order?.customerName || 'Partner';
     
     if (order.discountCode) {
       toast({ title: 'Discount Already Generated', description: `This order already has a discount code: ${order.discountCode}`, variant: 'destructive' });
@@ -699,16 +698,16 @@ export default function PartnerOrderDetailsPage() {
 
   const handleSendFeedback = async () => {
     if (!order || !order.documentUploads) return;
-    const emailTo = (order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-    const clientName = (order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
+    const emailTo = order.customerEmail;
+    const clientName = order.customerName;
 
     if (!emailTo || !clientName) {
-        toast({ title: "Cannot send feedback", description: "Missing client contact details.", variant: "destructive" });
+        toast({ title: "Cannot send feedback", description: "Missing contact details.", variant: "destructive" });
         return;
     }
 
     setIsSendingFeedback(true);
-    toast({ title: "Sending Feedback...", description: "Notifying the client of the review status." });
+    toast({ title: "Sending Feedback...", description: "Notifying of the review status." });
 
     try {
         await sendDocumentReviewFeedback({
@@ -732,7 +731,7 @@ export default function PartnerOrderDetailsPage() {
         await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
         await fetchOrder(true);
 
-        toast({ title: "Feedback Sent!", description: "The client has been notified." });
+        toast({ title: "Feedback Sent!", description: "Notification has been sent." });
     } catch(e) {
         console.error(e);
         toast({ title: "Failed to Send Feedback", variant: "destructive" });
@@ -741,21 +740,18 @@ export default function PartnerOrderDetailsPage() {
     }
   };
 
-  // Draft generation / regeneration / approve-and-send handlers were removed along with their
-  // imports — these are My Accountant staff-only AI capabilities and are not available to partners.
-
   const handleSendFollowUp = async () => {
     if (!order) return;
-    const emailTo = (order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-    const clientName = (order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
+    const emailTo = order.customerEmail;
+    const clientName = order.customerName;
 
     if (!emailTo || !clientName) {
-        toast({ title: "Cannot send reminder", description: "Missing client contact details.", variant: "destructive" });
+        toast({ title: "Cannot send reminder", description: "Missing contact details.", variant: "destructive" });
         return;
     }
 
     setIsSendingReminder(true);
-    toast({ title: "Sending Reminder...", description: "Notifying the client of outstanding documents." });
+    toast({ title: "Sending Reminder...", description: "Notifying of outstanding documents." });
 
     try {
         await sendOutstandingDocumentsReminder({
@@ -778,7 +774,7 @@ export default function PartnerOrderDetailsPage() {
         await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
         await fetchOrder(true);
 
-        toast({ title: "Reminder Sent!", description: "The client has been notified." });
+        toast({ title: "Reminder Sent!", description: "Notification has been sent." });
     } catch(e) {
         console.error(e);
         toast({ title: "Failed to Send Reminder", variant: "destructive" });

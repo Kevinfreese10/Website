@@ -146,13 +146,16 @@ export function CreateRuleDialog({
                         await updateDoc(clientRef, { allocationRules: updatedRules });
                     }
 
-                    // Update global practice rule if it exists in allocationRules collection
-                    try {
-                        const globalRef = doc(db, 'allocationRules', rule.id);
-                        const existingGlobalKws = rule.keywords || [];
-                        const mergedKws = Array.from(new Set([...existingGlobalKws, ...keywordsArray]));
-                        await updateDoc(globalRef, { keywords: mergedKws });
-                    } catch (_) {}
+                    // Update global practice rule only if client is not isolated and scope is global
+                    const isClientIsolated = Boolean(client?.disableGlobalRules || (client as any)?.isBlankProfile);
+                    if (!isClientIsolated && values.scope === 'global') {
+                        try {
+                            const globalRef = doc(db, 'allocationRules', rule.id);
+                            const existingGlobalKws = rule.keywords || [];
+                            const mergedKws = Array.from(new Set([...existingGlobalKws, ...keywordsArray]));
+                            await updateDoc(globalRef, { keywords: mergedKws });
+                        } catch (_) {}
+                    }
                 }
             } else {
                 const newRule = {
@@ -169,8 +172,12 @@ export function CreateRuleDialog({
                 await updateDoc(doc(db, 'aiAccountantClients', client.uid), { allocationRules: arrayUnion(newRule) });
             }
 
-            // Sync keywords to global practice rules collection ('allocationRules') by accountId
-            if (values.accountId) {
+            // Sync keywords to global practice rules collection ('allocationRules') ONLY if:
+            // 1. Client does not have isolated practice mode (disableGlobalRules)
+            // 2. Client is not a blank profile
+            // 3. Form scope is explicitly 'global'
+            const isClientIsolated = Boolean(client?.disableGlobalRules || (client as any)?.isBlankProfile);
+            if (values.accountId && !isClientIsolated && values.scope === 'global') {
                 const globalSnap = await getDocs(collection(db, 'allocationRules'));
                 const globalMatch = globalSnap.docs.find(d => d.data().accountId === values.accountId);
                 if (globalMatch) {
@@ -193,7 +200,9 @@ export function CreateRuleDialog({
             }
 
             toast({ 
-                title: values.mode === 'append' ? 'Keyword Added to Existing Rule' : 'Practice Rule Saved & Global Rules Updated' 
+                title: values.mode === 'append' 
+                    ? 'Keyword Added to Existing Rule' 
+                    : (isClientIsolated || values.scope === 'client' ? 'Client Allocation Rule Saved' : 'Practice Rule Saved & Global Rules Updated')
             });
             onRuleCreated();
             onOpenChange(false);

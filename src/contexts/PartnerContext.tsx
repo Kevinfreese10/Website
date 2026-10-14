@@ -2,19 +2,26 @@
 import { createContext, useContext, useMemo, ReactNode, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PartnerTier, StaffPermissions, User } from '@/lib/types';
-import { isPast } from 'date-fns';
+import {
+  NormalizedPartnerTier,
+  PartnerTierPlan,
+  getPartnerTierPlan,
+  normalizePartnerTier,
+} from '@/lib/partner-pricing';
 import { getFirestore, doc, getDoc, onSnapshot, query, collection, where } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 
 interface PartnerContextType {
-  tier: PartnerTier;
-  isGrowthActive: boolean; // true if on growth tier AND subscription is active/grandfathered
-  hasPlatformFee: boolean; // true if partner has paid the R1,950 platform fee
+  tier: NormalizedPartnerTier;
+  tierPlan: PartnerTierPlan;
+  discountPercent: number;
+  isGrowthActive: boolean;
+  hasPlatformFee: boolean;
   limits: {
-    aiCompanies: number;   // 0 or 5
-    aiPayroll: number;     // 0 or 5
-    staffSeats: number;    // 0 or 3
+    aiCompanies: number;
+    aiPayroll: number;
+    staffSeats: number;
   };
   usage: {
     aiCompanies: number;
@@ -131,27 +138,19 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PartnerContextType>(() => {
     const isOwner = user?.role === 'partner';
     const permissions = isOwner ? null : (user?.permissions ?? null);
-    
-    // Determine if growth is active:
-    // 1. Legacy R4,950 partners (no partnerTier set) → treated as growth active
-    // 2. partnerTier === 'growth' && partnerSubscription.status === 'active' AND currentPeriodEnd is in future
-    // 3. grandfatheredUntil is in future
-    let isGrowthActive = false;
     const targetUser = partnerProfile || user;
     const sub = targetUser?.partnerSubscription;
-    
-    if (targetUser && (targetUser.role === 'partner' || targetUser.role === 'partner_staff' || targetUser.role === 'partner_admin' || targetUser.role === 'staff')) {
-      // Joining is free, everyone has dashboard/growth active by default!
-      isGrowthActive = true;
-    }
-    
-    const tier: PartnerTier = isGrowthActive ? 'growth' : (targetUser?.partnerTier ?? 'free');
-    const hasPlatformFee = !!(targetUser?.platformFeePaid);
-    
+
+    const tier = normalizePartnerTier(targetUser?.partnerTier);
+    const tierPlan = getPartnerTierPlan(tier);
+    const discountPercent = tierPlan.discountPercent;
+    const isGrowthActive = true;
+    const hasPlatformFee = false;
+
     const limits = {
-      aiCompanies: sub?.aiCompanyLimit ?? 0,
-      aiPayroll: sub?.aiPayrollLimit ?? 0,
-      staffSeats: sub?.staffSeatLimit ?? 1,
+      aiCompanies: Math.max(sub?.aiCompanyLimit ?? 0, tierPlan.aiCompanyLimit),
+      aiPayroll: Math.max(sub?.aiPayrollLimit ?? 0, tierPlan.aiPayrollLimit),
+      staffSeats: Math.max(sub?.staffSeatLimit ?? 1, tierPlan.staffSeatLimit),
     };
 
     const usage = {
@@ -166,11 +165,8 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
       const currentUsage = usage[feature];
       return currentUsage >= limit;
     };
-    
+
     const canDo = (module: keyof StaffPermissions, level: 'view' | 'full'): boolean => {
-      if (module === 'tasks' && !sub?.hasTaskManager) {
-        return false;
-      }
       if (isOwner) return true; // owner can do everything
       if (!permissions) return false;
       const perm = permissions[module];
@@ -178,8 +174,21 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
       if (level === 'full') return perm === 'full';
       return false;
     };
-    
-    return { tier, isGrowthActive, hasPlatformFee, limits, usage, isAtLimit, permissions, isOwner, canDo, partnerProfile };
+
+    return {
+      tier,
+      tierPlan,
+      discountPercent,
+      isGrowthActive,
+      hasPlatformFee,
+      limits,
+      usage,
+      isAtLimit,
+      permissions,
+      isOwner,
+      canDo,
+      partnerProfile,
+    };
   }, [user, partnerProfile, aiCompaniesCount, aiPayrollCount, staffSeatsCount]);
 
   if (loading) {

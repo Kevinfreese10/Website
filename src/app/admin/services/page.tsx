@@ -210,10 +210,15 @@ export default function AdminServicesPage() {
   const handleFormSubmit = async (serviceData: Omit<Service, 'id'> & { id?: string }) => {
     const { id, ...data } = serviceData;
     
-    // Applying the 25% partner discount
+    // Apply default 30% Practice tier discount for legacy resellerPrice compatibility
     const finalData = {
         ...data,
-        resellerPrice: data.price * 0.75,
+        resellerPrice: data.practicePartnerPrice && data.practicePartnerPrice > 0
+            ? data.practicePartnerPrice
+            : Math.round(data.price * 0.70 * 100) / 100,
+        starterPartnerPrice: data.starterPartnerPrice && data.starterPartnerPrice > 0 ? data.starterPartnerPrice : null,
+        practicePartnerPrice: data.practicePartnerPrice && data.practicePartnerPrice > 0 ? data.practicePartnerPrice : null,
+        enterprisePartnerPrice: data.enterprisePartnerPrice && data.enterprisePartnerPrice > 0 ? data.enterprisePartnerPrice : null,
     };
     
     // Strip undefined values to prevent Firestore errors

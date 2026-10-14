@@ -3,92 +3,84 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Trash, RefreshCw, Clock, AlertCircle, CheckCircle2, Mail } from 'lucide-react';
-import { getFirestore, doc, setDoc, Timestamp, collection, query, orderBy, getDocs, where, onSnapshot, serverTimestamp, increment, getDoc, or } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import {
+  Loader2,
+  Plus,
+  Trash,
+  CheckCircle2,
+  Building2,
+} from 'lucide-react';
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  Timestamp,
+  collection,
+  query,
+  orderBy,
+  getDocs,
+} from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { Order, Service, OrderNote, User } from '@/lib/types';
+import { Order, Service } from '@/lib/types';
 import { Separator } from '../ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePartner } from '@/contexts/PartnerContext';
 import { getNextOrderId } from '@/lib/sequence';
-import { adminCreateUserAction, sendOrderConfirmationEmailAction } from '@/app/actions';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import Link from 'next/link';
 import { submitPayFastPayment } from '@/lib/payfast-client';
-import { customAlphabet } from 'nanoid';
+import { getPartnerServicePrice } from '@/lib/partner-pricing';
+import { Badge } from '@/components/ui/badge';
 
 const db = getFirestore(firebaseApp);
-const auth = getAuth(firebaseApp);
-const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 10);
 
 const lineItemSchema = z.object({
   serviceId: z.string().min(1, 'Please select a service.'),
   description: z.string().min(1, 'Description is required.'),
-  quantity: z.preprocess(val => Number(val), z.number().min(1, 'Quantity must be at least 1.')),
-  price: z.preprocess(val => Number(val), z.number().min(0, 'Price cannot be negative.')),
-  discountType: z.enum(['fixed', 'percentage']).default('fixed'),
-  discountValue: z.preprocess(val => (val === '' || val === undefined || val === null ? 0 : Number(val)), z.number().min(0, 'Discount cannot be negative.').optional()),
-  resellerPrice: z.preprocess(val => Number(val), z.number().min(0).optional()),
-  retailFloorPrice: z.preprocess(val => Number(val), z.number().min(0).optional()),
-}).superRefine((data, ctx) => {
-    const quantity = data.quantity || 1;
-    const lineItemTotal = data.price * quantity;
-    const discountVal = data.discountValue || 0;
-
-    if (data.discountType === 'percentage' && discountVal > 100) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Percentage cannot exceed 100%.',
-            path: ['discountValue'],
-        });
-    }
-
-    if (data.discountType === 'fixed' && discountVal > lineItemTotal) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Discount exceeds item total.',
-            path: ['discountValue'],
-        });
-    }
-
-    let discountAmount = 0;
-    if (data.discountType === 'percentage') {
-        discountAmount = lineItemTotal * (Math.min(discountVal, 100) / 100);
-    } else {
-        discountAmount = discountVal * quantity;
-    }
-
-    const netTotal = lineItemTotal - discountAmount;
-    const minCostTotal = (data.resellerPrice || 0) * quantity;
-
-    if (netTotal < minCostTotal) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Selling price cannot be lower than wholesale cost.',
-            path: ['price'],
-        });
-    }
+  quantity: z.preprocess(
+    (val) => Number(val),
+    z.number().min(1, 'Quantity must be at least 1.')
+  ),
+  price: z.preprocess(
+    (val) => Number(val),
+    z.number().min(0, 'Price cannot be negative.')
+  ),
+  retailPrice: z.preprocess(
+    (val) => Number(val),
+    z.number().min(0).optional()
+  ),
 });
 
 const formSchema = z.object({
-  customerFirstName: z.string().optional(),
-  customerLastName: z.string().optional(),
-  customerEmail: z.string().optional(),
-  customerPhone: z.string().optional(),
-  agreeRefundPolicy: z.boolean().refine(val => val === true, {
+  clientReference: z
+    .string()
+    .min(2, 'Please enter the client name or reference this order is for.'),
+  agreeRefundPolicy: z.boolean().refine((val) => val === true, {
     message: 'You must accept the refund policy.',
   }),
-  confirmRequirements: z.boolean().refine(val => val === true, {
-    message: 'You must confirm that you have gathered all necessary document requirements.',
+  confirmRequirements: z.boolean().refine((val) => val === true, {
+    message:
+      'You must confirm that you have gathered all necessary document requirements.',
   }),
   items: z.array(lineItemSchema).min(1, 'At least one line item is required.'),
 });
@@ -96,575 +88,456 @@ const formSchema = z.object({
 type CreatePartnerOrderFormValues = z.infer<typeof formSchema>;
 
 const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-ZA', {
-      style: 'currency',
-      currency: 'ZAR',
-      minimumFractionDigits: price % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 2,
-    }).format(price);
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+    minimumFractionDigits: price % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(price);
 };
 
-export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCreated: () => void }) {
-  const router = useRouter();
+export default function CreatePartnerOrderForm({
+  onOrderCreated,
+}: {
+  onOrderCreated?: () => void;
+}) {
   const { user: partner } = useAuth();
-  const { hasPlatformFee } = usePartner();
+  const { tier, tierPlan, discountPercent } = usePartner();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
+  const [retailTotal, setRetailTotal] = useState(0);
   const [allServices, setAllServices] = useState<Service[]>([]);
-  const [serviceOverrides, setServiceOverrides] = useState<Record<string, any>>({});
   const [isServicesLoading, setIsServicesLoading] = useState(true);
-  
-  const [linkedUser, setLinkedUser] = useState<{name: string, id: string} | null>(null);
-  const [isCheckingUser, setIsCheckingUser] = useState(false);
 
-  const partnerId = partner?.role === 'partner' ? partner.uid : partner?.partnerId;
-  const hasBankingDetails = !!(partner?.bankingDetails?.bankName && partner?.bankingDetails?.accountNumber);
+  const partnerId =
+    partner?.role === 'partner' ? partner.uid : partner?.partnerId;
 
   useEffect(() => {
     const fetchServices = async () => {
-        setIsServicesLoading(true);
-        try {
-            const q = query(collection(db, "services"), orderBy("title"));
-            const querySnapshot = await getDocs(q);
-            const fetchedServices = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service));
-            setAllServices(fetchedServices);
-        } catch (error) {
-            console.error("Error fetching services:", error);
-        } finally {
-            setIsServicesLoading(false);
-        }
+      setIsServicesLoading(true);
+      try {
+        const q = query(collection(db, 'services'), orderBy('title'));
+        const querySnapshot = await getDocs(q);
+        const fetchedServices = querySnapshot.docs.map(
+          (d) => ({ ...d.data(), id: d.id } as Service)
+        );
+        setAllServices(fetchedServices);
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      } finally {
+        setIsServicesLoading(false);
+      }
     };
     fetchServices();
   }, []);
 
-  useEffect(() => {
-    if (!partnerId) return;
-    const overridesRef = collection(db, 'users', partnerId, 'serviceOverrides');
-    const unsubscribe = onSnapshot(overridesRef, (snap) => {
-        const data: Record<string, any> = {};
-        snap.docs.forEach(doc => data[doc.id] = doc.data());
-        setServiceOverrides(data);
-    });
-    return () => unsubscribe();
-  }, [partnerId]);
-
   const form = useForm<CreatePartnerOrderFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      customerFirstName: '',
-      customerLastName: '',
-      customerEmail: '',
-      customerPhone: '',
+      clientReference: '',
       agreeRefundPolicy: false,
       confirmRequirements: false,
-      items: [{ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0, retailFloorPrice: 0 }],
+      items: [
+        {
+          serviceId: '',
+          description: '',
+          quantity: 1,
+          price: 0,
+          retailPrice: 0,
+        },
+      ],
     },
     mode: 'onChange',
   });
-
-  useEffect(() => {
-    if (partner && !hasPlatformFee) {
-        const nameParts = (partner.name || '').split(' ');
-        const fName = nameParts[0] || 'Partner';
-        const lName = nameParts.slice(1).join(' ') || 'Owner';
-        form.setValue('customerFirstName', partner.contactPerson || fName);
-        form.setValue('customerLastName', partner.companyName || lName);
-        form.setValue('customerEmail', partner.email || '');
-        form.setValue('customerPhone', partner.contactNumber || '0820000000');
-    }
-  }, [partner, hasPlatformFee, form]);
-
-  const watchedEmail = form.watch('customerEmail');
-
-  useEffect(() => {
-    const lookupUser = async () => {
-        const rawEmail = watchedEmail?.trim();
-        if (!rawEmail || !rawEmail.includes('@') || rawEmail.length < 5) {
-            setLinkedUser(null);
-            return;
-        }
-        
-        setIsCheckingUser(true);
-        try {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            let found = false;
-
-            for (const colName of collectionsToTry) {
-                const q = query(
-                    collection(db, colName), 
-                    or(
-                        where("email", "==", rawEmail),
-                        where("email", "==", rawEmail.toLowerCase())
-                    )
-                );
-                const snap = await getDocs(q);
-                
-                if (!snap.empty) {
-                    const userData = snap.docs[0].data();
-                    const fullName = userData.name || userData.companyName || 'Existing Client';
-                    
-                    setLinkedUser({ 
-                        name: fullName, 
-                        id: snap.docs[0].id 
-                    });
-
-                    const nameParts = fullName.split(' ');
-                    form.setValue('customerFirstName', nameParts[0] || '');
-                    form.setValue('customerLastName', nameParts.slice(1).join(' ') || '');
-                    form.setValue('customerPhone', userData.contactNumber || userData.cellNumber || userData.phone || '');
-                    form.trigger();
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                setLinkedUser(null);
-            }
-        } catch (e) {
-            console.error("User lookup failed:", e);
-        } finally {
-            setIsCheckingUser(false);
-        }
-    };
-
-    const timer = setTimeout(lookupUser, 600);
-    return () => clearTimeout(timer);
-  }, [watchedEmail, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'items',
   });
 
-  const calculateTotal = (items: any[]) => {
-    return (items || []).reduce((acc, item) => {
-        const quantity = item?.quantity || 0;
-        const price = item?.price || 0;
-        const discountValue = item?.discountValue || 0;
-        const lineItemTotal = price * quantity;
-
-        let discountAmount = 0;
-        if (item.discountType === 'percentage') {
-            discountAmount = lineItemTotal * (discountValue / 100);
-        } else {
-            discountAmount = discountValue * quantity;
-        }
-
-        return acc + (lineItemTotal - discountAmount);
-    }, 0);
-  }
-
   useEffect(() => {
     const subscription = form.watch((value) => {
-        setTotal(calculateTotal(value.items || []));
+      const items = value.items || [];
+      const wholesaleSum = items.reduce(
+        (acc, item) => acc + (Number(item?.price) || 0) * (Number(item?.quantity) || 0),
+        0
+      );
+      const retailSum = items.reduce(
+        (acc, item) => acc + (Number(item?.retailPrice) || 0) * (Number(item?.quantity) || 0),
+        0
+      );
+      setTotal(wholesaleSum);
+      setRetailTotal(retailSum);
     });
     return () => subscription.unsubscribe();
   }, [form]);
 
   const handleServiceChange = (serviceId: string, index: number) => {
-    const selectedService = allServices.find(s => s.id === serviceId);
-    const override = serviceOverrides[serviceId];
-    
+    const selectedService = allServices.find((s) => s.id === serviceId);
     if (selectedService) {
-        const retailPrice = selectedService.price;
-        const basePrice = Math.max(override?.price ?? retailPrice, retailPrice);
-        const resellerPrice = selectedService.resellerPrice || retailPrice * 0.80;
-        form.setValue(`items.${index}.description`, override?.title || selectedService.title);
-        form.setValue(`items.${index}.price`, hasPlatformFee ? basePrice : resellerPrice);
-        form.setValue(`items.${index}.resellerPrice`, resellerPrice);
-        form.setValue(`items.${index}.retailFloorPrice`, retailPrice);
-        form.setValue(`items.${index}.discountType`, 'fixed');
-        form.setValue(`items.${index}.discountValue`, 0);
-        form.trigger(`items.${index}`);
+      const wholesalePrice = getPartnerServicePrice(selectedService, tier);
+      form.setValue(`items.${index}.description`, selectedService.title);
+      form.setValue(`items.${index}.price`, wholesalePrice);
+      form.setValue(`items.${index}.retailPrice`, selectedService.price);
+      form.trigger(`items.${index}`);
     }
-  };
-
-  const getLineItemTotal = (item: any) => {
-    const quantity = item.quantity || 0;
-    const price = item.price || 0;
-    const discountValue = item.discountValue || 0;
-    const lineItemTotal = price * quantity;
-
-    let discountAmount = 0;
-    if (item.discountType === 'percentage') {
-        discountAmount = lineItemTotal * (discountValue / 100);
-    } else {
-        discountAmount = discountValue * quantity;
-    }
-    return (lineItemTotal - discountAmount);
   };
 
   async function onSubmit(values: CreatePartnerOrderFormValues) {
     if (!partner || !partnerId) return;
 
-    if (hasPlatformFee && !hasBankingDetails) {
-        toast({ title: 'Banking Details Missing', description: 'Please complete your practice banking details in your profile.', variant: 'destructive'});
-        return;
-    }
-
     setIsLoading(true);
-    toast({ title: 'Processing Order...', description: 'Creating order.' });
+    toast({
+      title: 'Creating Practice Order...',
+      description: 'Preparing your wholesale checkout.',
+    });
 
     try {
-        const rawEmail = values.customerEmail?.trim();
-        const email = rawEmail ? rawEmail.toLowerCase() : partner.email;
-        let finalUserId: string | null = partnerId;
-        let isNewUser = false;
-        let generatedPassword = null;
+      const orderId = await getNextOrderId();
+      const practiceName = partner.companyName || partner.name;
+      const clientRef = values.clientReference.trim();
 
-        if (hasPlatformFee) {
-            if (!values.customerEmail || !values.customerFirstName || !values.customerLastName) {
-                toast({ title: 'Missing Details', description: 'Please complete all client information fields.', variant: 'destructive' });
-                setIsLoading(false);
-                return;
-            }
+      const wholesaleTotal = values.items.reduce(
+        (acc, item) => acc + item.price * item.quantity,
+        0
+      );
+      const clientRetailTotal = values.items.reduce(
+        (acc, item) => acc + (item.retailPrice || item.price) * item.quantity,
+        0
+      );
 
-            finalUserId = linkedUser?.id || null;
+      const orderData: Order = {
+        id: orderId,
+        resellerId: partnerId,
+        partnerId: partnerId,
+        userId: partnerId,
+        customerName: practiceName,
+        customerEmail: partner.email,
+        customerPhone: partner.contactNumber,
+        endCustomerName: clientRef,
+        documentContact: 'partner',
+        date: Timestamp.now(),
+        items: values.items.map((item) => ({
+          id: item.serviceId,
+          serviceId: item.serviceId,
+          title: item.description,
+          price: item.price,
+          clientPrice: item.retailPrice || item.price,
+          quantity: item.quantity,
+        })),
+        total: wholesaleTotal,
+        clientTotal: clientRetailTotal,
+        status: 'Pending Payment',
+        originalOrderId: null,
+        isOutsourced: true,
+        discountAmount: Math.max(0, clientRetailTotal - wholesaleTotal),
+        discountCode: `${tierPlan.name.toUpperCase()}-${discountPercent}%`,
+        source: 'Partner',
+      };
 
-            if (!finalUserId) {
-                const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-                for (const colName of collectionsToTry) {
-                    const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail?.trim() || '')));
-                    const snap = await getDocs(q);
-                    if (!snap.empty) {
-                        finalUserId = snap.docs[0].id;
-                        break;
-                    }
-                }
-            }
+      await setDoc(doc(db, 'orders', orderId), orderData);
 
-            if (!finalUserId) {
-                generatedPassword = nanoid();
-                
-                const createRes = await adminCreateUserAction({
-                    idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
-                    email: email,
-                    password: generatedPassword,
-                    name: `${values.customerFirstName} ${values.customerLastName}`,
-                    role: 'client',
-                    source: `Partner Order (${partner.companyName || partner.name})`,
-                    contactNumber: values.customerPhone || partner.contactNumber || '0820000000',
-                });
+      if (onOrderCreated) {
+        onOrderCreated();
+      }
 
-                if (!createRes.success) {
-                    if (createRes.error === 'auth/email-already-in-use') {
-                        toast({
-                            title: 'Account Exists',
-                            description: 'A user account already exists with this email address. Please link the order to the existing user instead.',
-                            variant: 'destructive',
-                        });
-                        setIsLoading(false);
-                        return;
-                    }
-                    throw new Error(createRes.message || 'Failed to create user account');
-                }
+      toast({
+        title: 'Redirecting to PayFast...',
+        description: 'Initiating wholesale payment.',
+      });
 
-                finalUserId = createRes.uid!;
-                isNewUser = createRes.isNewUser!;
-            }
-        }
+      const res = await submitPayFastPayment({
+        orderId,
+        amount: wholesaleTotal,
+        itemName: `Partner Order #${orderId} (${clientRef})`,
+        itemDescription: orderData.items.map((i) => i.title).join(', '),
+        customerName: practiceName || 'Partner User',
+        customerEmail: partner.email,
+        customerPhone: partner.contactNumber || '',
+        returnPath: `/payment-success/${orderId}`,
+        cancelPath: `/partner/orders`,
+      });
 
-        const orderId = await getNextOrderId();
-        const customerFullName = hasPlatformFee ? `${values.customerFirstName} ${values.customerLastName}` : (partner.companyName || partner.name);
-        
-        const resellerTotal = values.items.reduce((acc, item) => {
-            const resellerBase = item.resellerPrice || item.price;
-            return acc + (resellerBase * item.quantity);
-        }, 0);
-
-        const orderData: Order = {
-            id: orderId,
-            resellerId: partnerId,
-            userId: finalUserId,
-            customerName: partner.companyName || partner.name,
-            customerEmail: partner.email,
-            customerPhone: partner.contactNumber,
-            endCustomerName: customerFullName,
-            endCustomerEmail: email,
-            documentContact: 'partner',
-            date: Timestamp.now(),
-            items: values.items.map(item => ({ 
-                id: item.serviceId,
-                title: item.description, 
-                price: item.resellerPrice || item.price,
-                clientPrice: item.price,
-                quantity: item.quantity,
-                discountType: item.discountType,
-                discountValue: item.discountValue,
-            })),
-            total: resellerTotal,
-            clientTotal: total,
-            status: 'Pending Payment',
-            originalOrderId: null,
-            isOutsourced: !hasPlatformFee,
-            discountAmount: null,
-            discountCode: null,
-            source: 'Partner',
-        };
-
-        await setDoc(doc(db, 'orders', orderId), orderData);
-
-        if (hasPlatformFee) {
-            try {
-                await sendOrderConfirmationEmailAction({
-                    orderData: JSON.parse(JSON.stringify(orderData)),
-                    resellerData: partner ? JSON.parse(JSON.stringify(partner)) : undefined,
-                    isNewUser,
-                    generatedPassword,
-                });
-                toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
-            } catch (emailError) {
-                console.error("Non-blocking order email send error:", emailError);
-                toast({
-                    title: 'Order Created (Email Failed)',
-                    description: `Order successfully saved, but confirmation email failed. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}`,
-                    variant: 'default'
-                });
-            }
-            onOrderCreated();
-        } else {
-            toast({ title: 'Redirecting to PayFast...', description: 'Initiating wholesale payment.' });
-
-            const res = await submitPayFastPayment({
-                orderId,
-                amount: resellerTotal,
-                itemName: `Order #${orderId}`,
-                itemDescription: orderData.items.map(i => i.title).join(', '),
-                customerName: partner.companyName || partner.name || 'Partner User',
-                customerEmail: partner.email,
-                customerPhone: partner.contactNumber || '',
-                returnPath: `/payment-success/${orderId}`,
-                cancelPath: `/partner/orders`,
-            });
-
-            if (!res.success) {
-                toast({
-                    title: 'Payment Gateway Error',
-                    description: res.error || 'Could not redirect to PayFast.',
-                    variant: 'destructive'
-                });
-                setIsLoading(false);
-            }
-        }
-
-    } catch (error: any) {
-        console.error("Error creating order: ", error);
+      if (!res.success) {
         toast({
-            title: 'Operation Failed',
-            description: error.message || 'There was a problem processing your request.',
-            variant: 'destructive',
+          title: 'Payment Gateway Error',
+          description: res.error || 'Could not redirect to PayFast.',
+          variant: 'destructive',
         });
-    } finally {
         setIsLoading(false);
+      }
+    } catch (error: any) {
+      console.error('Error creating partner order: ', error);
+      toast({
+        title: 'Operation Failed',
+        description:
+          error.message || 'There was a problem processing your request.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
     }
-  }
-
-  if (hasPlatformFee && !hasBankingDetails) {
-      return (
-          <div className="py-8 text-center space-y-4">
-              <Alert variant="destructive" className="text-left">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Action Required</AlertTitle>
-                  <AlertDescription>
-                      You must configure your <strong>Practice Banking Details</strong> in your profile before you can create client orders on your storefront.
-                  </AlertDescription>
-              </Alert>
-              <Button asChild variant="outline"><Link href="/partner/profile">Update Banking Details</Link></Button>
-          </div>
-      )
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-1 pr-4">
-        {hasPlatformFee ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2 space-y-2">
-                    <FormField control={form.control} name="customerEmail" render={({ field }) => ( 
-                        <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-primary" />
-                                Client's Email Address
-                            </FormLabel>
-                            <FormControl>
-                                <div className="relative">
-                                    <Input placeholder="Start here to lookup client..." {...field} className="h-12 border-primary/20 focus-visible:ring-primary font-medium" />
-                                    {isCheckingUser && <Loader2 className="absolute right-3 top-4 h-4 w-4 animate-spin text-muted-foreground" />}
-                                </div>
-                            </FormControl>
-                            <FormDescription>Entering the email first will automatically fill in existing client details.</FormDescription>
-                            <FormMessage />
-                        </FormItem> 
-                    )} />
-                    {linkedUser && (
-                        <div className="flex items-center gap-2 text-xs text-green-600 font-bold bg-green-50 p-3 rounded-md border border-green-100 animate-in fade-in slide-in-from-top-1">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Matched: {linkedUser.name}
-                        </div>
-                    )}
-                </div>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-6 max-h-[75vh] overflow-y-auto p-1 pr-4"
+      >
+        <div className="p-4 bg-slate-50 rounded-xl border text-sm text-slate-700 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-bold flex items-center gap-2 text-primary">
+              <CheckCircle2 className="h-4 w-4 text-primary" /> Back-Office Wholesale Order
+            </p>
+            <Badge variant="default" className="font-bold">
+              {tierPlan.name} Tier ({discountPercent}% Off)
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This order is booked under your practice account (
+            <strong>{partner?.companyName || partner?.name}</strong>). All status updates, document requests, and deliverables are sent strictly to{' '}
+            <strong>{partner?.email}</strong> — we never contact your client directly.
+          </p>
+        </div>
 
-                <FormField control={form.control} name="customerFirstName" render={({ field }) => ( <FormItem><FormLabel>Client's First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="customerLastName" render={({ field }) => ( <FormItem><FormLabel>Client's Last Name</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                
-                <FormField control={form.control} name="customerPhone" render={({ field }) => ( <FormItem><FormLabel>Client's Phone</FormLabel><FormControl><Input placeholder="0821234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            </div>
-        ) : (
-            <div className="p-4 bg-slate-50 rounded-xl border text-sm text-slate-700 space-y-1">
-                <p className="font-bold flex items-center gap-2 text-primary">
-                    <CheckCircle2 className="h-4 w-4 text-primary" /> Ordering for Practice Account
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                    As a Free Partner, orders are placed at <strong>20% wholesale discount</strong> directly under your practice account: <strong>{partner?.companyName || partner?.name} ({partner?.email})</strong>.
-                </p>
-            </div>
-        )}
-        
+        <FormField
+          control={form.control}
+          name="clientReference"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2 font-semibold">
+                <Building2 className="h-4 w-4 text-primary" />
+                Client Name / Reference (For Your Tracking)
+              </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g. Acme Trading (Pty) Ltd — 2024/123456/07"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription className="text-xs">
+                Enter the name of the client or entity this service is being fulfilled for so you and our back-office team can identify the order.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <Separator />
 
         <div>
-            <h3 className="text-lg font-medium mb-2">Order Items</h3>
-            <div className="space-y-4">
-                {fields.map((field, index) => {
-                    const lineItem = form.watch(`items.${index}`);
-                    const resellerCost = lineItem?.resellerPrice || 0;
-                    
-                    return (
-                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-3 gap-y-2 p-3 border rounded-md relative items-start">
-                         <div className={hasPlatformFee ? "md:col-span-3 space-y-2" : "md:col-span-8 space-y-2"}>
-                            <FormField
-                                control={form.control}
-                                name={`items.${index}.serviceId`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Service</FormLabel>
-                                        <Select onValueChange={(value) => { field.onChange(value); handleServiceChange(value, index);}} value={field.value} disabled={isServicesLoading}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder={isServicesLoading ? 'Loading services...' : 'Select a service'} /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {allServices.map(service => <SelectItem key={service.id} value={service.id}>{service.title}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                         </div>
-                        <div className={hasPlatformFee ? "md:col-span-1" : "md:col-span-2"}>
-                             <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => ( <FormItem><FormLabel>Qty</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                         </div>
-                        {hasPlatformFee && (
-                            <>
-                                <div className="md:col-span-2">
-                                     <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => ( 
-                                         <FormItem>
-                                             <FormLabel>Selling Price (R)</FormLabel>
-                                             <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                                             <FormDescription className="text-[10px]">
-                                                 Cost: {formatPrice(resellerCost)}
-                                             </FormDescription>
-                                             <FormMessage />
-                                         </FormItem> 
-                                     )} />
-                                 </div>
-                                 <div className="md:col-span-2">
-                                     <FormField
-                                        control={form.control}
-                                        name={`items.${index}.discountType`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Discount</FormLabel>
-                                                <Select 
-                                                    onValueChange={(val) => {
-                                                        field.onChange(val);
-                                                        form.trigger(`items.${index}`);
-                                                    }} 
-                                                    value={field.value}
-                                                >
-                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="fixed">Fixed (R)</SelectItem>
-                                                        <SelectItem value="percentage">Percent (%)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormItem>
-                                        )}
-                                        />
-                                 </div>
-                                 <div className="md:col-span-2">
-                                     <FormField control={form.control} name={`items.${index}.discountValue`} render={({ field }) => ( <FormItem><FormLabel>Value</FormLabel><FormControl><Input type="number" step="0.01" className="px-3" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                 </div>
-                            </>
-                        )}
-                         <div className={hasPlatformFee ? "md:col-span-2 flex items-center justify-end gap-3 pt-7" : "md:col-span-2 flex items-center justify-end gap-3 pt-7"}>
-                            <p className="text-right font-bold text-sm text-slate-900 shrink-0">{formatPrice(getLineItemTotal(lineItem))}</p>
-                            <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive shrink-0" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
-                         </div>
+          <h3 className="text-base font-semibold mb-3">Select Services</h3>
+          <div className="space-y-3">
+            {fields.map((field, index) => {
+              const lineItem = form.watch(`items.${index}`);
+              const lineTotal =
+                (Number(lineItem?.price) || 0) * (Number(lineItem?.quantity) || 1);
+              const lineRetail =
+                (Number(lineItem?.retailPrice) || 0) *
+                (Number(lineItem?.quantity) || 1);
+
+              return (
+                <div
+                  key={field.id}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 border rounded-lg items-start bg-background"
+                >
+                  <div className="md:col-span-7">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.serviceId`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Service</FormLabel>
+                          <Select
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              handleServiceChange(value, index);
+                            }}
+                            value={field.value}
+                            disabled={isServicesLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={
+                                    isServicesLoading
+                                      ? 'Loading services...'
+                                      : 'Select a service'
+                                  }
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {allServices
+                                .filter((s) => s.price > 0 && !s.isPriceTbc)
+                                .map((service) => {
+                                  const partnerPrice = getPartnerServicePrice(
+                                    service,
+                                    tier
+                                  );
+                                  return (
+                                    <SelectItem key={service.id} value={service.id}>
+                                      {service.title} — {formatPrice(partnerPrice)} (Retail:{' '}
+                                      {formatPrice(service.price)})
+                                    </SelectItem>
+                                  );
+                                })}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.quantity`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Qty</FormLabel>
+                          <FormControl>
+                            <Input type="number" min={1} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-3 flex items-center justify-end gap-2 pt-6">
+                    <div className="text-right">
+                      {lineRetail > lineTotal && (
+                        <p className="text-[11px] text-muted-foreground line-through">
+                          {formatPrice(lineRetail)}
+                        </p>
+                      )}
+                      <p className="font-bold text-sm text-slate-900">
+                        {formatPrice(lineTotal)}
+                      </p>
                     </div>
-                )})}
-            </div>
-            <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0, retailFloorPrice: 0 })}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Line Item
-                </Button>
-                <Button type="button" variant="secondary" size="sm" className="mt-4" onClick={() => form.trigger()}><RefreshCw className="mr-2 h-4 w-4" /> Update Totals</Button>
-            </div>
+                    <Button
+                      aria-label="Delete"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remove(index)}
+                      className="h-8 w-8 text-destructive shrink-0"
+                      disabled={fields.length === 1}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() =>
+              append({
+                serviceId: '',
+                description: '',
+                quantity: 1,
+                price: 0,
+                retailPrice: 0,
+              })
+            }
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Another Service
+          </Button>
         </div>
 
         <Separator />
-        
-        <div className="flex justify-end items-start gap-8">
-            <div className="text-right">
-                <p className="text-sm text-muted-foreground">{hasPlatformFee ? "Practice Total (Client Facing)" : "Wholesale Total (20% Off)"}</p>
-                <p className="text-2xl font-bold text-primary">{formatPrice(total)}</p>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/40 p-4 rounded-xl border">
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            <div>
+              Standard Retail Value:{' '}
+              <span className="font-semibold text-foreground">
+                {formatPrice(retailTotal)}
+              </span>
             </div>
+            <div className="text-emerald-600 font-semibold">
+              Your Practice Savings ({discountPercent}% Off):{' '}
+              {formatPrice(Math.max(0, retailTotal - total))}
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">
+              Wholesale Total Due ({tierPlan.name} Tier)
+            </p>
+            <p className="text-2xl font-extrabold text-primary">
+              {formatPrice(total)}
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-3 pt-2">
-            <FormField
-                control={form.control}
-                name="agreeRefundPolicy"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                            <FormLabel className="cursor-pointer text-xs font-medium text-slate-700">
-                                I understand and agree to the{' '}
-                                <Link href="/refund-policy" target="_blank" className="underline font-bold text-primary">
-                                    Refund Policy
-                                </Link>.
-                            </FormLabel>
-                            <FormMessage />
-                        </div>
-                    </FormItem>
-                )}
-            />
+        <div className="space-y-3 pt-1">
+          <FormField
+            control={form.control}
+            name="agreeRefundPolicy"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="cursor-pointer text-xs font-medium text-slate-700">
+                    I understand and agree to the{' '}
+                    <Link
+                      href="/refund-policy"
+                      target="_blank"
+                      className="underline font-bold text-primary"
+                    >
+                      Refund Policy
+                    </Link>
+                    .
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
 
-            <FormField
-                control={form.control}
-                name="confirmRequirements"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                            <FormLabel className="cursor-pointer text-xs font-medium text-slate-700">
-                                I confirm that I have gathered all necessary document requirements for the selected service(s).
-                            </FormLabel>
-                            <FormMessage />
-                        </div>
-                    </FormItem>
-                )}
-            />
+          <FormField
+            control={form.control}
+            name="confirmRequirements"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="cursor-pointer text-xs font-medium text-slate-700">
+                    I confirm that I have gathered all necessary document requirements for the selected service(s).
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
         </div>
 
-        <Button type="submit" className="w-full" size="lg" disabled={isLoading || !form.formState.isValid || total === 0}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Creating Order...' : (hasPlatformFee ? 'Create Order & Send for Payment' : 'Create Order & Pay Now')}
+        <Button
+          type="submit"
+          className="w-full font-bold"
+          size="lg"
+          disabled={isLoading || !form.formState.isValid || total === 0}
+        >
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading
+            ? 'Redirecting to PayFast...'
+            : `Proceed to PayFast Checkout (${formatPrice(total)})`}
         </Button>
       </form>
     </Form>

@@ -26,6 +26,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractStatementChunk } from '@/app/actions';
 import { matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
+import { MASTER_ALLOCATION_RULES } from '@/lib/master-allocation-rules';
+import { triageTransaction, buildConsistencyMap, TriageContext } from '@/lib/initial-allocation-engine';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
@@ -38,12 +40,39 @@ async function getIdToken(): Promise<string> {
   return token;
 }
 
+function toSafeYmd(val: any): string {
+  if (!val) return '';
+  try {
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = val?.toDate ? val.toDate() : new Date(val);
+    if (isNaN(d.getTime())) return '';
+    return format(d, 'yyyy-MM-dd');
+  } catch {
+    return '';
+  }
+}
+
+function toSafeIso(val: any): string | null {
+  if (!val) return null;
+  try {
+    const d = val?.toDate ? val.toDate() : new Date(val);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 type Transaction = {
   date: string;
   description: string;
   amount: number;
+  balance?: number;
   isFee?: boolean;
   parentDescription?: string;
+  sourceStmtId?: string;
 };
 
 type StatementFile = {
@@ -130,6 +159,7 @@ export default function AIBulkStatementImportDialog({
   client: User;
   onImportComplete: () => void;
 }) {
+  const targetClientId = client?.id || client?.uid || '';
   const [step, setStep] = useState<'upload' | 'extracting' | 'preview'>('upload');
   const [statementFiles, setStatementFiles] = useState<StatementFile[]>([]);
   const [isPreAnalyzing, setIsPreAnalyzing] = useState(false);
@@ -194,18 +224,28 @@ export default function AIBulkStatementImportDialog({
           reader.onerror = (e) => reject(e);
         });
 
-        // Load PDF and extract page 1
+        // Load PDF and extract first + last pages so multi-page statements capture both Opening and Closing balances
         const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-        if (pdfDoc.getPageCount() === 0) {
+        const totalPageCount = pdfDoc.getPageCount();
+        if (totalPageCount === 0) {
           throw new Error('PDF has no pages');
         }
 
-        const firstPageDoc = await PDFDocument.create();
-        const pages = await firstPageDoc.copyPages(pdfDoc, [0]);
-        firstPageDoc.addPage(pages[0]);
-        const firstPageBase64 = `data:application/pdf;base64,${await firstPageDoc.saveAsBase64()}`;
+        const metaPageIndices = Array.from(
+          new Set(
+            totalPageCount === 1
+              ? [0]
+              : totalPageCount === 2
+              ? [0, 1]
+              : [0, totalPageCount - 2, totalPageCount - 1]
+          )
+        );
+        const metaDoc = await PDFDocument.create();
+        const copiedMetaPages = await metaDoc.copyPages(pdfDoc, metaPageIndices);
+        copiedMetaPages.forEach(p => metaDoc.addPage(p));
+        const metaPdfBase64 = `data:application/pdf;base64,${await metaDoc.saveAsBase64()}`;
 
-        const metadata = await extractStatementMetadata({ statementPdf: firstPageBase64 });
+        const metadata = await extractStatementMetadata({ statementPdf: metaPdfBase64 });
 
         const analyzed: StatementFile = {
           ...stmt,
@@ -269,7 +309,12 @@ export default function AIBulkStatementImportDialog({
       // Find if this account matches any in Chart of Accounts
       const existingAccount = client.chartOfAccounts?.find(acc => {
         const details = acc as ChartOfAccount & { bankName?: string; bankAccountNumber?: string };
-        return details.accountNumber.startsWith('8400-') && 
+        const isBankCandidate =
+          details.accountNumber.startsWith('8400-') ||
+          Boolean(details.bankAccountNumber) ||
+          Boolean(details.bankName) ||
+          details.category === 'Bank';
+        return isBankCandidate && 
                (matchAccountNumber(details.bankAccountNumber, accNum) || 
                 details.description.toLowerCase().includes(accNum.toLowerCase()));
       }) as (ChartOfAccount & { bankName?: string; bankAccountNumber?: string }) | undefined;
@@ -293,9 +338,31 @@ export default function AIBulkStatementImportDialog({
     setPreAnalysisCompleted(true);
   };
 
+  // Duplicate check helper
+  const checkDuplicate = (tx: Transaction, idx: number, list: Transaction[], dbTxs: ImportedTransaction[]) => {
+    const txDate = toSafeYmd(tx.date);
+    const key = `${txDate}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
+    const dbCount = dbTxs.filter(e => {
+      const eDate = toSafeYmd(e.date);
+      return eDate === txDate &&
+             (e.description || '').toLowerCase().trim() === tx.description.toLowerCase().trim() &&
+             Math.abs(e.amount - tx.amount) < 0.01;
+    }).length;
+
+    let currentOccurrence = 0;
+    for (let i = 0; i <= idx; i++) {
+      const item = list[i];
+      const itemKey = `${toSafeYmd(item.date)}_${item.description.toLowerCase().trim()}_${item.amount.toFixed(2)}`;
+      if (itemKey === key) {
+        currentOccurrence++;
+      }
+    }
+    return currentOccurrence <= dbCount;
+  };
+
   // Run the full process: Create accounts if needed, then run AI OCR transaction extraction
   const handleProcessAndExtract = async () => {
-    if (detectedAccounts.length === 0) return;
+    if (detectedAccounts.length === 0 || !targetClientId) return;
     setStep('extracting');
     setExtractionProgress(0);
     setStatusMessage('Initializing...');
@@ -304,7 +371,7 @@ export default function AIBulkStatementImportDialog({
       // 1. Create missing bank accounts sequentially
       setStatusMessage('Creating cashbook accounts in database...');
       const accountsToResolve = [...detectedAccounts];
-      const clientRef = doc(db, 'aiAccountantClients', client.id);
+      const clientRef = doc(db, 'aiAccountantClients', targetClientId);
 
       // Fetch fresh client doc to prevent race conditions on chartOfAccounts sequence numbers
       const freshSnap = await getDoc(clientRef);
@@ -334,11 +401,14 @@ export default function AIBulkStatementImportDialog({
           const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
           const newAccountNumber = `8400-${String(nextNumber).padStart(3, '0')}`;
 
-          const newAccount = {
+          const newAccount: ChartOfAccount & { bankName?: string; bankAccountNumber?: string } = {
             id: newAccountNumber,
             accountNumber: newAccountNumber,
             description: acc.customDescription,
             section: 'Balance Sheet',
+            category: 'Current Assets',
+            fsGroup: 'Cash and cash equivalents',
+            fsNote: 'Note 2: Cash and cash equivalents',
             bankName: acc.bankName,
             bankAccountNumber: acc.accountNumber
           };
@@ -417,7 +487,12 @@ export default function AIBulkStatementImportDialog({
           const result = await extractStatementChunk({ chunkBase64, idToken: await getIdToken() });
 
           if (result.success && result.transactions) {
-            transactionsByAccount[accountId] = [...transactionsByAccount[accountId], ...result.transactions];
+            const txsWithSource = result.transactions.map((tx: Transaction) => ({
+              ...tx,
+              date: toSafeYmd(tx.date) || tx.date,
+              sourceStmtId: stmt.id
+            }));
+            transactionsByAccount[accountId] = [...transactionsByAccount[accountId], ...txsWithSource];
           } else {
             throw new Error(result.error || `Failed to extract transactions from pages ${start + 1} to ${end} of ${stmt.name}`);
           }
@@ -437,7 +512,7 @@ export default function AIBulkStatementImportDialog({
         const accountId = resolvedAcc.id;
 
         // Fetch DB transactions for duplicate checks
-        const transRef = collection(db, 'aiAccountantClients', client.id, 'transactions');
+        const transRef = collection(db, 'aiAccountantClients', targetClientId, 'transactions');
         const q = query(transRef, where('bankAccountId', '==', accountId));
         const snap = await getDocs(q);
         const dbTxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportedTransaction));
@@ -445,14 +520,29 @@ export default function AIBulkStatementImportDialog({
         const rawTxs = transactionsByAccount[accountId] || [];
         rawTxs.sort((a, b) => a.date.localeCompare(b.date));
 
-        // Deduplicate raw list internally
+        // Smart deduplication across statements that preserves legitimate same-day duplicates within a single statement
         const uniqueRaw: Transaction[] = [];
-        const seenKeys = new Set<string>();
-        rawTxs.forEach(t => {
-          const key = `${t.date}_${t.description.toLowerCase().trim()}_${t.amount.toFixed(2)}`;
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            uniqueRaw.push(t);
+        const txGroups = new Map<string, Transaction[]>();
+
+        rawTxs.forEach(tx => {
+          const key = `${tx.date}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
+          if (!txGroups.has(key)) txGroups.set(key, []);
+          txGroups.get(key)!.push(tx);
+        });
+
+        txGroups.forEach((groupTxs) => {
+          const countsPerStmt = new Map<string, number>();
+          groupTxs.forEach(tx => {
+            if (tx.sourceStmtId) {
+              countsPerStmt.set(tx.sourceStmtId, (countsPerStmt.get(tx.sourceStmtId) || 0) + 1);
+            }
+          });
+          let maxCount = groupTxs.length;
+          if (countsPerStmt.size > 0) {
+            maxCount = Math.max(...Array.from(countsPerStmt.values()));
+          }
+          for (let i = 0; i < maxCount; i++) {
+            uniqueRaw.push(groupTxs[i]);
           }
         });
 
@@ -498,7 +588,33 @@ export default function AIBulkStatementImportDialog({
         });
 
         feeItems.forEach(fee => {
-          processedList.push(fee);
+          const insertIdx = processedList.findIndex(item => item.date > fee.date);
+          if (insertIdx === -1) {
+            processedList.push(fee);
+          } else {
+            processedList.splice(insertIdx, 0, fee);
+          }
+        });
+
+        let finalOpenBal = acc.openingBalance;
+        let finalCloseBal = acc.closingBalance;
+        if (processedList.length > 0) {
+          const firstTx = processedList[0];
+          const lastTx = processedList[processedList.length - 1];
+          if ((!finalOpenBal || finalOpenBal === 0) && firstTx.balance !== undefined) {
+            finalOpenBal = Math.round((firstTx.balance - firstTx.amount) * 100) / 100;
+          }
+          if ((!finalCloseBal || finalCloseBal === 0) && lastTx.balance !== undefined) {
+            finalCloseBal = lastTx.balance;
+          }
+        }
+
+        // Auto-exclude exact DB duplicates by default
+        const autoExcluded = new Set<number>();
+        processedList.forEach((tx, idx) => {
+          if (checkDuplicate(tx, idx, processedList, dbTxs)) {
+            autoExcluded.add(idx);
+          }
         });
 
         initialAccountStates[accountId] = {
@@ -506,12 +622,12 @@ export default function AIBulkStatementImportDialog({
           accountNumber: acc.accountNumber,
           description: resolvedAcc.description,
           transactions: processedList,
-          openingBalance: acc.openingBalance,
-          closingBalance: acc.closingBalance,
-          filterStartDate: acc.startDate,
-          filterEndDate: acc.endDate,
+          openingBalance: finalOpenBal,
+          closingBalance: finalCloseBal,
+          filterStartDate: acc.startDate || (processedList[0]?.date ?? ''),
+          filterEndDate: acc.endDate || (processedList[processedList.length - 1]?.date ?? ''),
           createOpeningBalance: false,
-          excludedIndices: new Set(),
+          excludedIndices: autoExcluded,
           existingTransactions: dbTxs
         };
       }
@@ -528,27 +644,6 @@ export default function AIBulkStatementImportDialog({
       toast({ title: 'Extraction Failed', description: e.message || 'An error occurred during extraction.', variant: 'destructive' });
       setStep('upload');
     }
-  };
-
-  // Duplicate check helper
-  const checkDuplicate = (tx: Transaction, idx: number, list: Transaction[], dbTxs: ImportedTransaction[]) => {
-    const key = `${tx.date}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
-    const dbCount = dbTxs.filter(e => {
-      const eDate = format(new Date(e.date), 'yyyy-MM-dd');
-      return eDate === tx.date &&
-             e.description.toLowerCase().trim() === tx.description.toLowerCase().trim() &&
-             Math.abs(e.amount - tx.amount) < 0.01;
-    }).length;
-
-    let currentOccurrence = 0;
-    for (let i = 0; i <= idx; i++) {
-      const item = list[i];
-      const itemKey = `${item.date}_${item.description.toLowerCase().trim()}_${item.amount.toFixed(2)}`;
-      if (itemKey === key) {
-        currentOccurrence++;
-      }
-    }
-    return currentOccurrence <= dbCount;
   };
 
   // Exclude all duplicate transactions for current active account
@@ -622,11 +717,22 @@ export default function AIBulkStatementImportDialog({
       return !isExcluded && !isOutOfRange;
     });
 
+    // Account for excluded transactions that are already in the DB so excluding DB duplicates does not trigger a false recon mismatch
+    const excludedDuplicateTotal = transactions.reduce((sum, tx, idx) => {
+      if (!excludedIndices.has(idx)) return sum;
+      const isOutOfRange = (filterStartDate && tx.date < filterStartDate) || (filterEndDate && tx.date > filterEndDate);
+      if (isOutOfRange) return sum;
+      if (checkDuplicate(tx, idx, transactions, existingTransactions)) {
+        return sum + tx.amount;
+      }
+      return sum;
+    }, 0);
+
     const netChange = activeTxs.reduce((sum, t) => sum + t.amount, 0);
     const dbBalance = existingTransactions.reduce((sum, t) => sum + t.amount, 0);
     
-    // If opening balance isn't in database, computed balance starts at openingBalance + netChange
-    const computedEnd = openingBalance + netChange;
+    // If opening balance isn't in database, computed balance starts at openingBalance + netChange + excludedDuplicateTotal
+    const computedEnd = openingBalance + netChange + excludedDuplicateTotal;
     const diff = closingBalance - computedEnd;
     const isMatched = Math.abs(diff) < 0.01;
 
@@ -665,36 +771,71 @@ export default function AIBulkStatementImportDialog({
 
   // Commit everything to Firestore
   const handleImport = async () => {
+    if (!targetClientId) return;
     setIsImporting(true);
 
     try {
-      // 1. Fetch rules for allocation (global + client specific)
-      let allRules = [...(client.allocationRules || [])];
-      if (!client.disableGlobalRules) {
-        const rulesRef = collection(db, "allocationRules");
-        const rulesSnap = await getDocs(rulesRef);
-        const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as AllocationRule));
-        allRules = [...allRules, ...globalRules];
+      const isClientIsolated = Boolean(client.disableGlobalRules || (client as any)?.isBlankProfile);
+      const clientRules = [...(client.allocationRules || [])];
+      let masterRules = isClientIsolated ? [] : [...MASTER_ALLOCATION_RULES];
+
+      if (!isClientIsolated) {
+        try {
+          const rulesRef = collection(db, "allocationRules");
+          const rulesSnap = await getDocs(rulesRef);
+          const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+          const existingIds = new Set(masterRules.map(r => r.id));
+          for (const gr of globalRules) {
+            if (!existingIds.has(gr.id)) {
+              masterRules.push(gr);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch global allocation rules:", e);
+        }
       }
-      allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+
+      // Fetch historical reviewed/allocated transactions for Tier 3 consistency memory
+      let historicalTransactions: ImportedTransaction[] = [];
+      try {
+        const txQuery = query(
+          collection(db, 'aiAccountantClients', targetClientId, 'transactions'),
+          where('status', 'in', ['reviewed', 'allocated'])
+        );
+        const txSnap = await getDocs(txQuery);
+        historicalTransactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() } as ImportedTransaction));
+      } catch (e) {
+        console.warn("Could not fetch historical transactions for triage consistency map:", e);
+      }
+      const historyConsistencyMap = buildConsistencyMap(historicalTransactions);
+
+      const triageCtx: TriageContext = {
+        clientRules,
+        masterRules,
+        disableGlobalRules: isClientIsolated,
+        chartOfAccounts: client.chartOfAccounts || [],
+        historicalTransactions,
+        historyConsistencyMap,
+        isVatRegistered: client.isVatRegistered ?? true,
+      };
 
       const writeOperations: { ref: any; data: any; type: 'set' | 'update' }[] = [];
 
       // Compile all writes across all accounts
-      Object.entries(accountStates).forEach(([accountId, state]) => {
+      for (const [accountId, state] of Object.entries(accountStates)) {
         const { transactions, openingBalance, createOpeningBalance, filterStartDate, filterEndDate, excludedIndices } = state;
 
         // Post Opening Balance if requested
         if (createOpeningBalance) {
-          const openBalRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-          const openBalDate = filterStartDate || state.filterStartDate;
+          const openBalRef = doc(collection(db, 'aiAccountantClients', targetClientId, 'transactions'));
+          const openBalDate = toSafeIso(filterStartDate || state.filterStartDate) || new Date().toISOString();
           
           writeOperations.push({
             ref: openBalRef,
             type: 'set',
             data: {
-              clientId: client.id,
-              date: new Date(openBalDate).toISOString(),
+              clientId: targetClientId,
+              date: openBalDate,
               reference: `OPEN-BAL-${Date.now()}`,
               description: openingBalance < 0 ? "OPENING BALANCE (OVERDRAFT)" : "OPENING BALANCE",
               amount: openingBalance,
@@ -716,39 +857,56 @@ export default function AIBulkStatementImportDialog({
           return !isExcluded && !isOutOfRange;
         });
 
-        filtered.forEach(tx => {
+        for (const tx of filtered) {
+          const safeIsoDate = toSafeIso(tx.date);
+          if (!safeIsoDate) {
+            throw new Error(`Invalid date "${tx.date}" on transaction "${tx.description}" in ${state.description}. Please correct or exclude it before importing.`);
+          }
           const isExpense = tx.amount < 0;
-          const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(tx.description, kw))) : null;
+          const description = tx.description.toUpperCase();
+
+          const triage = triageTransaction(
+            {
+              description,
+              amount: tx.amount,
+              isExpense,
+              date: safeIsoDate,
+            },
+            triageCtx
+          );
 
           const txData: any = {
-            clientId: client.id,
-            date: new Date(tx.date).toISOString(),
+            clientId: targetClientId,
+            date: safeIsoDate,
             reference: `AI-PDF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            description: tx.description.toUpperCase(),
+            description,
+            rawDescription: description,
             amount: tx.amount,
-            isExpense: isExpense,
+            isExpense,
             bankAccountId: accountId,
-            status: (isExpense && match) ? 'reviewed' : 'new'
+            status: triage.status,
+            createdAt: serverTimestamp()
           };
 
-          if (isExpense && match) {
-            const keyword = match.keywords.find(kw => matchesRuleKeyword(tx.description, kw));
-            let targetAccountId = match.accountId;
-            let targetAccountType = match.accountType || 'account';
-            if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
-              const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
-              if (resolved) {
-                targetAccountId = resolved.accountNumber;
-                targetAccountType = resolved.accountType;
-              }
-            }
-            txData.allocatedTo = { value: targetAccountId, type: targetAccountType };
-            txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
+          if (triage.paymentChannel) txData.paymentChannel = triage.paymentChannel;
+          if (triage.branchLocation) txData.branchLocation = triage.branchLocation;
+          if (triage.structuralClues && Object.keys(triage.structuralClues).length > 0) {
+            txData.structuralClues = triage.structuralClues;
+          }
+
+          if (triage.isAllocated && triage.accountId) {
+            txData.accountId = triage.accountId;
+            txData.allocatedTo = {
+              value: triage.accountId,
+              type: triage.accountType || 'account'
+            };
+            txData.vatType = triage.vatType || (client.isVatRegistered ? 'standard_rated_purchases' : 'no_vat');
             txData.allocatedAt = serverTimestamp();
-            txData.allocationSource = 'rule';
-            txData.matchedRuleId = match.id;
-            txData.matchedKeyword = keyword;
-          } else if (tx.isFee) {
+            txData.allocationSource = triage.source === 'history' ? 'history' : 'rule';
+            if (triage.matchedRuleId) txData.matchedRuleId = triage.matchedRuleId;
+            if (triage.matchedRuleDescription) txData.matchedRuleDescription = triage.matchedRuleDescription;
+            if (triage.matchedKeyword) txData.matchedKeyword = triage.matchedKeyword;
+          } else if (tx.isFee && !isClientIsolated) {
             const bankChargesAcc = client.chartOfAccounts?.find(acc => acc.accountNumber === '3000-004' || acc.description.toLowerCase() === 'bank charges');
             if (bankChargesAcc) {
               txData.allocatedTo = { value: bankChargesAcc.id, type: 'account' };
@@ -763,14 +921,14 @@ export default function AIBulkStatementImportDialog({
             }
           }
 
-          const newRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+          const newRef = doc(collection(db, 'aiAccountantClients', targetClientId, 'transactions'));
           writeOperations.push({
             ref: newRef,
             type: 'set',
             data: txData
           });
-        });
-      });
+        }
+      }
 
       // Update chartOfAccounts with closing balances for all processed accounts
       let updatedChart = [...(client.chartOfAccounts || [])];
@@ -793,7 +951,7 @@ export default function AIBulkStatementImportDialog({
       });
 
       if (coaChanged) {
-        const clientRef = doc(db, 'aiAccountantClients', client.id);
+        const clientRef = doc(db, 'aiAccountantClients', targetClientId);
         writeOperations.push({
           ref: clientRef,
           type: 'update',

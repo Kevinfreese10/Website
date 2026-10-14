@@ -24,6 +24,7 @@ import { BankAccountManageDialogs } from './components';
 import { NewTransactionsTab } from './NewTransactionsTab';
 import { SmartMatchQueueTab } from './SmartMatchQueueTab';
 import { ReviewedTab } from './ReviewedTab';
+import { getClientCashbookAccounts } from '@/components/admin/AIStatementImportDialog';
 
 const db = getFirestore(firebaseApp);
 
@@ -54,7 +55,7 @@ export function BankTransactionsUI() {
                 data.chartOfAccounts = Array.from(new Map(data.chartOfAccounts.map(a => [a.accountNumber, a])).values());
             }
             setClient({ ...data, id: clientSnap.id, uid: clientSnap.id });
-            const bankAccounts = data.chartOfAccounts?.filter(acc => acc.accountNumber.startsWith('8400-'));
+            const bankAccounts = getClientCashbookAccounts(data.chartOfAccounts);
             if (!accountId && bankAccounts?.[0]) setAccountId(bankAccounts[0].id);
         }
     }, [params.clientId, accountId]);
@@ -164,7 +165,8 @@ export function BankTransactionsUI() {
 
     if (!client) return <div className="text-center mt-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     
-    const bankAccounts = client.chartOfAccounts?.filter(acc => acc.accountNumber.startsWith('8400-')) || [];
+    const bankAccounts = getClientCashbookAccounts(client.chartOfAccounts);
+    const bankAccountIds = new Set(bankAccounts.map(a => a.id));
     const selectedAccount = bankAccounts.find(a => a.id === accountId);
     
     return (
@@ -184,7 +186,7 @@ export function BankTransactionsUI() {
                         client={client} showAccounts={true} showCustomers={false} showSuppliers={false}
                         value={accountId || ''} onChange={(s) => setAccountId(s.value === "all" ? "" : s.value)}
                         placeholder="Select a bank account" className="w-[280px]"
-                        filterAccounts={(acc) => acc.accountNumber.startsWith('8400-')}
+                        filterAccounts={(acc) => bankAccountIds.has(acc.id)}
                     />
                     <div className="flex flex-wrap items-center gap-4 text-sm mt-1">
                         <div>

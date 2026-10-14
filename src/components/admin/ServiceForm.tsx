@@ -109,6 +109,9 @@ const formSchema = z.object({
   isPriceTbc: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
   resellerPrice: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : 0), z.number().min(0, "Reseller price must be positive.")),
+  starterPartnerPrice: z.preprocess(val => (val !== undefined && val !== '' && val !== null && Number(val) > 0 ? Number(val) : undefined), z.number().min(0).optional()),
+  practicePartnerPrice: z.preprocess(val => (val !== undefined && val !== '' && val !== null && Number(val) > 0 ? Number(val) : undefined), z.number().min(0).optional()),
+  enterprisePartnerPrice: z.preprocess(val => (val !== undefined && val !== '' && val !== null && Number(val) > 0 ? Number(val) : undefined), z.number().min(0).optional()),
   subcontractorFee: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : 0), z.number().min(0, "Subcontractor fee must be positive.")),
   imageUrl: z.string().url('A valid URL is required.').or(z.literal('')),
   imageHint: z.string().optional(),
@@ -205,6 +208,9 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       isPriceTbc: service?.isPriceTbc || false,
       isFeatured: service?.isFeatured || false,
       resellerPrice: service?.resellerPrice || 0,
+      starterPartnerPrice: service?.starterPartnerPrice || undefined,
+      practicePartnerPrice: service?.practicePartnerPrice || undefined,
+      enterprisePartnerPrice: service?.enterprisePartnerPrice || undefined,
       subcontractorFee: service?.subcontractorFee || 0,
       imageUrl: service?.imageUrl || '',
       imageHint: service?.imageHint || '',
@@ -801,40 +807,24 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                 <div className="flex items-center justify-between pb-1 border-b">
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-green-600" />
-                    <h3 className="text-sm font-bold text-foreground">Pricing & Commercials</h3>
+                    <h3 className="text-sm font-bold text-foreground">Pricing & Partner Wholesale Tiers</h3>
                   </div>
-                  {partnerDiscountPercent !== null && (
-                    <Badge variant="outline" className="text-xs font-semibold bg-green-50 text-green-700 border-green-200">
-                      Partner Margin: {partnerDiscountPercent}% (R{(watchedPrice - watchedResellerPrice).toFixed(2)})
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className="text-xs font-semibold bg-green-50 text-green-700 border-green-200">
+                    Auto Wholesale: 10% / 30% / 50% Off Retail
+                  </Badge>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-semibold">Public Client Price (ZAR) *</FormLabel>
+                        <FormLabel className="text-xs font-semibold">Public Retail Price (ZAR) *</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" className="h-9 font-bold text-sm" {...field} disabled={isPriceTbc} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="resellerPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold">Accounting Partner Price (ZAR)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" className="h-9 text-xs" {...field} disabled={isPriceTbc} />
-                        </FormControl>
-                        <FormDescription className="text-[10px]">Wholesale cost charged to white-label partners.</FormDescription>
+                        <FormDescription className="text-[10px]">Standard client price on myacc.co.za.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -849,11 +839,98 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                         <FormControl>
                           <Input type="number" step="0.01" className="h-9 text-xs" {...field} disabled={isPriceTbc} />
                         </FormControl>
-                        <FormDescription className="text-[10px]">Internal fulfillment or filing cost.</FormDescription>
+                        <FormDescription className="text-[10px]">Internal fulfillment or overflow partner payout.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-muted/30 border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-foreground">
+                      Partner Wholesale Price Overrides (Optional)
+                    </p>
+                    <span className="text-[10px] text-muted-foreground">
+                      Leave blank to use automatic tier discount
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="starterPartnerPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold">Starter Tier (10% Off)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-9 text-xs"
+                              placeholder={`Auto: R${(watchedPrice * 0.9).toFixed(2)}`}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                              disabled={isPriceTbc}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-[10px]">
+                            Default: R{(watchedPrice * 0.9).toFixed(2)} (Free Plan)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="practicePartnerPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-primary">Practice Tier (30% Off)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-9 text-xs"
+                              placeholder={`Auto: R${(watchedPrice * 0.7).toFixed(2)}`}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                              disabled={isPriceTbc}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-[10px]">
+                            Default: R{(watchedPrice * 0.7).toFixed(2)} (R950/pm Plan)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="enterprisePartnerPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-emerald-700">Enterprise Tier (50% Off)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-9 text-xs"
+                              placeholder={`Auto: R${(watchedPrice * 0.5).toFixed(2)}`}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                              disabled={isPriceTbc}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-[10px]">
+                            Default: R{(watchedPrice * 0.5).toFixed(2)} (R4,950/pm Plan)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <FormField

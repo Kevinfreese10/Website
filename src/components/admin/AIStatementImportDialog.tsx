@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, FileText, Upload, AlertTriangle, CheckCircle2, Info, FileSpreadsheet, RotateCcw, Trash2, X, Download, Banknote, CornerDownRight } from 'lucide-react';
 import { extractStatementPeriod, ExtractStatementPeriodOutput } from '@/ai/flows/extract-statement-period';
 import { extractStatementMetadata, ExtractStatementMetadataOutput } from '@/ai/flows/extract-statement-metadata';
-import { getFirestore, collection, getDocs, doc, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, query, where, writeBatch, serverTimestamp, updateDoc, arrayUnion } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { User, ChartOfAccount, ImportedTransaction, AllocationRule } from '@/lib/types';
@@ -26,6 +26,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { extractStatementChunk } from '@/app/actions';
 import { matchesRuleKeyword } from '@/lib/bank-cleaner';
+import { MASTER_ALLOCATION_RULES } from '@/lib/master-allocation-rules';
+import { triageTransaction, buildConsistencyMap, TriageContext } from '@/lib/initial-allocation-engine';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
@@ -37,6 +39,49 @@ async function getIdToken(): Promise<string> {
   const token = await getAuth(firebaseApp).currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in to do this.');
   return token;
+}
+
+function toSafeYmd(val: any): string {
+  if (!val) return '';
+  try {
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = val?.toDate ? val.toDate() : new Date(val);
+    if (isNaN(d.getTime())) return '';
+    return format(d, 'yyyy-MM-dd');
+  } catch {
+    return '';
+  }
+}
+
+function toSafeIso(val: any): string | null {
+  if (!val) return null;
+  try {
+    const d = val?.toDate ? val.toDate() : new Date(val);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
+export function getClientCashbookAccounts(chartOfAccounts?: ChartOfAccount[]): ChartOfAccount[] {
+  if (!chartOfAccounts || chartOfAccounts.length === 0) return [];
+  const primary = chartOfAccounts.filter(acc => {
+    const a = acc as any;
+    return (
+      acc.accountNumber?.startsWith('8400-') ||
+      Boolean(a.bankAccountNumber) ||
+      Boolean(a.bankName) ||
+      a.category === 'Bank'
+    );
+  });
+  if (primary.length > 0) return primary;
+  return chartOfAccounts.filter(acc =>
+    acc.accountNumber === '8000-004' ||
+    (acc.fsGroup === 'Cash and cash equivalents' && !acc.accountNumber?.startsWith('9500-'))
+  );
 }
 
 const formSchema = z.object({
@@ -111,6 +156,7 @@ export default function AIStatementImportDialog({
     bankAccountId?: string;
     onImportComplete: () => void;
 }) {
+  const targetClientId = client?.id || client?.uid || '';
   const [isExtracting, setIsExtracting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [extractedTransactions, setExtractedTransactions] = useState<Transaction[]>([]);
@@ -132,16 +178,23 @@ export default function AIStatementImportDialog({
   const [editedOpeningBalance, setEditedOpeningBalance] = useState<number | null>(null);
   const [editedClosingBalance, setEditedClosingBalance] = useState<number | null>(null);
 
-  // Filtering states
+  // Filtering & Safeguard states
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
   const [excludedIndices, setExcludedIndices] = useState<Set<number>>(new Set());
+  const [acknowledgeReconMismatch, setAcknowledgeReconMismatch] = useState(false);
+  const [allowDuplicateImport, setAllowDuplicateImport] = useState(false);
 
   const [existingTransactions, setExistingTransactions] = useState<ImportedTransaction[]>([]);
   const [currentAccountData, setCurrentAccountData] = useState<{ balance: number }>({ balance: 0 });
   const [createOpeningBalance, setCreateOpeningBalance] = useState(false);
   
   const { toast } = useToast();
+
+  const cashbookAccounts = useMemo(
+    () => getClientCashbookAccounts(client?.chartOfAccounts),
+    [client?.chartOfAccounts]
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -153,14 +206,16 @@ export default function AIStatementImportDialog({
   useEffect(() => {
       if (open && initialBankAccountId) {
           form.setValue('bankAccountId', initialBankAccountId);
+      } else if (open && !watchBankAccountId && cashbookAccounts.length === 1) {
+          form.setValue('bankAccountId', cashbookAccounts[0].id);
       }
-  }, [open, initialBankAccountId, form]);
+  }, [open, initialBankAccountId, cashbookAccounts, watchBankAccountId, form]);
 
   useEffect(() => {
     const fetchAccountStats = async () => {
-        if (!client.id || !watchBankAccountId) return;
+        if (!targetClientId || !watchBankAccountId) return;
         
-        const transRef = collection(db, 'aiAccountantClients', client.id, 'transactions');
+        const transRef = collection(db, 'aiAccountantClients', targetClientId, 'transactions');
         const q = query(transRef, where('bankAccountId', '==', watchBankAccountId));
         const snap = await getDocs(q);
         const txs = snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportedTransaction));
@@ -170,7 +225,7 @@ export default function AIStatementImportDialog({
         setCurrentAccountData({ balance });
     };
     if (open) fetchAccountStats();
-  }, [client.id, watchBankAccountId, open]);
+  }, [targetClientId, watchBankAccountId, open]);
 
   // Reset file/pre-analysis state when bankAccountId changes
   useEffect(() => {
@@ -184,22 +239,25 @@ export default function AIStatementImportDialog({
     setEditedOpeningBalance(null);
     setEditedClosingBalance(null);
     setExtractedTransactions([]);
+    setAcknowledgeReconMismatch(false);
+    setAllowDuplicateImport(false);
     form.setValue('statements', undefined as any);
   }, [watchBankAccountId, form]);
 
   const isDuplicateAt = useCallback((tx: Transaction, indexInList: number, list: Transaction[]) => {
-    const key = `${tx.date}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
+    const txDate = toSafeYmd(tx.date);
+    const key = `${txDate}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
     const dbCount = existingTransactions.filter(e => {
-        const eDate = format(new Date(e.date), 'yyyy-MM-dd');
-        return eDate === tx.date &&
-               e.description.toLowerCase().trim() === tx.description.toLowerCase().trim() &&
+        const eDate = toSafeYmd(e.date);
+        return eDate === txDate &&
+               (e.description || '').toLowerCase().trim() === tx.description.toLowerCase().trim() &&
                Math.abs(e.amount - tx.amount) < 0.01;
     }).length;
 
     let currentOccurrence = 0;
     for (let i = 0; i <= indexInList; i++) {
         const item = list[i];
-        const itemKey = `${item.date}_${item.description.toLowerCase().trim()}_${item.amount.toFixed(2)}`;
+        const itemKey = `${toSafeYmd(item.date)}_${item.description.toLowerCase().trim()}_${item.amount.toFixed(2)}`;
         if (itemKey === key) {
             currentOccurrence++;
         }
@@ -246,32 +304,47 @@ export default function AIStatementImportDialog({
       setEditedOpeningBalance(null);
       setEditedClosingBalance(null);
     }
-  }, [combinedStatementMeta, setEditedOpeningBalance, setEditedClosingBalance]);
+  }, [combinedStatementMeta]);
 
   const calculatedRecon = useMemo(() => {
     if (!combinedStatementMeta || editedOpeningBalance === null || editedClosingBalance === null) return null;
     const importTotal = filteredTransactions.reduce((s, t) => s + t.amount, 0);
-    // Use the statement's opening balance to validate the extraction itself, not the current DB balance
+    // Account for excluded transactions that are already in the DB so excluding DB duplicates does not cause a false statement recon mismatch
+    const excludedDuplicateTotal = extractedTransactions.reduce((s, tx, idx) => {
+      if (!excludedIndices.has(idx)) return s;
+      const isOutOfDateRange = (filterStartDate && tx.date < filterStartDate) || (filterEndDate && tx.date > filterEndDate);
+      if (isOutOfDateRange) return s;
+      if (isDuplicateAt(tx, idx, extractedTransactions)) {
+        return s + tx.amount;
+      }
+      return s;
+    }, 0);
+
     const startingBalance = editedOpeningBalance;
-    const projectedBalance = startingBalance + importTotal;
+    const projectedBalance = startingBalance + importTotal + excludedDuplicateTotal;
     const diff = Math.abs(projectedBalance - editedClosingBalance);
     const isMatched = diff < 0.01;
 
-    return { importTotal, projectedBalance, diff, isMatched };
-  }, [combinedStatementMeta, editedOpeningBalance, editedClosingBalance, filteredTransactions]);
+    return { importTotal, excludedDuplicateTotal, projectedBalance, diff, isMatched };
+  }, [combinedStatementMeta, editedOpeningBalance, editedClosingBalance, filteredTransactions, extractedTransactions, excludedIndices, filterStartDate, filterEndDate, isDuplicateAt]);
+
+  useEffect(() => {
+    setAcknowledgeReconMismatch(false);
+  }, [calculatedRecon?.isMatched, editedOpeningBalance, editedClosingBalance]);
 
   const runningBalances = useMemo(() => {
       let currentBal = editedOpeningBalance || 0;
       return extractedTransactions.map((tx, idx) => {
           const isExcluded = excludedIndices.has(idx);
           const isOutOfDateRange = (filterStartDate && tx.date < filterStartDate) || (filterEndDate && tx.date > filterEndDate);
+          const isExcludedDup = isExcluded && isDuplicateAt(tx, idx, extractedTransactions);
           
-          if (!isExcluded && !isOutOfDateRange) {
+          if ((!isExcluded || isExcludedDup) && !isOutOfDateRange) {
               currentBal += tx.amount;
           }
           return currentBal;
       });
-  }, [extractedTransactions, excludedIndices, filterStartDate, filterEndDate, editedOpeningBalance]);
+  }, [extractedTransactions, excludedIndices, filterStartDate, filterEndDate, editedOpeningBalance, isDuplicateAt]);
 
   const handlePreAnalyze = async (files: FileList) => {
     if (!files || files.length === 0) return;
@@ -311,19 +384,28 @@ export default function AIStatementImportDialog({
           reader.onerror = (e) => reject(e);
         });
 
-        // Load PDF and extract first page
+        // Load PDF and extract first + last pages so multi-page statements include both Opening and Closing balances
         const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-        
-        if (pdfDoc.getPageCount() === 0) {
+        const totalPageCount = pdfDoc.getPageCount();
+        if (totalPageCount === 0) {
           throw new Error('PDF has no pages');
         }
 
-        const firstPageDoc = await PDFDocument.create();
-        const pages = await firstPageDoc.copyPages(pdfDoc, [0]);
-        firstPageDoc.addPage(pages[0]);
-        const firstPageBase64 = `data:application/pdf;base64,${await firstPageDoc.saveAsBase64()}`;
+        const metaPageIndices = Array.from(
+          new Set(
+            totalPageCount === 1
+              ? [0]
+              : totalPageCount === 2
+              ? [0, 1]
+              : [0, totalPageCount - 2, totalPageCount - 1]
+          )
+        );
+        const metaDoc = await PDFDocument.create();
+        const copiedMetaPages = await metaDoc.copyPages(pdfDoc, metaPageIndices);
+        copiedMetaPages.forEach(p => metaDoc.addPage(p));
+        const metaPdfBase64 = `data:application/pdf;base64,${await metaDoc.saveAsBase64()}`;
 
-        const metadata = await extractStatementMetadata({ statementPdf: firstPageBase64 });
+        const metadata = await extractStatementMetadata({ statementPdf: metaPdfBase64 });
 
         let status: StatementFile['status'] = 'valid';
         let errorMsg = '';
@@ -353,7 +435,7 @@ export default function AIStatementImportDialog({
           if (metadata.bankName && metadata.bankName !== 'Unknown') {
             const normalizedMetaBank = normalizeBankName(metadata.bankName);
             const normalizedDesc = normalizeBankName(accDesc);
-            if (normalizedMetaBank && !normalizedDesc.includes(normalizedMetaBank)) {
+            if (normalizedMetaBank && normalizedDesc && !normalizedDesc.includes(normalizedMetaBank) && !accDesc.toLowerCase().includes('current account')) {
               status = 'warning';
               errorMsg = `Bank mismatch warning: Selected account is "${accDesc}" but statement is for ${metadata.bankName}`;
             }
@@ -469,6 +551,7 @@ export default function AIStatementImportDialog({
     setStatusMessage('Initializing extraction...');
     setExtractedTransactions([]);
     setExcludedIndices(new Set());
+    setAllowDuplicateImport(false);
 
     let allTransactions: Transaction[] = [];
     let totalProcessedPages = 0;
@@ -526,7 +609,11 @@ export default function AIStatementImportDialog({
           const result = await extractStatementChunk({ chunkBase64, idToken: await getIdToken() });
 
           if (result.success && result.transactions) {
-            const txsWithSource = result.transactions.map((tx: Transaction) => ({ ...tx, sourceStmtId: stmt.id }));
+            const txsWithSource = result.transactions.map((tx: Transaction) => ({
+              ...tx,
+              date: toSafeYmd(tx.date) || tx.date,
+              sourceStmtId: stmt.id
+            }));
             allTransactions = [...allTransactions, ...txsWithSource];
             setExtractedTransactions([...allTransactions]);
           } else {
@@ -608,19 +695,52 @@ export default function AIStatementImportDialog({
         }
       });
 
+      // Insert any standalone fee items in chronological order instead of dumping them at the end
       feeItems.forEach(fee => {
-        processedList.push(fee);
+        const insertIdx = processedList.findIndex(item => item.date > fee.date);
+        if (insertIdx === -1) {
+          processedList.push(fee);
+        } else {
+          processedList.splice(insertIdx, 0, fee);
+        }
       });
 
       setExtractedTransactions(processedList);
-      setExtractionProgress(100);
-      setStatusMessage('Complete!');
-      toast({ title: 'AI Extraction Complete', description: `Extracted transactions from ${statementsToProcess.length} statements.` });
 
+      // Auto-refine opening/closing balances from extracted transaction running balances if metadata returned 0
       if (processedList.length > 0) {
+        const firstTx = processedList[0];
+        const lastTx = processedList[processedList.length - 1];
+        if ((editedOpeningBalance === null || editedOpeningBalance === 0) && firstTx.balance !== undefined) {
+          const inferredOpen = Math.round((firstTx.balance - firstTx.amount) * 100) / 100;
+          setEditedOpeningBalance(inferredOpen);
+        }
+        if ((editedClosingBalance === null || editedClosingBalance === 0) && lastTx.balance !== undefined) {
+          setEditedClosingBalance(lastTx.balance);
+        }
+
+        // Automatically exclude exact DB duplicates on extraction and notify the user
+        const autoExcluded = new Set<number>();
+        processedList.forEach((tx, idx) => {
+          if (isDuplicateAt(tx, idx, processedList)) {
+            autoExcluded.add(idx);
+          }
+        });
+        if (autoExcluded.size > 0) {
+          setExcludedIndices(autoExcluded);
+          toast({
+            title: 'Duplicates Auto-Excluded',
+            description: `${autoExcluded.size} transaction(s) already in the database were automatically excluded from import.`
+          });
+        }
+
         setFilterStartDate(processedList[0].date);
         setFilterEndDate(processedList[processedList.length - 1].date);
       }
+
+      setExtractionProgress(100);
+      setStatusMessage('Complete!');
+      toast({ title: 'AI Extraction Complete', description: `Extracted ${processedList.length} transactions from ${statementsToProcess.length} statement(s).` });
     } catch (error) {
       console.error('Extraction error:', error);
       toast({ title: 'AI Error', description: 'Failed to extract data from statement.', variant: 'destructive' });
@@ -658,25 +778,59 @@ export default function AIStatementImportDialog({
   };
 
   const handleImport = async () => {
-    if (!client.id || !watchBankAccountId || filteredTransactions.length === 0) return;
+    if (!targetClientId || !watchBankAccountId || filteredTransactions.length === 0) return;
     setIsImporting(true);
     
     try {
-        let allRules = [...(client.allocationRules || [])];
-        
-        if (!client.disableGlobalRules) {
-            const rulesRef = collection(db, "allocationRules");
-            const rulesSnap = await getDocs(rulesRef);
-            const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as AllocationRule));
-            allRules = [...allRules, ...globalRules];
-        }
-        
-        allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+        const isClientIsolated = Boolean(client.disableGlobalRules || (client as any)?.isBlankProfile);
+        const clientRules = [...(client.allocationRules || [])];
+        let masterRules = isClientIsolated ? [] : [...MASTER_ALLOCATION_RULES];
 
-        const batch = writeBatch(db);
+        if (!isClientIsolated) {
+            try {
+                const rulesRef = collection(db, "allocationRules");
+                const rulesSnap = await getDocs(rulesRef);
+                const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+                const existingIds = new Set(masterRules.map(r => r.id));
+                for (const gr of globalRules) {
+                    if (!existingIds.has(gr.id)) {
+                        masterRules.push(gr);
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not fetch global allocation rules:", e);
+            }
+        }
+
+        // Fetch historical reviewed/allocated transactions for Tier 3 consistency memory
+        let historicalTransactions: ImportedTransaction[] = [];
+        try {
+            const txQuery = query(
+                collection(db, 'aiAccountantClients', targetClientId, 'transactions'),
+                where('status', 'in', ['reviewed', 'allocated'])
+            );
+            const txSnap = await getDocs(txQuery);
+            historicalTransactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() } as ImportedTransaction));
+        } catch (e) {
+            console.warn("Could not fetch historical transactions for triage consistency map:", e);
+        }
+        const historyConsistencyMap = buildConsistencyMap(historicalTransactions);
+
+        const triageCtx: TriageContext = {
+            clientRules,
+            masterRules,
+            disableGlobalRules: isClientIsolated,
+            chartOfAccounts: client.chartOfAccounts || [],
+            historicalTransactions,
+            historyConsistencyMap,
+            isVatRegistered: client.isVatRegistered ?? true,
+        };
+
+        const writeOps: { ref: any; data: any; type: 'set' | 'update' }[] = [];
+        let autoAllocatedCount = 0;
 
         // Update Client's ChartOfAccount metadata and bankBalance in Firestore
-        const clientRef = doc(db, 'aiAccountantClients', client.id);
+        const clientRef = doc(db, 'aiAccountantClients', targetClientId);
         const shouldUpdateBankBalance = editedClosingBalance !== null && !isNaN(editedClosingBalance);
         if ((linkAccountMetadata && linkableMetadata) || shouldUpdateBankBalance) {
             const updatedChart = client.chartOfAccounts?.map(acc => {
@@ -696,53 +850,88 @@ export default function AIStatementImportDialog({
                 return acc;
             }) || [];
             
-            batch.update(clientRef, { chartOfAccounts: updatedChart });
+            writeOps.push({
+                ref: clientRef,
+                type: 'update',
+                data: { chartOfAccounts: updatedChart }
+            });
         }
 
         if (createOpeningBalance && combinedStatementMeta && editedOpeningBalance !== null) {
-            const openBalRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-            const openBalDate = filterStartDate || combinedStatementMeta.startDate;
+            const openBalRef = doc(collection(db, 'aiAccountantClients', targetClientId, 'transactions'));
+            const openBalDate = toSafeIso(filterStartDate || combinedStatementMeta.startDate) || new Date().toISOString();
             
-            batch.set(openBalRef, sanitizeFirestoreData({
-                clientId: client.id,
-                date: new Date(openBalDate).toISOString(),
-                reference: `OPEN-BAL-${Date.now()}`,
-                description: editedOpeningBalance < 0 ? "OPENING BALANCE (OVERDRAFT)" : "OPENING BALANCE",
-                amount: editedOpeningBalance,
-                isExpense: editedOpeningBalance < 0,
-                bankAccountId: watchBankAccountId,
-                status: 'allocated',
-                allocatedTo: { value: '9500-002', type: 'account' },
-                vatType: 'no_vat',
-                allocatedAt: serverTimestamp(),
-                allocationSource: 'manual'
-            }));
+            writeOps.push({
+                ref: openBalRef,
+                type: 'set',
+                data: {
+                    clientId: targetClientId,
+                    date: openBalDate,
+                    reference: `OPEN-BAL-${Date.now()}`,
+                    description: editedOpeningBalance < 0 ? "OPENING BALANCE (OVERDRAFT)" : "OPENING BALANCE",
+                    amount: editedOpeningBalance,
+                    isExpense: editedOpeningBalance < 0,
+                    bankAccountId: watchBankAccountId,
+                    status: 'allocated',
+                    allocatedTo: { value: '9500-002', type: 'account' },
+                    vatType: 'no_vat',
+                    allocatedAt: serverTimestamp(),
+                    allocationSource: 'manual'
+                }
+            });
         }
 
-        filteredTransactions.forEach(tx => {
+        for (const tx of filteredTransactions) {
+            const safeIsoDate = toSafeIso(tx.date);
+            if (!safeIsoDate) {
+                throw new Error(`Invalid date "${tx.date}" on transaction "${tx.description}". Please correct or exclude it before importing.`);
+            }
             const isExpense = tx.amount < 0;
-            const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(tx.description, kw))) : null;
+            const description = tx.description.toUpperCase();
+
+            const triage = triageTransaction(
+                {
+                    description,
+                    amount: tx.amount,
+                    isExpense,
+                    date: safeIsoDate,
+                },
+                triageCtx
+            );
             
             const txData: any = {
-                clientId: client.id,
-                date: new Date(tx.date).toISOString(),
+                clientId: targetClientId,
+                date: safeIsoDate,
                 reference: `AI-PDF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                description: tx.description.toUpperCase(),
+                description,
+                rawDescription: description,
                 amount: tx.amount,
-                isExpense: isExpense,
+                isExpense,
                 bankAccountId: watchBankAccountId,
-                status: (isExpense && match) ? 'reviewed' : 'new'
+                status: triage.status,
+                createdAt: serverTimestamp()
             };
 
-            if (isExpense && match) {
-                const keyword = match.keywords.find(kw => matchesRuleKeyword(tx.description, kw));
-                txData.allocatedTo = { value: match.accountId, type: 'account' };
-                txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
+            if (triage.paymentChannel) txData.paymentChannel = triage.paymentChannel;
+            if (triage.branchLocation) txData.branchLocation = triage.branchLocation;
+            if (triage.structuralClues && Object.keys(triage.structuralClues).length > 0) {
+                txData.structuralClues = triage.structuralClues;
+            }
+
+            if (triage.isAllocated && triage.accountId) {
+                txData.accountId = triage.accountId;
+                txData.allocatedTo = {
+                    value: triage.accountId,
+                    type: triage.accountType || 'account'
+                };
+                txData.vatType = triage.vatType || (client.isVatRegistered ? 'standard_rated_purchases' : 'no_vat');
                 txData.allocatedAt = serverTimestamp();
-                txData.allocationSource = 'rule';
-                txData.matchedRuleId = match.id;
-                txData.matchedKeyword = keyword;
-            } else if (tx.isFee) {
+                txData.allocationSource = triage.source === 'history' ? 'history' : 'rule';
+                if (triage.matchedRuleId) txData.matchedRuleId = triage.matchedRuleId;
+                if (triage.matchedRuleDescription) txData.matchedRuleDescription = triage.matchedRuleDescription;
+                if (triage.matchedKeyword) txData.matchedKeyword = triage.matchedKeyword;
+                autoAllocatedCount++;
+            } else if (tx.isFee && !isClientIsolated) {
                 const bankChargesAcc = client.chartOfAccounts?.find(acc => acc.accountNumber === '3000-004' || acc.description.toLowerCase() === 'bank charges');
                 if (bankChargesAcc) {
                     txData.allocatedTo = { value: bankChargesAcc.id, type: 'account' };
@@ -750,6 +939,7 @@ export default function AIStatementImportDialog({
                     txData.status = 'reviewed';
                     txData.allocatedAt = serverTimestamp();
                     txData.allocationSource = 'auto_fee';
+                    autoAllocatedCount++;
                 }
                 txData.isBankFee = true;
                 if (tx.parentDescription) {
@@ -757,17 +947,38 @@ export default function AIStatementImportDialog({
                 }
             }
 
-            const newRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-            batch.set(newRef, sanitizeFirestoreData(txData));
-        });
+            const newRef = doc(collection(db, 'aiAccountantClients', targetClientId, 'transactions'));
+            writeOps.push({ ref: newRef, type: 'set', data: txData });
+        }
 
-        await batch.commit();
-        toast({ title: 'Import Successful' });
+        // Commit in chunks of 450 to stay safely below Firestore's 500-write batch limit
+        const CHUNK_SIZE = 450;
+        for (let i = 0; i < writeOps.length; i += CHUNK_SIZE) {
+            const chunk = writeOps.slice(i, i + CHUNK_SIZE);
+            const batch = writeBatch(db);
+            for (const op of chunk) {
+                if (op.type === 'set') {
+                    batch.set(op.ref, sanitizeFirestoreData(op.data));
+                } else {
+                    batch.update(op.ref, sanitizeFirestoreData(op.data));
+                }
+            }
+            await batch.commit();
+        }
+
+        toast({
+            title: 'Import Successful',
+            description: `${filteredTransactions.length} transactions imported (${autoAllocatedCount} auto-allocated).`
+        });
         onImportComplete();
         onOpenChange(false);
-    } catch (e) {
+    } catch (e: any) {
         console.error("Import error:", e);
-        toast({ title: 'Import Failed', variant: 'destructive' });
+        toast({
+            title: 'Import Failed',
+            description: e?.message || 'An error occurred while saving transactions.',
+            variant: 'destructive'
+        });
     } finally {
         setIsImporting(false);
     }
@@ -801,8 +1012,10 @@ export default function AIStatementImportDialog({
                           <SelectTrigger><SelectValue placeholder="Select account..." /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {client.chartOfAccounts?.filter(acc => acc.accountNumber.startsWith('8400-')).map(acc => (
-                            <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>
+                          {cashbookAccounts.map(acc => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.accountNumber} — {acc.description}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1056,25 +1269,49 @@ export default function AIStatementImportDialog({
                                 </div>
                             </div>
                             {duplicatesInCurrentList.length > 0 && (
-                                <Button variant="outline" size="sm" onClick={handleRemoveDuplicates} className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 text-[10px] h-7">
-                                    <X className="mr-1 h-3 w-3" /> Exclude {duplicatesInCurrentList.length} Duplicates
-                                </Button>
+                                <div className="space-y-2">
+                                    <Button variant="outline" size="sm" onClick={handleRemoveDuplicates} className="w-full text-destructive border-destructive/20 hover:bg-destructive/5 text-[10px] h-7">
+                                        <X className="mr-1 h-3 w-3" /> Exclude {duplicatesInCurrentList.length} Duplicates
+                                    </Button>
+                                    <div className="flex items-center gap-2 bg-destructive/10 p-2 rounded border border-destructive/20">
+                                        <Checkbox
+                                            id="allow-dup-import"
+                                            checked={allowDuplicateImport}
+                                            onCheckedChange={(v) => setAllowDuplicateImport(!!v)}
+                                        />
+                                        <Label htmlFor="allow-dup-import" className="text-[10px] font-bold text-destructive cursor-pointer leading-tight">
+                                            Override & allow importing {duplicatesInCurrentList.length} duplicate(s)
+                                        </Label>
+                                    </div>
+                                </div>
                             )}
                         </CardContent>
                     </Card>
 
-                    <div className={cn("p-4 rounded-xl border flex flex-col justify-center items-center text-center space-y-1 transition-colors", calculatedRecon?.isMatched ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20")}>
+                    <div className={cn("p-4 rounded-xl border flex flex-col justify-center items-center text-center space-y-2 transition-colors", calculatedRecon?.isMatched ? "bg-green-50 border-green-200" : "bg-destructive/5 border-destructive/20")}>
                         {calculatedRecon?.isMatched ? (
                             <>
                                 <CheckCircle2 className="h-6 w-6 text-green-600" />
                                 <p className="text-xs font-bold text-green-800">Balanced!</p>
-                                <p className="text-[10px] text-green-700 font-medium">Matches detected closing balance.</p>
+                                <p className="text-[10px] text-green-700 font-medium">Matches detected closing balance ({formatPrice(editedClosingBalance || 0)}).</p>
                             </>
                         ) : (
                             <>
                                 <AlertTriangle className="h-6 w-6 text-destructive" />
                                 <p className="text-xs font-bold text-destructive">Recon Mismatch</p>
-                                <p className="text-muted-foreground text-[10px] font-medium">Diff: {formatPrice(calculatedRecon?.diff || 0)}</p>
+                                <p className="text-muted-foreground text-[10px] font-medium">
+                                    Projected: {formatPrice(calculatedRecon?.projectedBalance || 0)} vs Stmt: {formatPrice(editedClosingBalance || 0)} (Diff: {formatPrice(calculatedRecon?.diff || 0)})
+                                </p>
+                                <div className="flex items-center gap-2 bg-destructive/10 px-2.5 py-1.5 rounded border border-destructive/20 mt-1">
+                                    <Checkbox
+                                        id="ack-recon-mismatch"
+                                        checked={acknowledgeReconMismatch}
+                                        onCheckedChange={(v) => setAcknowledgeReconMismatch(!!v)}
+                                    />
+                                    <Label htmlFor="ack-recon-mismatch" className="text-[10px] font-bold text-destructive cursor-pointer leading-tight text-left">
+                                        Acknowledge reconciliation difference and import anyway
+                                    </Label>
+                                </div>
                             </>
                         )}
                     </div>
@@ -1201,7 +1438,12 @@ export default function AIStatementImportDialog({
             <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button 
                 onClick={handleImport} 
-                disabled={isImporting || filteredTransactions.length === 0}
+                disabled={
+                  isImporting ||
+                  filteredTransactions.length === 0 ||
+                  Boolean(calculatedRecon && !calculatedRecon.isMatched && !acknowledgeReconMismatch) ||
+                  (duplicatesInCurrentList.length > 0 && !allowDuplicateImport)
+                }
                 className="font-bold min-w-[200px]"
             >
                 {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

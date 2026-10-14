@@ -11,6 +11,7 @@ import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
 import { isStaffActive, isEligibleOrderStaff } from '@/lib/utils';
+import { getPartnerTierPlan, getPartnerServicePrice } from '@/lib/partner-pricing';
 
 // PayFast's valid IP ranges (combining legacy ranges, sandbox, and new AWS IP blocks)
 const PAYFAST_IP_RANGES = [
@@ -192,47 +193,55 @@ export async function POST(req: NextRequest) {
             const partnerId = data.m_payment_id;
             const payfastToken = data.token;
             const paymentStatus = data.payment_status;
-            
-            console.log(`ITN Partner Subscription Event for partner ${partnerId}. Status: ${paymentStatus}`);
-            
+            const requestedTier = data.custom_str2 || (parseFloat(data.amount_gross || '0') >= 4000 ? 'enterprise' : 'practice');
+            const plan = getPartnerTierPlan(requestedTier);
+
+            console.log(`ITN Partner Subscription Event for partner ${partnerId} (${plan.name}). Status: ${paymentStatus}`);
+
             const userRef = adminDb.collection('users').doc(partnerId);
             const userSnap = await userRef.get();
             if (!userSnap.exists) {
                 console.error(`User (Partner) ${partnerId} not found for subscription update.`);
                 return new NextResponse('OK', { status: 200 });
             }
-            
+
             const now = new Date();
             const currentPeriodEnd = new Date();
             currentPeriodEnd.setDate(now.getDate() + 30); // 30 days period
-            
+
             if (paymentStatus === 'COMPLETE') {
                 await userRef.update({
-                    partnerTier: 'growth',
+                    partnerTier: plan.id,
                     partnerSubscription: {
                         status: 'active',
                         payfastToken: payfastToken || null,
                         currentPeriodStart: now,
                         currentPeriodEnd: currentPeriodEnd,
-                        aiCompanyLimit: 5,
-                        aiPayrollLimit: 5,
-                        staffSeatLimit: 3,
+                        aiCompanyLimit: plan.aiCompanyLimit,
+                        aiPayrollLimit: plan.aiPayrollLimit,
+                        staffSeatLimit: plan.staffSeatLimit,
+                        hasTaskManager: true,
                     }
                 });
-                console.log(`Successfully activated/renewed Growth subscription for partner ${partnerId}`);
+                console.log(`Successfully activated/renewed ${plan.name} subscription for partner ${partnerId}`);
             } else if (paymentStatus === 'FAILED') {
                 await userRef.update({
                     'partnerSubscription.status': 'lapsed',
                 });
-                console.log(`Payment failed: Growth subscription set to lapsed for partner ${partnerId}`);
+                console.log(`Payment failed: subscription set to lapsed for partner ${partnerId}`);
             } else if (paymentStatus === 'CANCELLED') {
+                const starterPlan = getPartnerTierPlan('starter');
                 await userRef.update({
+                    partnerTier: 'starter',
                     'partnerSubscription.status': 'cancelled',
                     'partnerSubscription.cancelledAt': now,
+                    'partnerSubscription.aiCompanyLimit': starterPlan.aiCompanyLimit,
+                    'partnerSubscription.aiPayrollLimit': starterPlan.aiPayrollLimit,
+                    'partnerSubscription.staffSeatLimit': starterPlan.staffSeatLimit,
                 });
-                console.log(`Growth subscription cancelled for partner ${partnerId}`);
+                console.log(`Subscription cancelled for partner ${partnerId}; reverted to Starter limits`);
             }
-            
+
             return new NextResponse('OK', { status: 200 });
         }
 
@@ -283,16 +292,15 @@ export async function POST(req: NextRequest) {
             }
             const partnerSnap = await adminDb.collection('users').doc(partnerId).get();
             const partnerProfile = partnerSnap.data() as User;
-            const isGrowthActive = partnerProfile?.partnerTier === 'growth' || 
-                (partnerProfile?.partnerSubscription?.status === 'active');
                 
             let cost = 0;
             for (const item of currentOrderData.items) {
                 const service = allServices.find(s => s.id === item.id);
                 const basePrice = service?.price || item.price || 0;
-                const wholesalePrice = isGrowthActive 
-                    ? (service?.resellerPrice || basePrice * 0.80)
-                    : (basePrice * 0.80);
+                const wholesalePrice = getPartnerServicePrice(
+                    service || { price: basePrice },
+                    partnerProfile?.partnerTier
+                );
                 cost += wholesalePrice * (item.quantity || 1);
             }
             orderTotal = parseFloat(cost.toFixed(2));
@@ -316,7 +324,7 @@ export async function POST(req: NextRequest) {
           const isTopupOnly = currentOrderData.items && currentOrderData.items.length > 0 && currentOrderData.items.every(i => i.id === 'partner_credit_topup');
           if (isOutsourcePayment) {
               const note = {
-                  text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.documentContact === 'client' ? currentOrderData.endCustomerEmail : currentOrderData.customerEmail}.`,
+                  text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.customerEmail}.`,
                   date: new Date(),
                   authorId: 'system',
                   type: 'note',
@@ -326,6 +334,7 @@ export async function POST(req: NextRequest) {
               await orderRef.update({
                   isOutsourced: true,
                   status: 'Processing',
+                  documentContact: 'partner',
                   notes: FieldValue.arrayUnion(note)
               });
           } else if (isTopupOnly) {
@@ -351,69 +360,17 @@ export async function POST(req: NextRequest) {
               }
           }
 
-          if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_dfy_setup')) {
-              await adminDb.collection('users').doc(currentOrderData.userId).update({ setupAddon: true });
-              console.log(`Paid Done-For-You Setup Add-on. Marked partner ${currentOrderData.userId} setupAddon as true.`);
-          }
-
-          if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_platform_fee')) {
-              await adminDb.collection('users').doc(currentOrderData.userId).update({
-                  platformFeePaid: true,
-                  status: 'Active'
-              });
-              console.log(`[Partner Platform Fee] Set platformFeePaid=true for user ${currentOrderData.userId}`);
-
-              // Send Storefront Unlocked Welcome Email
-              try {
-                  const partnerSnap = await adminDb.collection('users').doc(currentOrderData.userId).get();
-                  if (partnerSnap.exists) {
-                      const partnerUser = partnerSnap.data() as User;
-                      const storefrontUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://myacc.co.za'}/p/${(partnerUser as any).practiceSlug || partnerUser.id}`;
-                      const emailHtml = `
-                          <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                              <h2 style="color: #214392; margin-top: 0;">🎉 Practice Storefront Unlocked!</h2>
-                              <p>Dear ${partnerUser.name || 'Partner'},</p>
-                              <p>Thank you for completing your Platform Access payment. Your digital accounting practice storefront is now <strong>Active & Live</strong>!</p>
-                              
-                              <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                                  <p style="margin: 0 0 8px 0;"><strong>Your Practice Link:</strong></p>
-                                  <a href="${storefrontUrl}" style="color: #214392; font-weight: bold; word-break: break-all;">${storefrontUrl}</a>
-                              </div>
-
-                              <h4 style="color: #0f172a; margin-bottom: 8px;">What you can do now:</h4>
-                              <ul>
-                                  <li>Set custom service retail prices & markups in your Partner Portal</li>
-                                  <li>Share your white-labeled client storefront link with prospective clients</li>
-                                  <li>Fulfill orders yourself or outsource directly to My Accountant at wholesale rates</li>
-                              </ul>
-
-                              <p style="margin-top: 24px;">Need help setting up custom domains or pricing? Log into your portal to get started.</p>
-                              
-                              <p style="margin-top: 30px; font-size: 13px; color: #64748b;">Warm regards,<br/><strong>The My Accountant Team</strong></p>
-                          </div>
-                      `;
-                      await sendEmail({
-                          to: partnerUser.email,
-                          subject: '🎉 Your Practice Storefront is Now Active & Unlocked!',
-                          html: emailHtml,
-                      });
-                  }
-              } catch (e) {
-                  console.error('[Partner Platform Fee] Failed to send storefront activation email:', e);
-              }
-          }
-          
           if (currentOrderData.originalOrderId) {
               const originalOrderRef = adminDb.collection('orders').doc(currentOrderData.originalOrderId);
               await originalOrderRef.update({
                   isOutsourced: true,
                   status: 'Processing',
                   fulfillmentStatus: 'Awaiting Documents',
-                  documentContact: currentOrderData.documentContact || 'partner',
+                  documentContact: 'partner',
               });
               
               const note = {
-                  text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.documentContact === 'client' ? currentOrderData.endCustomerEmail : currentOrderData.customerEmail}.`,
+                  text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.customerEmail}.`,
                   date: new Date(),
                   authorId: 'system',
                   type: 'note',
@@ -655,11 +612,8 @@ export async function POST(req: NextRequest) {
               }
           }
 
-          // 5. Send Document Request Email (Automated)
-          const isOutsourced = !!currentOrderData.resellerId;
-          const recipientEmail = isOutsourced && currentOrderData.documentContact === 'client' 
-              ? currentOrderData.endCustomerEmail 
-              : currentOrderData.customerEmail;
+          // 5. Send Document Request Email (Automated) — always to customerEmail (the partner)
+          const recipientEmail = currentOrderData.customerEmail;
 
           // Only send if not already notified
           const alreadyNotified = currentOrderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`);

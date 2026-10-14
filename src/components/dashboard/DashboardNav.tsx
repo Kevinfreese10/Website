@@ -120,38 +120,33 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/admin/media', label: 'Media', icon: Images, roles: ['admin'] },
   ];
 
-  const isFreePartner = user.partnerTier === 'free';
-
   const partnerNavItems = [
     { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff', 'partner_admin'] },
-    ...(!isFreePartner ? [
-      ...(limits.aiCompanies > 0 ? [{ 
-        href: '/partner/ai-accountant', 
-        label: 'AI Accountant', 
-        icon: Calculator, 
-        roles: ['partner', 'partner_staff', 'partner_admin'],
-        subItems: [
-          { href: '/partner/ai-accountant/clients', label: 'Manage Clients' },
-          { href: '/partner/ai-accountant/allocation-rules', label: 'Allocation Rules' },
-          { href: '/partner/ai-accountant/chart-of-accounts', label: 'Chart of Accounts' }
-        ]
-      }] : []),
-      ...(limits.aiPayroll > 0 ? [{ 
-        href: '/partner/ai-payroll', 
-        label: 'AI Payroll', 
-        icon: Users, 
-        roles: ['partner', 'partner_staff', 'partner_admin'],
-        subItems: [
-          { href: '/partner/ai-payroll/clients', label: 'Manage Clients' }
-        ]
-      }] : []),
-      ...(user?.partnerSubscription?.hasTaskManager ? [{ href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff', 'partner_admin'] }] : []),
-      { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff', 'partner_admin'] },
-    ] : []),
-    { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff', 'partner_admin'] },
-    { href: '/partner/orders', label: isFreePartner ? 'My Orders' : 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff', 'partner_admin'] },
-    ...(!isFreePartner ? [{ href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff', 'partner_admin'] }] : []),
-    { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { 
+      href: '/partner/ai-accountant', 
+      label: 'AI Accountant', 
+      icon: Calculator, 
+      roles: ['partner', 'partner_staff', 'partner_admin'],
+      subItems: [
+        { href: '/partner/ai-accountant/clients', label: 'Manage Clients' },
+        { href: '/partner/ai-accountant/allocation-rules', label: 'Allocation Rules' },
+        { href: '/partner/ai-accountant/chart-of-accounts', label: 'Chart of Accounts' }
+      ]
+    },
+    { 
+      href: '/partner/ai-payroll', 
+      label: 'AI Payroll', 
+      icon: Users, 
+      roles: ['partner', 'partner_staff', 'partner_admin'],
+      subItems: [
+        { href: '/partner/ai-payroll/clients', label: 'Manage Clients' }
+      ]
+    },
+    { href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/services', label: 'Wholesale Catalog', icon: Briefcase, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/orders', label: 'Practice Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/profile', label: 'Practice Profile', icon: User, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/settings', label: 'Subscription & Team', icon: Settings, roles: ['partner', 'partner_staff', 'partner_admin'] },
     { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff', 'partner_admin'] },
     { href: '/partner/jobs', label: 'Jobs & Talent', icon: Briefcase, roles: ['partner', 'partner_staff', 'partner_admin'] },
     { href: '/partner/talent-profile', label: 'Talent Profile', icon: UserPlus, roles: ['partner', 'partner_staff', 'partner_admin'] },

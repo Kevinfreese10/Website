@@ -5,9 +5,8 @@ import { ProtectedRoute, useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import DashboardNav from '@/components/dashboard/DashboardNav';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { LapsedSubscriptionScreen } from '@/components/partner/LapsedSubscriptionScreen';
-import { PendingSetupScreen } from '@/components/partner/PendingSetupScreen';
 import { PartnerProvider } from '@/contexts/PartnerContext';
 import { WorkingAsBanner } from '@/components/partner/staff/WorkingAsBanner';
 import { AppTopBar } from '@/components/navigation/AppTopBar';
@@ -18,28 +17,41 @@ import { MobileBottomNav } from '@/components/navigation/MobileBottomNav';
 export default function PartnerLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  
+
   useEffect(() => {
-    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'partner_admin') {
+    if (
+      isAuthenticated &&
+      user?.role !== 'partner' &&
+      user?.role !== 'partner_staff' &&
+      user?.role !== 'partner_admin'
+    ) {
       router.push('/login');
     }
   }, [isAuthenticated, user, router]);
 
-  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'partner_admin')) {
-     return (
-        <div className="flex min-h-screen">
-            <Skeleton className="hidden md:block w-16 lg:w-64" />
-            <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-4">
-                <Skeleton className="h-12 w-1/3" />
-                <Skeleton className="h-[60vh] w-full" />
-            </div>
+  if (
+    isAuthenticated === undefined ||
+    (isAuthenticated &&
+      user?.role !== 'partner' &&
+      user?.role !== 'partner_staff' &&
+      user?.role !== 'partner_admin')
+  ) {
+    return (
+      <div className="flex min-h-screen">
+        <Skeleton className="hidden md:block w-16 lg:w-64" />
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-4">
+          <Skeleton className="h-12 w-1/3" />
+          <Skeleton className="h-[60vh] w-full" />
+        </div>
       </div>
-     );
+    );
   }
 
-  const isLapsed = user?.partnerTier === 'growth' && user?.partnerSubscription?.status === 'lapsed';
-  const isPendingSetup = user?.status === 'Pending Setup Payment';
+  const isLapsed =
+    (user?.partnerTier === 'practice' ||
+      user?.partnerTier === 'enterprise' ||
+      user?.partnerTier === 'growth') &&
+    user?.partnerSubscription?.status === 'lapsed';
 
   return (
     <ProtectedRoute>
@@ -52,23 +64,19 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
               </Sidebar>
             )}
             <SidebarInset>
-                <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8 min-w-0 w-full max-w-full">
-                    <AppTopBar homeHref="/partner/dashboard" extra={<NotificationCenter />} />
+              <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8 min-w-0 w-full max-w-full">
+                <AppTopBar homeHref="/partner/dashboard" extra={<NotificationCenter />} />
 
-                    {user?.role === 'partner_staff' && <WorkingAsBanner />}
+                {user?.role === 'partner_staff' && <WorkingAsBanner />}
 
-                    {isPendingSetup ? (
-                        <div className="flex items-center justify-center min-h-[70vh]">
-                          <PendingSetupScreen user={user} />
-                        </div>
-                    ) : isLapsed ? (
-                        <div className="flex items-center justify-center min-h-[70vh]">
-                          <LapsedSubscriptionScreen user={user} />
-                        </div>
-                    ) : (
-                        children
-                    )}
-                </div>
+                {isLapsed ? (
+                  <div className="flex items-center justify-center min-h-[70vh]">
+                    <LapsedSubscriptionScreen user={user} />
+                  </div>
+                ) : (
+                  children
+                )}
+              </div>
             </SidebarInset>
             <CommandPalette />
             <MobileBottomNav variant="partner" />

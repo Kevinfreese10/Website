@@ -311,24 +311,18 @@ export default function AIPayrollClientsPage() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>
-                                    {partner.tier === 'free' ? 'Upgrade to Growth Tier' : 'Company Limit Reached'}
+                                    {partner.tier === 'starter' ? 'Upgrade to Practice Tier (R950/pm)' : 'Upgrade to Enterprise Tier (R4,950/pm)'}
                                 </DialogTitle>
                                 <DialogDescription>
-                                    {partner.tier === 'free' 
-                                        ? 'Your current Free partner tier does not include AI Payroll companies. Please upgrade to the Growth tier (R950/month) to manage up to 5 companies.' 
-                                        : 'Your Growth subscription supports a maximum of 5 AI Payroll companies. Please contact support or upgrade your plan to add more.'}
+                                    {partner.tier === 'starter' 
+                                        ? 'Your Free Starter plan includes 1 AI Payroll client. Upgrade to the Practice plan (R950/month) for up to 10 AI Payroll clients + 30% wholesale discount, or Enterprise (R4,950/month) for Unlimited clients + 50% wholesale discount.' 
+                                        : 'Your Practice plan supports up to 10 AI Payroll clients. Upgrade to the Enterprise plan (R4,950/month) for Unlimited AI Accounting & Payroll clients and a 50% wholesale discount on all services.'}
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="py-4 flex flex-col gap-3">
-                                {partner.tier === 'free' ? (
-                                    <Button asChild className="w-full font-bold">
-                                        <Link href="/partner/profile">Upgrade to Growth Tier</Link>
-                                    </Button>
-                                ) : (
-                                    <Button asChild className="w-full font-bold" variant="outline">
-                                        <a href="mailto:support@myacc.co.za?subject=Request Additional AI Payroll Companies">Contact Support</a>
-                                    </Button>
-                                )}
+                                <Button asChild className="w-full font-bold">
+                                    <Link href="/partner/settings">Upgrade Practice Plan</Link>
+                                </Button>
                                 <Button variant="ghost" onClick={() => setIsLimitModalOpen(false)}>Cancel</Button>
                             </div>
                         </DialogContent>

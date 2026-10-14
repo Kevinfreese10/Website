@@ -14,12 +14,11 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const DEFAULT_PARTNER_SUBSCRIPTION = {
     status: 'active' as const,
-    // Effectively "no expiry" for the free tier, matching prior client-side default.
     currentPeriodEnd: new Date('2099-12-31'),
-    aiCompanyLimit: 0,
-    aiPayrollLimit: 0,
+    aiCompanyLimit: 1,
+    aiPayrollLimit: 1,
     staffSeatLimit: 1,
-    hasTaskManager: false,
+    hasTaskManager: true,
 };
 
 /**
@@ -48,11 +47,12 @@ export async function becomePartnerAction(idToken: string) {
             return { success: false, error: 'This account type cannot be converted to a partner account.' };
         }
 
+        const existingTier = userSnap.exists ? userSnap.data()?.partnerTier : undefined;
+
         await userRef.set({
             role: 'partner',
-            partnerTier: 'growth',
+            partnerTier: existingTier || 'starter',
             status: 'Active',
-            creditBalance: userSnap.exists ? (userSnap.data()?.creditBalance ?? 0) : 0,
             partnerSubscription: userSnap.exists && userSnap.data()?.partnerSubscription
                 ? userSnap.data()?.partnerSubscription
                 : DEFAULT_PARTNER_SUBSCRIPTION,
