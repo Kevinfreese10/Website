@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Shield, ArrowRight, FileSignature, Users, Landmark, MessageSquare } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Trust Registration & Administration Services | My Accountant',
-        description: 'Register and administer trusts in South Africa. My Accountant offers trust formation, SARS income tax registration, beneficial ownership filing & ongoing trust administration.',
+        title: 'Trust Registration, Tax & Accounting Services South Africa',
+        description: 'Register and administer trusts in South Africa. SARS ITR12T income tax registration, Master of the High Court beneficial ownership & trust accounting.',
     };
     return getStaticPageMetadata('trust-services', defaults);
 }
@@ -35,7 +36,7 @@ export default function TrustServicesPage() {
       title: "Trust Tax & Compliance Services",
       description: "Trusts have unique tax obligations including annual income tax returns, capital gains tax considerations, and distributions reporting. Our tax specialists ensure your trust remains fully compliant with SARS while optimising the tax position of the trust and its beneficiaries.",
       icon: Landmark,
-      link: "/tax-services-south-africa",
+      link: "/tax-consulting",
     },
     {
       title: "Trust Administration Support",
@@ -60,8 +61,26 @@ export default function TrustServicesPage() {
     },
   ];
 
+  const trustSchema = generateServicePillarSchema({
+    title: 'Trust Registration, Tax & Accounting Services South Africa',
+    description: 'Register and administer trusts in South Africa. SARS ITR12T income tax registration, Master of the High Court beneficial ownership & trust accounting.',
+    slug: '/trust-services',
+    serviceType: 'AccountingService',
+    priceRange: 'From R1,250',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Tax & Trusts', url: '/tax-consulting' },
+      { name: 'Trust Services', url: '/trust-services' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(trustSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

@@ -14,11 +14,72 @@
     "Certified ID copy of one director missing or older than 3 months"
   ],
   "informationToProvide": [
-    { "label": "Certified ID copies  / Passport of all directors", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID or passport per active director on the CoR14.3, with a Commissioner of Oaths / SAPS stamp dated within 3 months. Every director must be covered — flag any director without one." },
-    { "label": "Letter on a company letterhead  to Request for Deregistration of Company", "type": "pdf", "documentKind": "letterhead", "inNameOf": "entity", "isRequired": true, "aiHint": "Letter on the company's letterhead addressed to CIPC requesting voluntary deregistration, stating the company has ceased trading, has no assets and no liabilities, and giving the tax number; signed by ALL active directors. If the client has none, the agent drafts it (template deregistration_request_letter) for signature." },
-    { "label": "Tax clearance certificate", "type": "pdf", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing 'Compliant'. A SARS confirmation that the company has no outstanding tax liability is accepted as an alternative. Note the PIN to verify on eFiling." },
-    { "label": "Company registration documents (e.g., COR14.1, COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. Used to check which directors must sign." },
-    { "label": "Confirmation that the company has no assets or liabilities", "type": "text", "isRequired": true, "helpText": "Confirm in writing that the company has stopped trading and holds no assets and owes nothing, including to SARS." }
+    {
+      "id": "req_k2w2gs0v",
+      "label": "Certified ID copies  / Passport of all directors",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy"
+      ]
+    },
+    {
+      "id": "req_y8kae45d",
+      "label": "Letter on a company letterhead  to Request for Deregistration of Company",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Letter on the company's letterhead addressed to CIPC requesting voluntary deregistration, stating the company has ceased trading, has no assets and no liabilities, and giving the tax number; signed by ALL active directors. If the client has none, the agent drafts it (template deregistration_request_letter) for signature.",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_zglsr2b4",
+      "label": "Tax clearance certificate",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing 'Compliant'. A SARS confirmation that the company has no outstanding tax liability is accepted as an alternative. Note the PIN to verify on eFiling.",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_2xtziqtg",
+      "label": "Company registration documents (e.g., COR14.1, COR14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. Used to check which directors must sign.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_zfn1nk6k",
+      "label": "Confirmation that the company has no assets or liabilities",
+      "type": "text",
+      "helpText": "Confirm in writing that the company has stopped trading and holds no assets and owes nothing, including to SARS.",
+      "isRequired": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_dereg_tax_number",
+      "label": "Company SARS Income Tax Reference Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "10-digit SARS Income Tax reference number of the company (mandatory on the CIPC CoR 40.4 deregistration letterhead statement)."
+    },
+    {
+      "id": "req_dereg_reason",
+      "label": "Reason for Voluntary Deregistration & Date Trading Ceased",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "State why the company is being deregistered (e.g., dormant since incorporation, ceased trading on [date]) and confirm the company has no assets or liabilities."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -44,7 +105,11 @@
       "title": "Draft deregistration request letter and director resolution",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["deregistration_request_letter", "director_resolution", "handoff_sheet"],
+      "templateIds": [
+        "deregistration_request_letter",
+        "director_resolution",
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Letter on letterhead and resolution drafted from verified facts; handoff sheet lists the attachments",
       "aiInstructions": "Letter must contain: company name and registration number, income tax number, statement that the company has ceased trading / never traded, has no assets and no liabilities, that it is not the subject of any legal proceedings, the reason for deregistration, and signature blocks for every active director with ID numbers. Use the client's letterhead if uploaded, otherwise the letterhead template with the company details. The resolution records the directors' decision to apply for deregistration under s82(3)(b)(ii) of the Companies Act."
@@ -75,7 +140,11 @@
       "title": "Wait for CIPC to process deregistration and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [20, 45, 80],
+      "followUpAfterDays": [
+        20,
+        45,
+        80
+      ],
       "estimatedDays": 80,
       "doneCriteria": "Company status on CIPC changes to 'Deregistration Final' or CIPC issues a query",
       "aiInstructions": "Check the enterprise status on CIPC before each follow-up rather than emailing blindly. Status normally moves to 'Deregistration Process' first and then to 'Final'. Draft a polite status-request email quoting the reference at each point. If CIPC queries (usually outstanding ARs or a missing signature), create a proposal for Kevin with the query text."
@@ -85,7 +154,9 @@
       "title": "Deliver deregistration confirmation",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["deregistration_notice"],
+      "deliverArtefacts": [
+        "deregistration_notice"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "CIPC confirmation and a status printout posted to Communication History",
       "aiInstructions": "Remind the client to deregister for income tax, VAT and PAYE with SARS and to close the bank account. Offer the VAT Deregistration service where relevant."

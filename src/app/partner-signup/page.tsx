@@ -6,9 +6,9 @@ import { SITE_URL } from '@/lib/constants';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Create Your Practice Account | My Accountant Back-Office Partner Program',
+  title: 'Partner Program Signup & Practice Onboarding',
   description:
-    'Start your free or paid My Accountant Back-Office Partner account with AI Accounting, AI Payroll, Practice Task Manager, and up to 50% wholesale discount on all statutory services.',
+    'Create your My Accountant Partner account to unlock AI Accounting, AI Payroll, Practice Task Manager, and up to 50% wholesale discount on statutory services.',
   alternates: { canonical: `${SITE_URL}/partner-signup` },
 };
 

@@ -12,7 +12,7 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Payroll Administration Services South Africa | My Accountant',
+        title: 'Payroll Administration & EMP201/EMP501 Filing South Africa',
         description: 'End-to-end payroll administration for South African businesses. BCEA compliance, encrypted payslips, EMP201 submissions, and bi-annual EMP501 reconciliations.',
     };
     return getStaticPageMetadata('payroll-administration', defaults);
@@ -42,14 +42,14 @@ const payrollFaqs = [
 ];
 
 const payrollSchema = generateServicePillarSchema({
-  title: 'Payroll Administration Services South Africa',
+  title: 'Payroll Administration & EMP201/EMP501 Filing South Africa',
   description: 'Outsourced payroll administration, digital payslips, BCEA compliance, EMP201 declarations, and EMP501 tax reconciliations for South African companies.',
   slug: '/payroll-administration',
   serviceType: 'AccountingService',
   priceRange: 'From R650/month',
   breadcrumbs: [
     { name: 'Home', url: '/' },
-    { name: 'Payroll Services', url: '/products#payroll-services' },
+    { name: 'Payroll Services', url: '/payroll-services' },
     { name: 'Payroll Administration', url: '/payroll-administration' },
   ],
   faqs: payrollFaqs
@@ -75,7 +75,7 @@ export default function PayrollAdministrationPage() {
               <Briefcase className="h-4 w-4" /> South African Labour & Employer Payroll
             </div>
             <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center text-hero-gradient pb-2">
-              <span className="text-gradient">Payroll Administration Services</span>
+              <span className="text-gradient">Payroll Administration &amp; EMP201/EMP501 Filing South Africa</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Accurate, on-time, and strictly compliant. We remove the administrative complexity of paying your team, managing BCEA leave rules, SARS EMP201 submissions, and bi-annual EMP501 tax reconciliations.

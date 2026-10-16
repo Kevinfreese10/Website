@@ -15,25 +15,141 @@
     "Registered address supplied is a PO Box"
   ],
   "informationToProvide": [
-    { "label": "Certified copies of the ID or passport for each member", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back or Green Book) or passport per director / incorporator, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names. Count them — an NPC needs at least three." },
-    { "label": "How many Directors", "type": "text", "isRequired": true, "helpText": "Select how many directors to register (minimum 3 for an NPC, up to 5+)." },
-    { "label": "Director 1: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the first director." },
-    { "label": "Director 2: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the second director." },
-    { "label": "Director 3: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the third director (minimum 3 required for NPC)." },
-    { "label": "Director 4: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fourth director to register?", "helpText": "Full legal name and surname of the fourth director." },
-    { "label": "Director 5: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fifth director to register?", "helpText": "Full legal name and surname of the fifth director." },
-    { "label": "Director(s) Home Address", "type": "text", "isRequired": true },
-    { "label": "Proof of residential address for each director", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
-    { "label": "Director(s) cell number", "type": "text", "isRequired": true },
-    { "label": "Company Year-end (Normally February)", "type": "text", "isRequired": true },
-    { "label": "Address to be captured for the NPC", "type": "text", "isRequired": true, "helpText": "Physical street address in South Africa." },
-    { "label": "Postal Address to be captured for the NPC", "type": "text", "isRequired": true },
-    { "label": "Email address for NPC", "type": "text", "isRequired": true },
-    { "label": "Preferred name 1", "type": "text", "isRequired": true, "helpText": "No special characters. CIPC adds 'NPC'." },
-    { "label": "Preferred name 2", "type": "text", "isRequired": true },
-    { "label": "Preferred name 3", "type": "text", "isRequired": true },
-    { "label": "Preferred name 4", "type": "text", "isRequired": true },
-    { "label": "Brief description of the NPC's objectives and activities", "type": "text", "isRequired": true, "helpText": "The public benefit or community purpose the NPC will pursue — this goes into the MOI." }
+    {
+      "id": "req_eezm1qnx",
+      "label": "Certified ID Copy (SA Citizens) or Certified/Apostilled Passport (Foreign Nationals) for Each Incorporator / Director (Min. 3)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified & apostilled foreign passport + valid permit (foreign nationals only)"
+      ],
+      "isRequired": true,
+      "helpText": "Minimum 3 directors required for an NPC. SA citizens must submit a certified SA ID (Smart ID front & back or Green Book) within 3 months.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days. Count them — an NPC requires at least three (3) directors."
+    },
+    {
+      "id": "req_buptotzc",
+      "label": "Proof of Residential Address for Each Director (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "alternatives": [
+        "Signed lease agreement",
+        "Bank statement showing residential address"
+      ],
+      "isRequired": true,
+      "helpText": "Utility bill, municipal rates account, lease, or bank statement dated within 3 months for each of the ≥3 directors.",
+      "aiHint": "Proof of residential address dated within 3 months per director in the director’s own name."
+    },
+    {
+      "id": "req_qw8ym28o",
+      "label": "How Many Directors? (Minimum 3)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Minimum 3 directors are required by law for a Non-Profit Company.",
+      "aiHint": "Integer count of directors (must be >= 3)."
+    },
+    {
+      "id": "req_rzrwzkd5",
+      "label": "Director(s) Residential & Postal Addresses",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Full residential and postal address with postal code for each director.",
+      "aiHint": "Residential and postal street addresses for all directors."
+    },
+    {
+      "id": "req_npc_dir_email",
+      "label": "Director(s) Email Address(es)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Individual email address for each director (required by CIPC on CoR 14.1A for OTP verification).",
+      "aiHint": "Valid email address for each of the >= 3 directors."
+    },
+    {
+      "id": "req_qugpeogf",
+      "label": "Director(s) Cellphone Number(s)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Mobile number for each director (required by CIPC for SMS OTP verification).",
+      "aiHint": "Valid mobile phone number for each of the >= 3 directors."
+    },
+    {
+      "id": "req_ix827kjy",
+      "label": "NPC Public-Benefit / Communal Objectives & Main Activities",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe the public benefit, cultural, social, or communal object the NPC will pursue (inserted into the MOI Schedule 1 objects clause).",
+      "aiHint": "Detailed public benefit or community objectives and activities for the NPC MOI."
+    },
+    {
+      "id": "req_qa8xfuia",
+      "label": "Preferred NPC Name 1",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "First-choice name. No special characters. CIPC appends 'NPC'.",
+      "aiHint": "First-choice proposed NPC name without special characters."
+    },
+    {
+      "id": "req_eqsy1m95",
+      "label": "Preferred NPC Name 2",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Second-choice alternative NPC name.",
+      "aiHint": "Second-choice proposed NPC name without special characters."
+    },
+    {
+      "id": "req_0tpadvrj",
+      "label": "Preferred NPC Name 3",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Third-choice alternative NPC name.",
+      "aiHint": "Third-choice proposed NPC name without special characters."
+    },
+    {
+      "id": "req_wmxnjf9u",
+      "label": "Preferred NPC Name 4",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Fourth-choice alternative NPC name.",
+      "aiHint": "Fourth-choice proposed NPC name without special characters."
+    },
+    {
+      "id": "req_89ux535c",
+      "label": "NPC Registered Physical Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Physical street address in South Africa (not a PO Box).",
+      "aiHint": "Physical street address and postal code in South Africa for the NPC."
+    },
+    {
+      "id": "req_rudd4zca",
+      "label": "NPC Postal Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Postal address and code for the NPC.",
+      "aiHint": "Postal address and postal code for the NPC."
+    },
+    {
+      "id": "req_36ryydxp",
+      "label": "NPC Official Email Address & Contact Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Primary email address and telephone number for the organisation.",
+      "aiHint": "Valid email address and contact number for the NPC."
+    },
+    {
+      "id": "req_9zoqtbh3",
+      "label": "NPC Financial Year-End",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Default is February (recommended).",
+      "aiHint": "Financial year-end month for the NPC (e.g. February)."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -59,7 +175,9 @@
       "title": "Draft registration handoff sheet and MOI object clauses",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet with all CoR14.1 fields, the four names, directors/incorporators and the MOI object clauses drafted from the client's objectives",
       "aiInstructions": "Use the CIPC standard NPC MOI (CoR15.1C) unless the client needs a customised MOI (e.g. voting members) — then flag for Kevin. Write the objects clause from the client's description in plain terms and include the non-distribution and dissolution clauses required by Schedule 1, which SARS also needs for PBO approval. Year-end defaults to February."
@@ -81,7 +199,10 @@
       "title": "Wait for CIPC to issue the certificate",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 3],
+      "followUpAfterDays": [
+        2,
+        3
+      ],
       "estimatedDays": 3,
       "doneCriteria": "CoR14.3 and registered MOI downloadable; income tax number issued",
       "aiInstructions": "Check the tracking status before following up. If the name is rejected, ask the client for replacements and re-reserve."
@@ -91,7 +212,11 @@
       "title": "Deliver CoR14.3, MOI and tax number",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration"],
+      "deliverArtefacts": [
+        "cor14_3",
+        "moi",
+        "sars_notice_of_registration"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Certificate, MOI and SARS tax number posted to Communication History",
       "aiInstructions": "Explain next steps: bank account, SARS eFiling registration and tax representative, and that tax exemption requires a separate PBO application to the SARS Tax Exemption Unit (offer the PBO Registration service) and DSD NPO registration if funders require it (offer NPO Registration)."

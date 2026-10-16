@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { SITE_URL, STATIC_OG_IMAGE } from './constants';
 
 // Store cache in globalThis to persist across hot-module reloads in Next.js development mode
-const CACHE_TTL = 60 * 1000; // 1 minute cache TTL
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache TTL
 const g = globalThis as any;
 if (g.isSeoCachePreloaded === undefined) {
   g.seoCache = {};
@@ -53,7 +53,10 @@ ensureSeoCache().catch(err => console.error("Initial SEO cache preloading failed
 export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metadata | Promise<Metadata> {
   const canonicalUrl = `${SITE_URL}${pageId === 'home' ? '' : `/${pageId}`}`;
   
-  let title = String(defaults.title || 'My Accountant');
+  const rawDefaultTitle = defaults.title;
+  let title = typeof rawDefaultTitle === 'string'
+    ? rawDefaultTitle
+    : (rawDefaultTitle as any)?.absolute ?? (rawDefaultTitle as any)?.default ?? 'My Accountant';
   let description = String(defaults.description || '');
   let imageUrl = STATIC_OG_IMAGE;
   let imageAlt = title;
@@ -69,8 +72,23 @@ export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metad
             imageUrl = `${SITE_URL}${imageUrl}`;
         }
       }
-      imageAlt = data.seoImageLabel || title;
     }
+
+    // Deduplicate repeated brand suffix (e.g., "| My Accountant | My Accountant" or "| My Accountant Partner Program | My Accountant")
+    title = title.replace(/(\|\s*My Accountant(?:\s+Partner\s+Program)?)\s*\|\s*My Accountant\s*$/i, '$1');
+    while (/\|\s*My Accountant\s*\|\s*My Accountant\s*$/i.test(title)) {
+      title = title.replace(/\s*\|\s*My Accountant\s*$/i, '');
+    }
+
+    // Trim description cleanly at word boundary if > 158 chars
+    if (description.length > 158) {
+      const sliced = description.slice(0, 155);
+      const lastSpace = sliced.lastIndexOf(' ');
+      const cut = lastSpace > 100 ? sliced.slice(0, lastSpace) : sliced;
+      description = `${cut.replace(/[.,;:\s]+$/, '')}...`;
+    }
+
+    imageAlt = data?.seoImageLabel || title;
 
     return {
       ...defaults,
@@ -120,7 +138,7 @@ export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metad
     setTimeout(() => {
       console.warn(`[SEO Metadata Timeout] Preloading cache timed out for page: ${pageId}. Using defaults.`);
       resolve(buildMetadata(undefined));
-    }, 1000)
+    }, 3500)
   );
 
   return Promise.race([fetchPromise, timeoutPromise]);

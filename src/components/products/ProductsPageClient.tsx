@@ -88,6 +88,9 @@ export default function ProductsPageClient({
   };
 
   useEffect(() => {
+    if (initialServices.length > 0 && initialCategories.length > 0) {
+      return;
+    }
     const servicesUnsubscribe = onSnapshot(query(collection(db, 'services'), orderBy('title')), (snapshot) => {
         const fetchedServices = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -110,7 +113,7 @@ export default function ProductsPageClient({
         servicesUnsubscribe();
         categoriesUnsubscribe();
     }
-  }, []);
+  }, [initialServices.length, initialCategories.length]);
   
   const categorizedServices = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();

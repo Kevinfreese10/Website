@@ -5,7 +5,7 @@
     "CIPC registration certificate (CoR14.3)",
     "Registered Memorandum of Incorporation (CoR15.1A)",
     "SARS income tax reference number issued via CIPC",
-    "Share certificate(s) and first director resolution",
+    "First director resolution",
     "FNB business account referral (if requested)"
   ],
   "playbookCommonFailures": [
@@ -16,27 +16,149 @@
     "Shareholding not confirmed, so share certificates cannot be issued"
   ],
   "informationToProvide": [
-    { "label": "Certified copies of the ID or passport for each director", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy (foreign director)"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back, or Green Barcoded ID Book) or passport per director, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and full names. Count them against 'How many directors'." },
-    { "label": "How many directors", "type": "text", "isRequired": true, "helpText": "Select how many directors to register upon incorporation (1 to 5+)." },
-    { "label": "Director 1: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the first director." },
-    { "label": "Director 2: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a second director to register?", "helpText": "Full legal name and surname of the second director." },
-    { "label": "Director 3: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a third director to register?", "helpText": "Full legal name and surname of the third director." },
-    { "label": "Director 4: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fourth director to register?", "helpText": "Full legal name and surname of the fourth director." },
-    { "label": "Director 5: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fifth director to register?", "helpText": "Full legal name and surname of the fifth director." },
-    { "label": "Director(s) Home Address", "type": "text", "isRequired": true },
-    { "label": "Proof of residential address for each director", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
-    { "label": "Director(s) Email Address", "type": "text", "isRequired": true },
-    { "label": "Director(s) cell number", "type": "text", "isRequired": true },
-    { "label": "Company Year-end (Normally February)", "type": "text", "isRequired": true },
-    { "label": "Preferred name 1", "type": "text", "isRequired": true, "helpText": "No special characters like !@#%. CIPC adds '(Pty) Ltd'." },
-    { "label": "Preferred name 2", "type": "text", "isRequired": true },
-    { "label": "Preferred name 3", "type": "text", "isRequired": true },
-    { "label": "Preferred name 4", "type": "text", "isRequired": true },
-    { "label": "Company Address", "type": "text", "isRequired": true, "helpText": "Physical street address in South Africa." },
-    { "label": "Company Postal Address", "type": "text", "isRequired": true },
-    { "label": "Company Email Address", "type": "text", "isRequired": true },
-    { "label": "Shareholding: each shareholder's name and percentage", "type": "text", "isRequired": true, "helpText": "Must total 100%. Shareholders are usually the directors." },
-    { "label": "Do you want an FNB business bank account opened?", "type": "text", "isRequired": false }
+    {
+      "id": "req_oekyzjjn",
+      "label": "Certified ID Copy (SA Citizens) or Certified/Apostilled Passport (Foreign Nationals) for Each Director",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified & apostilled foreign passport + valid permit (foreign nationals only)"
+      ],
+      "isRequired": true,
+      "helpText": "SA citizens must upload a certified SA ID (Smart ID front & back or Green Book), certified within 3 months. Passports are only accepted for foreign nationals.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days. Count them against 'How many directors'."
+    },
+    {
+      "id": "req_4d38c518",
+      "label": "Proof of Residential Address for Each Director (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "alternatives": [
+        "Signed lease agreement",
+        "Official bank statement showing physical address"
+      ],
+      "isRequired": true,
+      "helpText": "Utility bill, municipal account, signed lease, or bank statement dated within 3 months in each director’s name.",
+      "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director’s own name."
+    },
+    {
+      "id": "req_7fsftv6a",
+      "label": "How Many Directors?",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the total number of initial directors (minimum 1 for a Private Company).",
+      "aiHint": "Integer count of directors to cross-check against uploaded IDs and proofs of address."
+    },
+    {
+      "id": "req_z6p3ufe5",
+      "label": "Director(s) Residential & Postal Address(es)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Full street address and postal code for each director.",
+      "aiHint": "Residential and postal street addresses with postal codes for all directors."
+    },
+    {
+      "id": "req_6exq99mq",
+      "label": "Director(s) Email Address(es)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Active email address for each director (required by CIPC for OTP verification).",
+      "aiHint": "Valid email address for every listed director."
+    },
+    {
+      "id": "req_8bm3yy4c",
+      "label": "Director(s) Cellphone Number(s)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "South African mobile number for each director (required by CIPC for SMS OTP verification).",
+      "aiHint": "Valid cell number for every listed director."
+    },
+    {
+      "id": "req_en7qjlb5",
+      "label": "Preferred Company Name 1",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "First-choice name. No special characters (!@#%). CIPC automatically appends '(Pty) Ltd'.",
+      "aiHint": "First-choice proposed company name without special punctuation."
+    },
+    {
+      "id": "req_qeusagfv",
+      "label": "Preferred Company Name 2",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Second-choice alternative company name.",
+      "aiHint": "Second-choice proposed company name without special punctuation."
+    },
+    {
+      "id": "req_wnwm3nux",
+      "label": "Preferred Company Name 3",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Third-choice alternative company name.",
+      "aiHint": "Third-choice proposed company name without special punctuation."
+    },
+    {
+      "id": "req_1oumme3c",
+      "label": "Preferred Company Name 4",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Fourth-choice alternative company name.",
+      "aiHint": "Fourth-choice proposed company name without special punctuation."
+    },
+    {
+      "id": "req_eczg6y8l",
+      "label": "Company Registered Physical Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Physical street address in South Africa (cannot be a PO Box).",
+      "aiHint": "South African physical street address and postal code for the company."
+    },
+    {
+      "id": "req_0p132nte",
+      "label": "Company Postal Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Postal address for official CIPC and SARS correspondence (may be same as physical address).",
+      "aiHint": "Postal address and code for the company."
+    },
+    {
+      "id": "req_jb0ib0jx",
+      "label": "Company Contact Email & Phone Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Official business email address and telephone number.",
+      "aiHint": "Company contact email and phone number for CIPC registration."
+    },
+    {
+      "id": "req_6gtp68hk",
+      "label": "Company Financial Year-End",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Default is February (recommended to align with the South African tax year).",
+      "aiHint": "Financial year-end month (e.g. February)."
+    },
+    {
+      "id": "req_t0wbtqgi",
+      "label": "Incorporators / Initial Shareholding Split (Names & Percentages)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List each incorporator/shareholder and their percentage (must total 100%). Note: Formal Share Certificates can be ordered via our Share Certificate service or Tender Ready Package.",
+      "aiHint": "Incorporator names and percentage split totaling 100% for CoR 14.1 / CoR 15.1A."
+    },
+    {
+      "id": "req_j1lz8rpg",
+      "label": "Do You Want a Free FNB Business Bank Account Referral?",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Optional: Reply Yes or No.",
+      "aiHint": "Yes/No preference for FNB business account referral."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -62,7 +184,9 @@
       "title": "Draft registration handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet with every CoR14.1 / 14.1A field: names in order, directors, incorporators, addresses, contacts, year-end, authorised shares",
       "aiInstructions": "Use the CIPC standard short-form MOI (CoR15.1A) with 1,000 authorised no-par-value ordinary shares unless the client asks otherwise. Incorporators = initial shareholders. Nothing guessed — flag gaps."
@@ -84,29 +208,39 @@
       "title": "Wait for CIPC name approval and registration",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 3],
+      "followUpAfterDays": [
+        2,
+        3
+      ],
       "estimatedDays": 3,
       "doneCriteria": "CoR14.3, registered MOI and income tax number available",
       "aiInstructions": "Check tracking status before following up. If all names are rejected, draft a client message with the reasons and ask for four new names, then re-reserve."
     },
     {
       "id": "pty_post",
-      "title": "Draft share certificate(s) and first director resolution",
+      "title": "Draft first director resolution (incorporation & bank mandate)",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["share_certificate", "director_resolution"],
+      "templateIds": [
+        "director_resolution"
+      ],
       "estimatedDays": 1,
-      "doneCriteria": "Share certificate per shareholder and first board resolution (allotment of shares, bank account, year-end) drafted with the new registration number",
-      "aiInstructions": "Issue shares per the confirmed shareholding out of the authorised shares. Certificates numbered from 1, dated the registration date, signed by the directors. If the client asked for an FNB account, prepare the referral details for Kevin."
+      "doneCriteria": "First board resolution (adoption of MOI, bank account mandate, financial year-end) drafted with the new registration number",
+      "aiInstructions": "Draft the first director resolution recording incorporation, registered address, financial year-end, and bank account mandate. Note: Share Certificate is NOT included in standard Private Company Registration (R950) — it belongs to the Tender Ready Package or standalone Share Certificate product."
     },
     {
       "id": "pty_deliver",
-      "title": "Deliver CoR14.3, MOI, tax number and share documents",
+      "title": "Deliver CoR14.3, MOI, SARS tax number and first director resolution",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration", "share_certificate"],
+      "deliverArtefacts": [
+        "cor14_3",
+        "moi",
+        "sars_notice_of_registration",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
-      "doneCriteria": "Registration documents posted to Communication History",
+      "doneCriteria": "CoR14.3, MOI, SARS income tax number and first director resolution posted to Communication History",
       "aiInstructions": "Explain next steps in plain language: open the bank account with the CoR14.3 and MOI, register on SARS eFiling and appoint a tax representative, file the beneficial ownership declaration, and the first annual return falls due 12 months from incorporation. Offer the relevant services (Tax Representative Appointment, BEE affidavit, CSD, Tax Clearance)."
     },
     {

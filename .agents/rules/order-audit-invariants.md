@@ -6,7 +6,7 @@ globs: ["*"]
 # Order Audit Invariants & Approval Guardrails
 
 ### 1. Mandatory Skill Routing
-- Whenever asked to audit an order (e.g. "audit order X", "check order #1234"), ALWAYS activate and follow the `order-audit-and-document-generator` skill (`.agents/skills/order-audit-and-document-generator/SKILL.md`).
+- Whenever asked to audit an order (e.g. "audit order X", "check order #1234"), ALWAYS activate and follow the `order-fulfillment-agent` skill (`.agents/skills/order-fulfillment-agent/SKILL.md`).
 
 ### 2. Strict User Pre-Approval Gate & Review Pack Gating
 - **NEVER** upload documents to Cloud Storage, post notes to Firestore (`order.notes`), or dispatch emails to clients until Kevin has reviewed and explicitly approved them.
@@ -21,7 +21,7 @@ globs: ["*"]
 - **No Markdown Bold Asterisks (`**`)**: Never format client communication notes with `**`. Keep the text clean and plain.
 - **No Raw Firebase URLs**: **NEVER** show raw Firebase Storage URLs (`https://firebasestorage.googleapis.com/...`) in the note text. Note text must refer cleanly to the attached document (e.g., "Please review the draft document attached below").
 - **No "Download Links:" Header**: Do not include `Download Links:` or `**Download Links:**` as a header. Attachments are automatically rendered as interactive download cards in the portal UI via the `attachments: [{ name, url }]` array.
-- **Mandatory Storage Download Token & Public Access**: All Firebase Admin SDK uploads MUST include a cryptographically unique `firebaseStorageDownloadTokens: crypto.randomUUID()` in file metadata AND invoke `await file.makePublic()`.
+- **Mandatory Storage Download Token (Never Public)**: All Firebase Admin SDK uploads MUST include a cryptographically unique `firebaseStorageDownloadTokens: crypto.randomUUID()` in file metadata (use `uploadBufferToStorage` in `src/lib/firebase-admin.ts`) and attach the tokenised URL. **NEVER** call `file.makePublic()` — client KYC and statutory documents must not be world-readable.
 - **Pre-flight HTTP 200 Verification**: Before committing an attachment URL to Firestore, the agent must perform an HTTP GET pre-flight check confirming `res.status === 200` to prevent client 403 Forbidden errors.
 
 ### 4. Accountant's Letter Discovery Questionnaire Invariant
@@ -38,7 +38,7 @@ globs: ["*"]
 
 ### 6. Email Trigger & Audit Dispatch Invariant
 - When an email with subject `New Note on Order #XXXX` is received by the inbox agent from the portal notification system:
-  1. It triggers an autonomous audit of order `#XXXX` using `order-audit-and-document-generator`.
+  1. It triggers an autonomous audit of order `#XXXX` using the `order-fulfillment-agent` skill.
   2. The agent audits uploads, performs forensic reconciliations, and renders statutory draft PDFs locally.
   3. **Mandatory Gate (Draft Statutory Deliverables Only)**: The agent compiles and dispatches an executive review email to `kev@thinkestry.co.za` (do NOT CC `info@myacc.co.za`) **ONLY IF** draft statutory documents (PDFs/letters/forms) requiring Kevin's review or signature were generated and attached (`documentsGenerated.length > 0`). If 0 documents were generated (e.g. conversational notes, requests, or questions), the email to Kevin is completely suppressed.
   4. **Strict Isolation**: The agent MUST NOT post notes to `orders/{orderId}.notes` or update the order status until Kevin replies or confirms approval.
@@ -164,4 +164,16 @@ globs: ["*"]
 - **Automatic Blocklist Filter**: Any emails received from or containing `marina.adams68@webmail.co.za` (including automated contact form submissions) must be immediately intercepted and filtered out.
 - **Zero Actions & Zero Escalations**: The inbox agent must **NEVER** parse as a lead, **NEVER** auto-reply, and **NEVER** forward or notify Kevin (`kev@thinkestry.co.za`).
 - **Immediate Archive / Trash**: Such messages must be routed directly to `INBOX.Trash` or `INBOX.Archive` to preserve complete inbox cleanliness.
+
+### 24. Practice Contact Channels & No WhatsApp Invariant
+- **Strict Prohibition on WhatsApp**: My Accountant (Pty) Ltd does **NOT** operate a WhatsApp support line and does not accept client communications via WhatsApp.
+- **NEVER** write "WhatsApp us", "call or WhatsApp us", or state/imply that the practice has a WhatsApp number.
+- **NEVER** confuse client private contact numbers with practice details (e.g. if a client writes "WhatsApp me on 081...", that is their private mobile, not our practice number).
+- **Official Practice Channels Only**:
+  - **Landline**: `+27 10 109 1625` (or `010 109 1625`).
+  - **Email**: `info@myacc.co.za` (or direct email replies).
+  - **Client Portal**: `https://www.myacc.co.za` (Order Communication History).
+- **Standard Approved Call-to-Action (CTA)**:
+  *"Simply reply 'PROCEED' to this email, or call our office at 010 109 1625, and we will begin immediately."*
+
 

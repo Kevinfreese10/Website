@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Users, ArrowRight, FileSpreadsheet, ClipboardCheck, BadgeCheck, ShieldCheck } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
         title: 'Payroll Services & Outsourcing South Africa | My Accountant',
-        description: 'Affordable payroll outsourcing in South Africa. EMP201, EMP501, PAYE & UIF compliance handled by experts. Accurate payslips, on-time submissions & full SARS compliance.',
+        description: 'Affordable payroll outsourcing in South Africa. EMP201, EMP501, PAYE & UIF compliance handled by experts with accurate payslips and on-time SARS filing.',
     };
     return getStaticPageMetadata('payroll-services', defaults);
 }
@@ -60,8 +61,25 @@ export default function PayrollServicesPage() {
     },
   ];
 
+  const payrollServicesSchema = generateServicePillarSchema({
+    title: 'Payroll Services & Outsourcing South Africa',
+    description: 'Affordable payroll outsourcing in South Africa. EMP201, EMP501, PAYE & UIF compliance handled by experts with accurate payslips and on-time SARS filing.',
+    slug: '/payroll-services',
+    serviceType: 'AccountingService',
+    priceRange: 'From R650/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Payroll Services', url: '/payroll-services' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(payrollServicesSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

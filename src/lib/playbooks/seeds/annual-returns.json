@@ -14,8 +14,40 @@
     "Financial statements or Financial Accountability Supplement (FAS) required and not provided"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC documents)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. The registration number is what the filing is keyed on — extract it carefully (format YYYY/NNNNNN/07 for a company, YYYY/NNNNNN/23 for a CC)." },
-    { "label": "Turnover amount for year to be filed", "type": "text", "isRequired": true, "helpText": "Total turnover (sales) for the financial year that the annual return covers. Use R0 if the company did not trade.", "aiHint": "A Rand amount per financial year being filed. If more than one year is outstanding, one figure per year. Cross-check against AFS or management accounts if uploaded." }
+    {
+      "label": "Company registration documents (e.g., CIPC documents)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. The registration number is what the filing is keyed on — extract it carefully (format YYYY/NNNNNN/07 for a company, YYYY/NNNNNN/23 for a CC).",
+      "id": "req_dzh3ika5"
+    },
+    {
+      "label": "Turnover amount for year to be filed",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Total turnover (sales) for the financial year that the annual return covers. Use R0 if the company did not trade.",
+      "aiHint": "A Rand amount per financial year being filed. If more than one year is outstanding, one figure per year. Cross-check against AFS or management accounts if uploaded.",
+      "id": "req_z0siytwh"
+    },
+    {
+      "id": "req_ar_bo_status",
+      "label": "Has CIPC Beneficial Ownership Been Filed Within the Last 12 Months? (Upload BO Confirmation if Available)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "CIPC blocks Annual Return filing unless a Beneficial Ownership declaration was filed within the last 12 months. Upload your CIPC BO Confirmation Certificate if already filed.",
+      "aiHint": "CIPC Beneficial Ownership Confirmation Certificate showing the enterprise registration number and filing date within the last 12 months."
+    },
+    {
+      "id": "req_ar_officer_details",
+      "label": "Designated Director / Compliance Officer Full Name, ID Number, Email & Cellphone (for CIPC Financial Accountability Supplement / FAS)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Required by CIPC to complete the mandatory Financial Accountability Supplement (CoR 30.2) submitted alongside the Annual Return."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -62,7 +94,10 @@
       "title": "Deliver annual return certificate and fee breakdown",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["annual_return_certificate", "cipc_fee_receipt"],
+      "deliverArtefacts": [
+        "annual_return_certificate",
+        "cipc_fee_receipt"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Certificate, receipt and fee table posted to Communication History",
       "aiInstructions": "State the next annual return due date (anniversary month of incorporation) and offer a reminder. Mention that the CIPC fee was paid on the client's behalf and will be invoiced as a disbursement if not already."

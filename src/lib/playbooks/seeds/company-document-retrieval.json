@@ -1,0 +1,109 @@
+{
+  "slug": "company-document-retrieval",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC Enterprise Disclosure Certificate",
+    "Retrieved CIPC Statutory Certificates (CoR 14.3 / MOI / CoR 39 as requested)"
+  ],
+  "playbookCommonFailures": [
+    "CIPC registration number provided does not exist or belongs to a pre-electronic legacy file requiring manual CIPC archive retrieval",
+    "Requestor is not listed as an active director when requesting restricted non-public CIPC archive documents",
+    "CIPC e-Services / BizPortal document server temporarily offline delaying automated PDF generation"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_cdr_company_details",
+      "label": "Company Registered Name & CIPC Registration Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the registered company name and CIPC registration number (e.g., 2021/123456/07)."
+    },
+    {
+      "id": "req_cdr_documents_needed",
+      "label": "Specific CIPC Documents Requested (e.g., CoR 14.3 Registration Certificate, MOI, CoR 39 Director History, Full Disclosure)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify which CIPC documents you need retrieved from CIPC records."
+    },
+    {
+      "id": "req_cdr_director_id",
+      "label": "ID Copy of Active Director or Authorised Applicant",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "alternatives": [
+        "Passport copy (foreign director)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a clear copy of the director or applicant ID to verify authority for retrieving CIPC statutory records.",
+      "aiHint": "South African ID or Passport of the director or authorised requestor. Verify legibility of full name and ID number."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cdr_collect",
+      "title": "Collect company registration number, requested document list, and director ID",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Company registration number/name, specific documents requested, and requestor ID received",
+      "aiInstructions": "Confirm which exact CIPC certificates the client needs (e.g., CoR14.3 Registration Certificate, Standard MOI, CoR39 Director Amendments, or Full Corporate Disclosure Certificate)."
+    },
+    {
+      "id": "cdr_verify",
+      "title": "Verify company registration details and director authority",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Company enterprise number verified and requestor identity checked against CIPC director records",
+      "aiInstructions": "Validate the CIPC registration number format (YYYY/NNNNNN/NN) and verify the uploaded ID."
+    },
+    {
+      "id": "cdr_file",
+      "title": "Request and retrieve official company documents on CIPC e-Services / BizPortal",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.retrieveCompanyDocuments",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "CIPC certificate reprint / disclosure request submitted under My Accountant customer code",
+      "aiInstructions": "Log into CIPC e-Services / New e-Services > Document Reprint / Enterprise Enquiry using the My Accountant customer code. Trigger reprint of CoR14.3, MOI, CoR39, and Corporate Disclosure Certificate for the enterprise number."
+    },
+    {
+      "id": "cdr_wait",
+      "title": "Wait for CIPC to email or generate the official certificate PDFs",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        1,
+        3
+      ],
+      "estimatedDays": 2,
+      "doneCriteria": "Official CIPC PDF certificates received from CIPC",
+      "aiInstructions": "Check the CIPC customer code email inbox or e-Services download queue for the generated certificates."
+    },
+    {
+      "id": "cdr_deliver",
+      "title": "Deliver retrieved CIPC company documents to the client portal",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "cor14_3",
+        "moi",
+        "cor39"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "All requested CIPC documents uploaded to the order Communication History",
+      "aiInstructions": "Verify each PDF matches the client company registration number and post to Communication History with a summary of the company current status and Annual Return due month."
+    },
+    {
+      "id": "cdr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms all requested CIPC documents have been delivered"
+    }
+  ]
+}

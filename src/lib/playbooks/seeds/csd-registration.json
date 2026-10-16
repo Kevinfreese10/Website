@@ -14,19 +14,127 @@
     "Commodity / industry classification left incomplete so the profile is not 'Registered'"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC Certificate)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. CSD verifies these against CIPC automatically." },
-    { "label": "Proof of business bank account - not older than 3 months", "type": "pdf", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Recent bank statement showing account holder name, account number and branch code"], "isRequired": true, "aiHint": "Official bank account confirmation letter or statement from a registered South African bank, in the COMPANY's name, dated within 3 months. Extract account holder name exactly as the bank spells it, account number, account type and branch code — CSD verifies these with the bank." },
-    { "label": "SARS Tax Compliance Status Certificate", "type": "pdf", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing 'Compliant'. CSD links to SARS using the company tax number; note the income tax reference number." },
-    { "label": "Valid South African ID documents  / Passport of all directors / members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": false, "alternatives": ["Passport for foreign directors"], "isRequired": true, "aiHint": "Clear copy of the SA ID (Smart Card front and back or Green Book) or passport for every director on the CoR14.3. CSD verifies ID numbers against Home Affairs; the copies must be legible. Certification is not required by CSD." },
-    { "label": "Proof of business address", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Lease agreement", "Director's proof of address where the business operates from home"], "isRequired": true, "aiHint": "Utility bill, lease, rates account or statement dated within 3 months showing the physical business address. Extract street, suburb, city, province and postal code for the CSD address screen." },
-    { "label": "Details of goods and services the supplier can provide", "type": "text", "isRequired": true, "helpText": "List what the business sells or does so we can select the correct CSD commodity codes." },
-    { "label": "Details about the industry or sectors in which the supplier operates", "type": "text", "isRequired": true },
-    { "label": "Preferred contact name", "type": "text", "isRequired": true },
-    { "label": "Preferred email address", "type": "text", "isRequired": true },
-    { "label": "Preferred cell number", "type": "text", "isRequired": true, "helpText": "CSD sends one-time PINs to this number; the person must be reachable during registration." },
-    { "label": "CSD Username", "type": "text", "isRequired": false, "isSecret": true },
-    { "label": "CSD Password", "type": "text", "isRequired": false, "isSecret": true },
-    { "label": "B-BBEE certificate or sworn affidavit", "type": "pdf", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Valid B-BBEE certificate from a SANAS-accredited agency or a commissioned EME/QSE sworn affidavit (dtic template) for the company. Optional but strengthens the profile; offer the BEE Certificate service if missing." }
+    {
+      "label": "Company registration documents (e.g., CIPC Certificate)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. CSD verifies these against CIPC automatically.",
+      "id": "req_ei22oqom"
+    },
+    {
+      "label": "Proof of business bank account - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Recent bank statement showing account holder name, account number and branch code"
+      ],
+      "isRequired": true,
+      "aiHint": "Official bank account confirmation letter or statement from a registered South African bank, in the COMPANY's name, dated within 3 months. Extract account holder name exactly as the bank spells it, account number, account type and branch code — CSD verifies these with the bank.",
+      "id": "req_de9ifq0k"
+    },
+    {
+      "label": "SARS Tax Compliance Status Certificate",
+      "type": "pdf",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing 'Compliant'. CSD links to SARS using the company tax number; note the income tax reference number.",
+      "id": "req_p7zoqtwy"
+    },
+    {
+      "label": "Valid South African ID documents  / Passport of all directors / members",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "alternatives": [
+        "Passport for foreign directors"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_b1se6p4s"
+    },
+    {
+      "label": "Proof of business address",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Lease agreement",
+        "Director's proof of address where the business operates from home"
+      ],
+      "isRequired": true,
+      "aiHint": "Utility bill, lease, rates account or statement dated within 3 months showing the physical business address. Extract street, suburb, city, province and postal code for the CSD address screen.",
+      "id": "req_0o9oo3du"
+    },
+    {
+      "label": "Details of goods and services the supplier can provide",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List what the business sells or does so we can select the correct CSD commodity codes.",
+      "id": "req_l6ue1kis"
+    },
+    {
+      "label": "Details about the industry or sectors in which the supplier operates",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_ty8uyhpj"
+    },
+    {
+      "label": "Preferred contact name",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_w8kxdv7k"
+    },
+    {
+      "label": "Preferred email address",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_xe2i9sbj"
+    },
+    {
+      "label": "Preferred cell number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "CSD sends one-time PINs to this number; the person must be reachable during registration.",
+      "id": "req_3gw4660k"
+    },
+    {
+      "label": "CSD Username",
+      "type": "text",
+      "isRequired": false,
+      "isSecret": true,
+      "id": "req_puqzcrhv"
+    },
+    {
+      "label": "CSD Password",
+      "type": "text",
+      "isRequired": false,
+      "isSecret": true,
+      "id": "req_hay0qq6n"
+    },
+    {
+      "label": "B-BBEE certificate or sworn affidavit",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Valid B-BBEE certificate from a SANAS-accredited agency or a commissioned EME/QSE sworn affidavit (dtic template) for the company. Optional but strengthens the profile; offer the BEE Certificate service if missing.",
+      "id": "req_qivj994m"
+    },
+    {
+      "id": "req_csd_commodities_regions",
+      "label": "Core Goods / Services Supplied (Commodity Families) & Provinces / Municipalities Served",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe the main goods or services your business supplies to government and whether you deliver nationally or in specific provinces/municipalities."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -52,7 +160,9 @@
       "title": "Draft CSD profile handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet covers every CSD screen: supplier identification, contacts, addresses, bank, tax, directors, commodities, industry classification, B-BBEE, associations",
       "aiInstructions": "One section per CSD screen with values ready to type. Include income tax number, CIPC number, bank account holder/number/type/branch, each director's name/ID/designation, physical and postal address, commodity codes, industry (SIC) selection and B-BBEE status/level. Mark anything missing rather than guessing."
@@ -74,7 +184,10 @@
       "title": "Wait for bank and SARS verification to complete",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [1, 2],
+      "followUpAfterDays": [
+        1,
+        2
+      ],
       "estimatedDays": 2,
       "doneCriteria": "Bank status 'Verified', tax status 'Compliant' and CIPC status 'Verified' on the profile; registration report downloadable",
       "aiInstructions": "Log in and check the verification statuses rather than waiting on email. If bank verification fails, compare the account holder name to the bank letter and correct; if SARS shows non-compliant, propose the Tax Clearance service."
@@ -84,7 +197,9 @@
       "title": "Deliver CSD registration report and supplier number",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["csd_registration_report"],
+      "deliverArtefacts": [
+        "csd_registration_report"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Registration report (PDF), MAAA number and login details posted to Communication History",
       "aiInstructions": "Explain that the CSD profile must be kept current (bank, tax and B-BBEE) and that the report is what government buyers request. Offer CSD Profile Updates as an annual service."

@@ -44,8 +44,8 @@ export const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 export const MARGIN = 40;
 
 export function templatePath(file: string): string {
-  const p = path.join(process.cwd(), 'public', 'templates', file);
-  if (!fs.existsSync(p)) throw new Error(`Template file not found: public/templates/${file}`);
+  const p = path.join(process.cwd(), 'src', 'server', 'templates', file);
+  if (!fs.existsSync(p)) throw new Error(`Template file not found: src/server/templates/${file}`);
   return p;
 }
 

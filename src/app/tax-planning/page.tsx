@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Target, ArrowRight, Calculator, BookOpen, FileInput, MessageCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Tax Planning & Strategy South Africa | My Accountant',
-        description: 'Strategic tax planning services to legally reduce your tax burden. Provisional tax, tax directives, and proactive tax strategy for South African businesses and individuals.',
+        title: 'Strategic Tax Planning Services South Africa',
+        description: 'Proactive tax planning services in South Africa to legally reduce your SARS tax burden. Section 12E SBC structuring, provisional tax, and tax directives.',
     };
     return getStaticPageMetadata('tax-planning', defaults);
 }
@@ -23,13 +24,13 @@ export default function TaxPlanningPage() {
       title: "Provisional Tax Planning (IRP6)",
       description: "Provisional tax payments can significantly impact your cash flow. We calculate accurate estimates based on projected income, ensuring you don't overpay during the year or face unexpected shortfalls when your final assessment is issued.",
       icon: Calculator,
-      link: "/products/irp6-provisional-tax-return-filing-for-trading-entities",
+      link: "/products/provisional-tax-return-irp6-for-trading-entities",
     },
     {
       title: "Comprehensive Tax Strategy",
       description: "Our tax strategists analyse your complete financial picture — income streams, investments, business structures, and retirement planning — to develop a lawful strategy that minimises your effective tax rate both now and in the future.",
       icon: BookOpen,
-      link: "/tax-services-south-africa",
+      link: "/tax-consulting",
     },
     {
       title: "Tax Directive Applications",
@@ -60,8 +61,26 @@ export default function TaxPlanningPage() {
     },
   ];
 
+  const taxPlanningSchema = generateServicePillarSchema({
+    title: 'Strategic Tax Planning Services South Africa',
+    description: 'Proactive tax planning services in South Africa to legally reduce your SARS tax burden. Section 12E SBC structuring, provisional tax, and tax directives.',
+    slug: '/tax-planning',
+    serviceType: 'TaxPlanningService',
+    priceRange: 'From R1,250',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Tax Consulting', url: '/tax-consulting' },
+      { name: 'Tax Planning', url: '/tax-planning' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(taxPlanningSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

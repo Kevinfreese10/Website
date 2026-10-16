@@ -777,6 +777,8 @@ export default function BecomeAPartnerPageClient() {
                 <img
                   src={KEVIN_FREESE_PROFILE_IMAGE}
                   alt="Kevin Freese - Managing Director & Founder"
+                  width={96}
+                  height={96}
                   className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md shrink-0 mb-4"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/kevin-freese.jpg';

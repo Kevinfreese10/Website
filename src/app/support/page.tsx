@@ -1,12 +1,16 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { Metadata } from 'next';
+import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { faqs } from '@/lib/data';
 import SupportForm from '@/components/support/SupportForm';
 import FaqAI from '@/components/support/FaqAI';
+
+export async function generateMetadata(): Promise<Metadata> {
+  return getStaticPageMetadata('support', {
+    title: 'Support Center & Client Helpdesk | My Accountant',
+    description:
+      'Get instant answers to your SARS, CIPC, payroll, and accounting questions or submit a support ticket to our Randburg client service desk.',
+  });
+}
 
 export default function SupportPage() {
   return (

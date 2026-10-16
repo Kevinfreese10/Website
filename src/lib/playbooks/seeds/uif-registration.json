@@ -14,12 +14,84 @@
     "Proof of business address older than 3 months or only a PO Box"
   ],
   "informationToProvide": [
-    { "label": "Certified copy of company registration documents (e.g., CIPC CoR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "mustBeCertified": true, "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The catalogue asks for a certified copy — accept an uncertified CIPC-issued PDF but flag it for Kevin if the Department insists on certification." },
-    { "label": "Certified ID copies of all directors/members", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified copy of the ID (both sides of a smart card) for every director on the CoR14.3, certified within the last 3 months with a legible stamp, signature and date." },
-    { "label": "Proof of business address (utility bill)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease showing the physical business address, dated within 3 months, in the company's name." },
-    { "label": "Business bank account details", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable." },
-    { "label": "Details of employees (ID numbers, salaries, start dates)", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Payroll register", "Typed list in the questionnaire"], "isRequired": true, "aiHint": "List of every employee with full name, SA ID or passport number, date of engagement, gross monthly salary and hours per month. Working directors who draw a salary are included. Needed for the UI-19 declaration that follows the employer registration." },
-    { "label": "SARS PAYE / UIF reference number (if the company is already registered for PAYE)", "type": "text", "isRequired": false, "aiHint": "If SARS has issued a PAYE number, the UIF reference is usually the same number with a 'U' prefix. Ask before registering afresh to avoid a duplicate employer record." }
+    {
+      "id": "req_3dw53fe0",
+      "label": "Certified copy of company registration documents (e.g., CIPC CoR14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The catalogue asks for a certified copy — accept an uncertified CIPC-issued PDF but flag it for Kevin if the Department insists on certification.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "mustBeCertified": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_xfit9kyv",
+      "label": "Certified ID copies of all directors/members",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy for a foreign director"
+      ]
+    },
+    {
+      "id": "req_0c0c6sjj",
+      "label": "Proof of business address (utility bill)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Utility bill, municipal account or lease showing the physical business address, dated within 3 months, in the company's name.",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates account"
+      ]
+    },
+    {
+      "id": "req_etsyzdmh",
+      "label": "Business bank account details",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable.",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": []
+    },
+    {
+      "id": "req_dhgunw8a",
+      "label": "Details of employees (ID numbers, salaries, start dates)",
+      "type": "excel",
+      "isRequired": true,
+      "aiHint": "List of every employee with full name, SA ID or passport number, date of engagement, gross monthly salary and hours per month. Working directors who draw a salary are included. Needed for the UI-19 declaration that follows the employer registration.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Payroll register",
+        "Typed list in the questionnaire"
+      ]
+    },
+    {
+      "id": "req_m8b0k7vm",
+      "label": "SARS PAYE / UIF reference number (if the company is already registered for PAYE)",
+      "type": "text",
+      "isRequired": false,
+      "aiHint": "If SARS has issued a PAYE number, the UIF reference is usually the same number with a 'U' prefix. Ask before registering afresh to avoid a duplicate employer record.",
+      "alternatives": []
+    },
+    {
+      "id": "req_uif_first_emp_and_contact",
+      "label": "Date First Employee Commenced Employment, Nature of Business & Authorised uFiling Administrator Details (Full Name, SA ID Number, Email & Cellphone for uFiling OTP)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Exact date the first employee started working, (2) Nature of business, and (3) Full name, SA ID number, email address, and cellphone number of the primary uFiling administrator."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -45,7 +117,9 @@
       "title": "Prepare UI-8 / UI-19 values hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every employer registration (UI-8) field and the employee declaration (UI-19) rows posted for Kevin",
       "aiInstructions": "Set out the UI-8 employer registration fields (employer name, trading name, CIPC number, PAYE number, physical/postal address, contact person, bank details, date of first employment, nature of business) and a UI-19 table of employees (ID number, surname, initials, date engaged, gross remuneration, hours). ⚠ verify: the commercial employer form is UI-8; domestic employers use UI-8D. Never invent a start date — leave blank and flag."
@@ -67,7 +141,11 @@
       "title": "Wait for the Department to confirm the UIF reference",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [15, 30, 45],
+      "followUpAfterDays": [
+        15,
+        30,
+        45
+      ],
       "estimatedDays": 45,
       "doneCriteria": "UIF employer reference number confirmed in writing or on the uFiling profile",
       "aiInstructions": "Draft a status query to the Department quoting the submission reference and CIPC number at each follow-up point. If the Department returns the application for missing employee details, create a proposal for Kevin and a client message naming the exact employee and field."
@@ -77,7 +155,9 @@
       "title": "Deliver UIF reference and next-steps note to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["uif_registration_confirmation"],
+      "deliverArtefacts": [
+        "uif_registration_confirmation"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "UIF reference and confirmation posted to Communication History",
       "aiInstructions": "Post the reference number and confirmation. Explain in plain English that a UI-19 declaration is due monthly and that contributions (1% employee + 1% employer) are paid via SARS EMP201 where PAYE-registered, otherwise directly to the Fund. Offer the monthly payroll / EMP201 service."

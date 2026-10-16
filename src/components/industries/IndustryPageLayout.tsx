@@ -22,7 +22,7 @@ export default function IndustryPageLayout({ industry }: IndustryPageLayoutProps
     priceRange: 'From R1,850/month',
     breadcrumbs: [
       { name: 'Home', url: '/' },
-      { name: 'Industries', url: '/products#accounting' },
+      { name: 'Industries', url: '/industries' },
       { name: industry.title, url: `/industries/${industry.slug}` },
     ],
     faqs: industry.faqs

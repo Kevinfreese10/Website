@@ -12,10 +12,59 @@
     "Company has outstanding annual returns and CIPC blocks the CoR39"
   ],
   "informationToProvide": [
-    { "label": "Company registration number (CIPC CoR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and current directors as registered." },
-    { "label": "Certified ID copies for all directors (new and existing, if applicable)", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "Certified SA ID or passport for each director whose details are being amended (and any director whose details are used to validate the change), Commissioner of Oaths / SAPS stamp dated within 3 months. Used to correct names, ID numbers or dates of birth." },
-    { "label": "Proof of residential address for all directors (not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Bank statement showing the address"], "isRequired": false, "isConditional": true, "conditionalQuestion": "Is a residential or postal address being changed?", "aiHint": "Utility bill, rates account, lease or bank statement dated within 3 months in the director's own name, showing the NEW address." },
-    { "label": "Details of the specific changes required (e.g., new director details, resignation date, updated address)", "type": "text", "isRequired": true, "helpText": "Tell us exactly what must change for which director: name, ID number, address, contact details, designation." }
+    {
+      "label": "Company registration number (CIPC CoR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and current directors as registered.",
+      "id": "req_xv7flb48"
+    },
+    {
+      "label": "Certified ID copies for all directors (new and existing, if applicable)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_6tmwju1h"
+    },
+    {
+      "label": "Proof of residential address for all directors (not older than 3 months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Bank statement showing the address"
+      ],
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Is a residential or postal address being changed?",
+      "aiHint": "Utility bill, rates account, lease or bank statement dated within 3 months in the director's own name, showing the NEW address.",
+      "id": "req_dc2auhl8"
+    },
+    {
+      "label": "Details of the specific changes required (e.g., new director details, resignation date, updated address)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Tell us exactly what must change for which director: name, ID number, address, contact details, designation.",
+      "id": "req_vck5sb1e"
+    },
+    {
+      "id": "req_da_contact_otp",
+      "label": "Director Current & New Email Address and Cellphone Number (for CIPC CoR 39 OTP Verification)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "CIPC sends verification OTPs via both SMS and Email when amending director contact or personal particulars. Provide both current and updated email/cellphone details."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -41,7 +90,9 @@
       "title": "Draft CoR39 handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet with old value / new value per field per director, plus attachment list",
       "aiInstructions": "One row per changed field: director, field, value currently on CIPC, new value, supporting document. Anything without a supporting document is flagged, not filed."
@@ -63,7 +114,10 @@
       "title": "Wait for CIPC to process the amendment",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 3],
+      "followUpAfterDays": [
+        2,
+        3
+      ],
       "estimatedDays": 2,
       "doneCriteria": "CoR39 confirmation received and the register reflects the change",
       "aiInstructions": "Check tracking status before following up. On rejection quote the reason to Kevin."
@@ -73,7 +127,10 @@
       "title": "Deliver CoR39 confirmation and updated CoR14.3",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor39", "cor14_3"],
+      "deliverArtefacts": [
+        "cor39",
+        "cor14_3"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Confirmation and re-downloaded CoR14.3 posted to Communication History",
       "aiInstructions": "Remind the client to update the same details with SARS and the bank if they were changed."

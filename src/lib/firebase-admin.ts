@@ -3,6 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 
 function logInit(msg: string) {
   console.log(`[Firebase Admin] ${msg}`);
@@ -139,7 +140,8 @@ export async function uploadBufferToStorage(
   const bucket = storage.bucket(bucketName);
   const file = bucket.file(destinationPath);
   
-  const token = Buffer.from(Math.random().toString(36) + Date.now().toString(36)).toString('hex');
+  // Unguessable token: the URL is the only access control (objects are never made public)
+  const token = randomUUID();
   await file.save(Buffer.from(buffer), {
     metadata: {
       contentType,

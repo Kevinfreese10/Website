@@ -2,12 +2,13 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-const scratchEnv = 'C:/Users/kev/.gemini/antigravity/scratch/.env';
-if (fs.existsSync(scratchEnv)) {
-  dotenv.config({ path: scratchEnv, override: true });
-}
+// Repo env wins; the legacy scratch .env only fills gaps (it used to override .env.local).
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+const scratchEnv = 'C:/Users/kev/.gemini/antigravity/scratch/.env';
+if (fs.existsSync(scratchEnv)) {
+  dotenv.config({ path: scratchEnv });
+}
 
 import { getAdminDb } from '../../../../src/lib/firebase-admin';
 import { Order } from '../../../../src/lib/types';
@@ -67,8 +68,10 @@ async function fetchCmd(orderId: string) {
     console.log('No notes posted yet.');
   } else {
     notes.forEach((n: any, idx: number) => {
-      console.log(`\nNote #${idx + 1} | Author: ${n.author || n.userName} | Date: ${n.createdAt || n.timestamp}`);
-      console.log(n.message || n.text || n.content);
+      const when = n.date?.toDate ? n.date.toDate().toISOString() : (n.date || n.createdAt || n.timestamp);
+      const visibility = n.isInternal ? 'INTERNAL' : 'CLIENT-VISIBLE';
+      console.log(`\nNote #${idx + 1} | ${visibility} | Author: ${n.authorName || n.author || n.userName} | Date: ${when}${n.subject ? ` | ${n.subject}` : ''}`);
+      console.log(n.text || n.message || n.content);
       if (n.attachments?.length) {
         console.log('Attachments:', n.attachments.map((a: any) => a.fileName || a.name).join(', '));
       }
@@ -93,9 +96,10 @@ async function auditCmd(orderId: string, dryRun: boolean = true, force: boolean 
   console.log(`\nReview Email Status: ${result.reviewEmailSent ? 'Sent to Kevin' : 'Prepared (dry-run)'}`);
 }
 
-async function approveCmd(orderId: string) {
+async function approveCmd(orderId: string, opts: { manifestPath?: string; noteText?: string; force?: boolean }) {
   console.log(`Executing explicit sign-off and portal commit for Order #${orderId}...`);
-  const res = await approveAndPostOrderPack(orderId, 'Kevin Freese');
+  const res = await approveAndPostOrderPack(orderId, 'Kevin Freese', true, opts);
+  console.log(`Manifest: ${res.manifestPath}`);
   console.log('\n====================================================');
   console.log(`ORDER SIGN-OFF COMMITTED: #${orderId}`);
   console.log('====================================================');
@@ -112,16 +116,22 @@ async function main() {
   const orderId = orderIdIdx !== -1 ? args[orderIdIdx + 1] : undefined;
 
   if (!orderId) {
-    console.error('Usage: npx tsx scripts/audit_order.ts <fetch|audit|generate|approve> --order-id <ID> [--dry-run|--live|--approve-and-post|--force]');
+    console.error('Usage: npx tsx scripts/audit_order.ts <fetch|audit|approve> --order-id <ID> [--live] [--force] [--manifest <path>] [--note-file <path>]');
     process.exit(1);
   }
+  const argVal = (name: string) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : undefined; };
 
   const dryRun = !args.includes('--live');
   const force = args.includes('--force');
   const approveAndPost = command === 'approve' || args.includes('--approve-and-post');
 
   if (approveAndPost) {
-    await approveCmd(orderId);
+    const noteFile = argVal('--note-file');
+    await approveCmd(orderId, {
+      manifestPath: argVal('--manifest'),
+      noteText: noteFile ? fs.readFileSync(noteFile, 'utf8') : undefined,
+      force,
+    });
   } else if (command === 'fetch' || command === 'status') {
     await fetchCmd(orderId);
   } else if (command === 'audit' || command === 'generate' || command === 'run' || command?.startsWith('--')) {

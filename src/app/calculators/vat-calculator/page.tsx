@@ -1,50 +1,48 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calculator, ArrowRight } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
+import CalculatorClient from './CalculatorClient';
 
 export default function VatCalculatorPage() {
-  const [amount, setAmount] = useState<string>('');
-  const [type, setType] = useState<'exclusive' | 'inclusive'>('exclusive');
-
-  const calculateVat = () => {
-    const numAmount = parseFloat(amount) || 0;
-    let vatAmount = 0;
-    let exclusive = 0;
-    let inclusive = 0;
-
-    if (type === 'exclusive') {
-      exclusive = numAmount;
-      vatAmount = numAmount * 0.15;
-      inclusive = numAmount * 1.15;
-    } else {
-      inclusive = numAmount;
-      vatAmount = numAmount - (numAmount / 1.15);
-      exclusive = numAmount / 1.15;
-    }
-
-    return { vatAmount, exclusive, inclusive };
-  };
-
-  const results = calculateVat();
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-ZA', {
-      style: 'currency',
-      currency: 'ZAR',
-      maximumFractionDigits: 2
-    }).format(val);
+  const schemaData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        '@id': 'https://myacc.co.za/calculators/vat-calculator#webapp',
+        name: 'South African VAT Calculator (15%)',
+        url: 'https://myacc.co.za/calculators/vat-calculator',
+        applicationCategory: 'FinanceApplication',
+        operatingSystem: 'All',
+        description: 'Quickly add or remove 15% South African Value-Added Tax (VAT) from any ZAR amount, and review the updated 2026/2027 VAT registration thresholds.',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'ZAR'
+        },
+        provider: {
+          '@id': 'https://myacc.co.za/#organization'
+        }
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://myacc.co.za' },
+          { '@type': 'ListItem', position: 2, name: 'Calculators', item: 'https://myacc.co.za/calculators' },
+          { '@type': 'ListItem', position: 3, name: 'South African VAT Calculator', item: 'https://myacc.co.za/calculators/vat-calculator' }
+        ]
+      }
+    ]
   };
 
   return (
     <div className="space-y-16 pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
+      />
+
       <section className="bg-slate-50 text-slate-900 py-16 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center max-w-3xl space-y-4">
           <div className="h-14 w-14 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
@@ -59,82 +57,21 @@ export default function VatCalculatorPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 max-w-5xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          <div className="lg:col-span-6 space-y-6">
-            <Card className="border border-border bg-card shadow-sm">
-              <CardContent className="p-6 space-y-6">
-                
-                <div className="space-y-2">
-                  <Label htmlFor="amount" className="font-bold text-slate-800 text-sm">Amount (ZAR)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">R</span>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="e.g. 1000"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="pl-8 h-11 border-border font-semibold text-slate-800"
-                    />
-                  </div>
-                </div>
+      <section className="container mx-auto px-4 max-w-5xl space-y-10">
+        <CalculatorClient />
+      </section>
 
-                <div className="space-y-3">
-                  <Label className="font-bold text-slate-800 text-sm">Amount Type</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant={type === 'exclusive' ? 'default' : 'outline'}
-                      onClick={() => setType('exclusive')}
-                      className="font-semibold text-xs h-10 border border-border"
-                    >
-                      Excluding VAT
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={type === 'inclusive' ? 'default' : 'outline'}
-                      onClick={() => setType('inclusive')}
-                      className="font-semibold text-xs h-10 border border-border"
-                    >
-                      Including VAT
-                    </Button>
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-6">
-            <Card className="border-2 border-primary/20 bg-card shadow-md overflow-hidden">
-              <div className="bg-primary text-white p-5 text-center">
-                <h3 className="font-bold text-lg">Calculation Summary</h3>
-              </div>
-              <CardContent className="p-6 space-y-6 bg-white">
-                
-                <div className="bg-slate-50 border border-border rounded-xl p-5 text-center space-y-1">
-                  <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">Total Including VAT</span>
-                  <div className="text-3xl font-black text-slate-900">{formatCurrency(results.inclusive)}</div>
-                </div>
-
-                <div className="space-y-4 pt-2">
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Amount Excluding VAT:</span>
-                    <span className="font-semibold text-slate-800">{formatCurrency(results.exclusive)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>VAT Amount (15%):</span>
-                    <span className="font-semibold text-primary">{formatCurrency(results.vatAmount)}</span>
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-          </div>
-
+      <section className="container mx-auto px-4 max-w-4xl space-y-6">
+        <h2 className="text-2xl font-bold text-slate-900">South African VAT Rate &amp; 2026/2027 Registration Thresholds</h2>
+        <Separator className="w-12 border-b-2 border-primary/20" />
+        <p className="text-slate-600 text-sm leading-relaxed">
+          Value-Added Tax (VAT) in South Africa is levied at the standard rate of 15% on most goods and services supplied by VAT-registered vendors. Effective 1 April 2026, the compulsory SARS VAT registration threshold increased from R1 million to R2.3 million in taxable supplies over any consecutive 12-month period, while the voluntary VAT registration threshold increased from R50,000 to R120,000.
+        </p>
+        <div className="pt-2 flex flex-wrap gap-3 text-xs font-semibold">
+          <Link href="/vat-registration-south-africa" className="text-primary hover:underline">VAT Registration South Africa (R1,500) →</Link>
+          <Link href="/blog/vat-registration-threshold-sme-2026" className="text-primary hover:underline">2026 VAT Threshold Increase Guide →</Link>
+          <Link href="/bookkeeping" className="text-primary hover:underline">Monthly Bookkeeping &amp; VAT201 Filing →</Link>
+          <Link href="/calculators" className="text-primary hover:underline">All Calculators →</Link>
         </div>
         <CalculatorDisclaimer />
       </section>

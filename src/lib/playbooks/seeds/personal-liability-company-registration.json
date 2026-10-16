@@ -15,14 +15,85 @@
     "Shareholding percentages not supplied for the share certificates"
   ],
   "informationToProvide": [
-    { "label": "Certified ID copies of all directors and shareholders", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back or Green Book) or passport per director and per shareholder, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names." },
-    { "label": "Proof of residential address for all directors", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
-    { "label": "Proposed company name options (3-4 choices)", "type": "text", "isRequired": true, "helpText": "In order of preference, no special characters. The name will end with 'Incorporated' or 'Inc.'." },
-    { "label": "Registered physical and postal addresses for the company", "type": "text", "isRequired": true },
-    { "label": "Contact details (email and phone) for all directors", "type": "text", "isRequired": true },
-    { "label": "Details of business activities/industry", "type": "text", "isRequired": true, "helpText": "The profession or practice (e.g. attorneys, accountants, medical practice)." },
-    { "label": "Shareholding: each shareholder's name and percentage", "type": "text", "isRequired": true, "helpText": "Must total 100%." },
-    { "label": "Company financial year-end", "type": "text", "isRequired": true, "helpText": "Normally end of February." }
+    {
+      "id": "req_crjnnnnv",
+      "label": "Certified ID Copy (SA Citizens) or Certified/Apostilled Passport (Foreign Nationals) for All Directors & Shareholders",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified & apostilled foreign passport + valid permit (foreign nationals only)"
+      ],
+      "isRequired": true,
+      "helpText": "SA citizens must submit a certified SA ID (Smart ID front & back or Green Book) within 3 months.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_i7sd7zdm",
+      "label": "Proof of Residential Address for All Directors (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "alternatives": [
+        "Signed lease agreement",
+        "Official bank statement showing physical address"
+      ],
+      "isRequired": true,
+      "helpText": "Utility bill, municipal account, lease, or bank statement dated within 3 months for each director.",
+      "aiHint": "Proof of residential address dated within 3 months per director in the director’s own name."
+    },
+    {
+      "id": "req_jdupqib3",
+      "label": "Proposed Company Name Options (3–4 Choices in Order of Preference)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List 3–4 names in order of preference, no special characters. Name will end with 'Incorporated' or 'Inc.'.",
+      "aiHint": "3 to 4 proposed company names in order of preference for a Personal Liability Company (Inc.)."
+    },
+    {
+      "id": "req_9kwixrzy",
+      "label": "Profession / Practice Type & Statutory Professional Body Details",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the profession (e.g. Attorneys / LPC, Accountants / SAICA / CIBA, Medical Practice / HPCSA, Engineers / ECSA), practice numbers, and any mandatory MOI restrictions required by your regulator.",
+      "aiHint": "Profession type, professional regulatory body, practice/registration numbers, and any mandatory MOI share-restriction clauses."
+    },
+    {
+      "id": "req_bgoyikc5",
+      "label": "Company Registered Physical & Postal Addresses in South Africa",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Physical street address (not a PO Box) and postal address with postal codes.",
+      "aiHint": "South African physical and postal addresses for the Inc. company."
+    },
+    {
+      "id": "req_zzf1kvvw",
+      "label": "Director(s) Contact Details (Email, Cellphone & Residential Address for Each Director)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide email, cell number, and residential address for every director and company contact details.",
+      "aiHint": "Email address, cellphone number, and residential street address for each director."
+    },
+    {
+      "id": "req_g930l8r3",
+      "label": "Shareholding Structure (Each Shareholder’s Full Name, ID Number & Share Percentage)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Must total 100%. Note: In most professional Inc. companies, shareholders must be qualified practitioners.",
+      "aiHint": "Shareholder full names, ID numbers, and share percentages totaling 100%."
+    },
+    {
+      "id": "req_flk7pxf4",
+      "label": "Company Financial Year-End",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Normally end of February.",
+      "aiHint": "Financial year-end month (e.g. February)."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -57,7 +128,9 @@
       "title": "Draft registration handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet with every CoR14.1 / 14.1A field, names in order, directors, incorporators, addresses, year-end and MOI attached",
       "aiInstructions": "List directors and incorporators with ID numbers, residential and postal addresses, contact details, and the company addresses. Incorporators are the initial shareholders."
@@ -79,7 +152,10 @@
       "title": "Wait for CIPC to process the registration",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [7, 10],
+      "followUpAfterDays": [
+        7,
+        10
+      ],
       "estimatedDays": 10,
       "doneCriteria": "CoR14.3, registered MOI and income tax number available",
       "aiInstructions": "Customised MOIs are manually reviewed by CIPC, which takes longer than a standard registration. Check tracking status before following up; route any MOI query to Kevin verbatim."
@@ -89,7 +165,11 @@
       "title": "Draft share certificates, securities register and first resolution",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["share_certificate", "securities_register", "director_resolution"],
+      "templateIds": [
+        "share_certificate",
+        "securities_register",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Share certificates per shareholder, securities register and first board resolution (allotment, bank account, year-end) drafted with the new registration number",
       "aiInstructions": "Issue shares per the confirmed shareholding out of the authorised shares in the MOI. Certificates are numbered from 1 and signed by the directors."
@@ -99,7 +179,13 @@
       "title": "Deliver CoR14.3, MOI, tax number and share documents",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration", "share_certificate", "securities_register"],
+      "deliverArtefacts": [
+        "cor14_3",
+        "moi",
+        "sars_notice_of_registration",
+        "share_certificate",
+        "securities_register"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "All registration documents posted to Communication History",
       "aiInstructions": "Explain next steps: bank account, SARS eFiling and tax representative, professional body registration, beneficial ownership declaration and first annual return in 12 months. Offer the relevant services."

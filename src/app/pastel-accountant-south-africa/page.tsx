@@ -14,14 +14,15 @@ import {
   Database
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Pastel Accountant South Africa | Partner & Evolution | My Accountant',
-        description: 'Professional Sage Pastel accounting, database cleanup, and support. We assist with legacy Pastel Partner to Sage Cloud migrations.',
+        title: 'Pastel Accountant South Africa | Partner & Evolution Support',
+        description: 'Professional Sage Pastel accounting, database cleanup, year-end rollovers, and support. We assist with legacy Pastel Partner to Sage Cloud migrations.',
     };
     return getStaticPageMetadata('pastel-accountant-south-africa', defaults);
 }
@@ -65,8 +66,26 @@ export default function PastelAccountantSouthAfricaPage() {
     }
   ];
 
+  const pastelSchema = generateServicePillarSchema({
+    title: 'Pastel Accountant South Africa | Partner & Evolution Support',
+    description: 'Professional Sage Pastel accounting, database cleanup, year-end rollovers, and support. We assist with legacy Pastel Partner to Sage Cloud migrations.',
+    slug: '/pastel-accountant-south-africa',
+    serviceType: 'AccountingService',
+    priceRange: 'From R1,850/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Accounting', url: '/monthly-accounting' },
+      { name: 'Pastel Accountant South Africa', url: '/pastel-accountant-south-africa' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(pastelSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         {/* Aurora background blobs */}

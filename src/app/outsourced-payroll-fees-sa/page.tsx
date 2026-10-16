@@ -13,13 +13,15 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import OutsourcedPayrollFeesCalculator from '@/components/payroll/OutsourcedPayrollFeesCalculator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
+import { SITE_URL } from '@/lib/constants';
 
 export const revalidate = 3600;
 
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Outsourced Payroll Fees South Africa | Cost & Packages | My Accountant',
+        title: 'Outsourced Payroll Fees South Africa | Pricing & Packages',
         description: 'Compare outsourced payroll fees in South Africa. Transparent per-employee pricing covering payslips, SARS EMP201 submissions, COIDA, and UIF filing.',
     };
     return getStaticPageMetadata('outsourced-payroll-fees-sa', defaults);
@@ -49,8 +51,70 @@ export default function OutsourcedPayrollFeesSaPage() {
     }
   ];
 
+  const baseSchema = generateServicePillarSchema({
+    title: 'Outsourced Payroll Fees & Pricing in South Africa',
+    description: 'Compare outsourced payroll fees in South Africa. Transparent per-employee pricing covering payslips, SARS EMP201 submissions, COIDA, and UIF filing.',
+    slug: '/outsourced-payroll-fees-sa',
+    serviceType: 'AccountingService',
+    priceRange: 'R6,400 - R14,000/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Payroll Services', url: '/payroll-services' },
+      { name: 'Outsourced Payroll Fees SA', url: '/outsourced-payroll-fees-sa' },
+    ],
+    faqs,
+  });
+
+  const offerCatalogSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${SITE_URL}/outsourced-payroll-fees-sa#offers`,
+    name: 'Outsourced Payroll Pricing Tiers South Africa',
+    provider: { '@id': `${SITE_URL}/#organization` },
+    areaServed: { '@type': 'Country', name: 'South Africa' },
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Monthly Outsourced Payroll Packages',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          name: 'Base Payroll Package (1 to 10 Employees)',
+          description: 'Flat monthly fee covering up to 10 employees, digital payslips, monthly EMP201 declarations, UIF uFiling, and bi-annual EMP501 reconciliations.',
+          price: '6400.00',
+          priceCurrency: 'ZAR',
+        },
+        {
+          '@type': 'Offer',
+          name: 'Growth Payroll Tier (11 to 50 Employees)',
+          description: 'R6,400 base monthly fee plus R190 per additional employee above 10 employees.',
+          priceSpecification: {
+            '@type': 'UnitPriceSpecification',
+            price: '190.00',
+            priceCurrency: 'ZAR',
+            unitText: 'per additional employee per month',
+          },
+        },
+        {
+          '@type': 'Offer',
+          name: 'Enterprise Capped Payroll Package (50+ Employees)',
+          description: 'Capped maximum monthly payroll administration fee for 50 or more employees, including full SARS EMP201/EMP501 and UIF compliance.',
+          price: '14000.00',
+          priceCurrency: 'ZAR',
+        },
+      ],
+    },
+  };
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(baseSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(offerCatalogSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         {/* Aurora background blobs */}

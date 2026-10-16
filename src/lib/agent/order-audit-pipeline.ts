@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import { PDFDocument } from 'pdf-lib';
 
 // Load environment variables for Firebase and SMTP, prioritizing scratch/.env with override
@@ -58,6 +59,40 @@ export interface GeneratedDocument {
   pageCount: number;
   isSinglePageBudgetCompliant: boolean;
   warnings: string[];
+}
+
+export interface ReviewManifest {
+  orderId: string;
+  orderNumber: string;
+  serviceTitle: string;
+  createdAt: string;
+  proposedClientCommunication: string;
+  documents: Array<{ fileName: string; localPath: string; sha256: string; pageCount: number; isSinglePageBudgetCompliant: boolean }>;
+  approvedAt?: string;
+  approvedBy?: string;
+  postedNoteId?: string;
+}
+
+const CLIENT_FILES_ROOT = process.env.CLIENT_FILES_ROOT || 'C:/Users/kev/OneDrive/Desktop/Accounting Clients';
+
+function sha256(buf: Buffer | Uint8Array): string {
+  return crypto.createHash('sha256').update(buf).digest('hex');
+}
+
+// One manifest per audit run (review_<timestamp>.json) so a later re-run never overwrites a pack under review.
+function writeReviewManifest(packDir: string, manifest: ReviewManifest): string {
+  if (!fs.existsSync(packDir)) fs.mkdirSync(packDir, { recursive: true });
+  const file = path.join(packDir, `review_${manifest.createdAt.replace(/[:.]/g, '-')}.json`);
+  fs.writeFileSync(file, JSON.stringify(manifest, null, 2), 'utf8');
+  console.log(`[runOrderAuditPipeline] Review manifest written: ${file}`);
+  return file;
+}
+
+export function findLatestReviewManifest(orderNumber: string): string | null {
+  const packDir = path.resolve(process.cwd(), `scratch/order_${orderNumber}_pack`);
+  if (!fs.existsSync(packDir)) return null;
+  const files = fs.readdirSync(packDir).filter(f => /^review_.*\.json$/.test(f)).sort();
+  return files.length ? path.join(packDir, files[files.length - 1]) : null;
 }
 
 export interface ForensicCheck {
@@ -1215,6 +1250,14 @@ export async function runOrderAuditPipeline(input: OrderAuditInput): Promise<Ord
       } catch (err: any) {
         console.warn(`[runOrderAuditPipeline] Warning writing to Downloads:`, err.message);
       }
+      // Mirror into the Accounting Clients folder (order-audit-invariants §7)
+      try {
+        const clientDir = path.join(CLIENT_FILES_ROOT, `Order #${orderNumber}`);
+        fs.mkdirSync(clientDir, { recursive: true });
+        fs.writeFileSync(path.join(clientDir, renderRes.fileName), renderRes.buffer);
+      } catch (err: any) {
+        console.warn(`[runOrderAuditPipeline] Warning mirroring to Accounting Clients folder:`, err.message);
+      }
 
       const pdfDoc = await PDFDocument.load(renderRes.buffer);
       const actualPages = pdfDoc.getPageCount();
@@ -1587,8 +1630,8 @@ APPOINTED PUBLIC OFFICER / REPRESENTATIVE:
 - Contact Number: ${repPhone}
 
 SARS EFILING LOGIN CREDENTIALS:
-${userVal && passVal 
-  ? `- Username: ${userVal}\n- Password: ${passVal}`
+${userVal && passVal
+  ? `- Username: ${userVal}\n- Password: Not sent by email. Kevin will share it by phone.`
   : `- Note: Client has not previously filed for the company and has no separate company eFiling profile. Please link the company to the representative's profile / register representative.`
 }
 
@@ -1632,7 +1675,7 @@ Dispatched from info@myacc.co.za for Tax Representative Appointment processing.
       ${userVal && passVal 
         ? `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
             <tr><td style="padding: 8px 12px; color: #64748b; width: 220px;"><strong>Username:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-family: monospace; font-size: 13px;">${userVal}</td></tr>
-            <tr><td style="padding: 8px 12px; color: #64748b;"><strong>Password:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-family: monospace; font-size: 13px;">${passVal}</td></tr>
+            <tr><td style="padding: 8px 12px; color: #64748b;"><strong>Password:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-size: 13px;">Not sent by email. Kevin will share it by phone.</td></tr>
           </table>`
         : `<p style="font-size: 13px; color: #334155; margin: 0 0 20px 0;">
             Client has not previously filed for the company and has no separate company eFiling profile. Please link the company to the representative's profile / register representative.
@@ -1661,6 +1704,22 @@ Dispatched from info@myacc.co.za for Tax Representative Appointment processing.
       contentType: 'application/pdf',
     }));
   }
+
+  // Freeze exactly what is being reviewed. approveAndPostOrderPack posts these files and this text, nothing regenerated.
+  writeReviewManifest(scratchDir, {
+    orderId,
+    orderNumber,
+    serviceTitle,
+    createdAt: new Date().toISOString(),
+    proposedClientCommunication,
+    documents: documentsGenerated.map(d => ({
+      fileName: d.fileName,
+      localPath: d.localPath,
+      sha256: sha256(d.buffer),
+      pageCount: d.pageCount,
+      isSinglePageBudgetCompliant: d.isSinglePageBudgetCompliant,
+    })),
+  });
 
   // Strict User Guardrails:
   // 1. If Tax Rep order and ZERO attachments found: SUPPRESS email to Sinto! Never email external partners with 0 docs.
@@ -1770,41 +1829,59 @@ Dispatched from info@myacc.co.za for Tax Representative Appointment processing.
 export async function approveAndPostOrderPack(
   orderId: string, 
   approvedBy: string = 'Kevin Freese',
-  advanceStatus: boolean = true
-): Promise<{ success: boolean; noteId: string; statusUpdated?: boolean; attachmentsCount: number }> {
+  advanceStatus: boolean = true,
+  opts: { manifestPath?: string; noteText?: string; force?: boolean } = {}
+): Promise<{ success: boolean; noteId: string; statusUpdated?: boolean; attachmentsCount: number; manifestPath: string }> {
   const db = getAdminDb();
   const { doc: orderDoc, data: orderData } = await resolveOrderDoc(db, orderId);
   const orderRef = db.collection('orders').doc(orderDoc.id);
+  const orderNumber = String((orderData as any).originalOrderId || orderDoc.id);
 
-  // Run pipeline to obtain latest verified deliverables and proposed text
-  const auditResult = await runOrderAuditPipeline({ orderId: orderDoc.id, dryRun: true, forceRegenerate: true });
-  
-  // Resolve or upload attachments to Firebase Storage if available
+  // Commit exactly the pack Kevin reviewed: the frozen manifest, never a fresh regeneration.
+  const manifestPath = opts.manifestPath || findLatestReviewManifest(orderNumber);
+  if (!manifestPath || !fs.existsSync(manifestPath)) {
+    throw new Error(`No review manifest for Order #${orderNumber}. Run the audit first and get Kevin's approval on its output.`);
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as ReviewManifest;
+  if (manifest.approvedAt && !opts.force) {
+    throw new Error(`Manifest ${path.basename(manifestPath)} was already approved and posted (${manifest.postedNoteId}) at ${manifest.approvedAt}. Use --force to post again.`);
+  }
+  console.log(`[approveAndPostOrderPack] Using manifest ${manifestPath} (${manifest.documents.length} document(s), created ${manifest.createdAt}).`);
+
+  // Verify every file is byte-identical to what was reviewed before uploading anything.
+  const buffers = manifest.documents.map(d => {
+    if (!fs.existsSync(d.localPath)) throw new Error(`Reviewed file missing: ${d.localPath}`);
+    const buf = fs.readFileSync(d.localPath);
+    if (sha256(buf) !== d.sha256) throw new Error(`Reviewed file changed since review: ${d.fileName}. Re-run the audit and re-approve.`);
+    return { fileName: d.fileName, buf };
+  });
+
+  const noteText = (opts.noteText ?? manifest.proposedClientCommunication).trim();
+  if (!noteText) throw new Error('Approved note text is empty.');
+  if (/\*\*|firebasestorage\.googleapis\.com|download links:/i.test(noteText)) {
+    throw new Error('Note text breaks client note formatting rules (markdown bold, raw Storage URL or "Download Links:" header).');
+  }
+
+  // Upload; any failure aborts the post (no placeholder links).
+  const { uploadBufferToStorage } = await import('../firebase-admin');
   const attachments: { name: string; url: string }[] = [];
-  for (const d of auditResult.documentsGenerated) {
-    let attachmentUrl = `https://www.myacc.co.za/documents/${d.fileName}`;
-    try {
-      const { uploadBufferToStorage } = await import('../firebase-admin');
-      const storagePath = `orders/${orderDoc.id}/notes/${Date.now()}_${d.fileName}`;
-      attachmentUrl = await uploadBufferToStorage(d.buffer, storagePath, 'application/pdf');
-    } catch (_) {
-      // Fallback to myacc.co.za documents URL if storage upload is unavailable
-    }
-    attachments.push({
-      name: d.fileName,
-      url: attachmentUrl,
-    });
+  for (const d of buffers) {
+    const storagePath = `orders/${orderDoc.id}/notes/${Date.now()}_${d.fileName}`;
+    const url = await uploadBufferToStorage(d.buf, storagePath, 'application/pdf');
+    const check = await fetch(url, { method: 'GET' });
+    if (check.status !== 200) throw new Error(`Uploaded file not reachable (HTTP ${check.status}): ${d.fileName}`);
+    attachments.push({ name: d.fileName, url });
   }
 
   const noteId = `note_${Date.now()}_approved_pack`;
   const approvedNote = {
     id: noteId,
-    text: auditResult.proposedClientCommunication,
+    text: noteText,
     authorId: 'LRM285EOq3gwNMKayY6vtzooaC03',
     authorName: `${approvedBy} (Director)`,
     date: new Date(),
     type: 'note',
-    subject: `Statutory Deliverables — ${auditResult.serviceTitle}`,
+    subject: `Statutory Deliverables — ${manifest.serviceTitle}`,
     isInternal: false,
     attachments,
   };
@@ -1829,8 +1906,13 @@ export async function approveAndPostOrderPack(
 
   await orderRef.update(updatePayload);
 
+  manifest.approvedAt = new Date().toISOString();
+  manifest.approvedBy = approvedBy;
+  manifest.postedNoteId = noteId;
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
   console.log(`[approveAndPostOrderPack] Successfully committed approved deliverables to Order #${orderId}.notes (${attachments.length} attachment(s)).`);
-  return { success: true, noteId, statusUpdated, attachmentsCount: attachments.length };
+  return { success: true, noteId, statusUpdated, attachmentsCount: attachments.length, manifestPath };
 }
 
 // -----------------------------------------------------------------------------
@@ -1842,16 +1924,23 @@ if (typeof require !== 'undefined' && require.main === module) {
   const orderId = orderIdIdx !== -1 ? args[orderIdIdx + 1] : undefined;
 
   if (!orderId) {
-    console.error('Usage: npx tsx src/lib/agent/order-audit-pipeline.ts --order-id <ID> [--dry-run] [--approve-and-post]');
+    console.error('Usage: npx tsx src/lib/agent/order-audit-pipeline.ts --order-id <ID> [--live] [--approve-and-post [--manifest <path>] [--note-file <path>] [--force]]');
     process.exit(1);
   }
 
-  const dryRun = args.includes('--dry-run');
+  // Dry-run is the default; --live is required to dispatch review/dossier emails.
+  const dryRun = !args.includes('--live');
   const approveAndPost = args.includes('--approve-and-post');
+  const argVal = (name: string) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : undefined; };
+  const noteFile = argVal('--note-file');
 
   if (approveAndPost) {
     console.log(`[order-audit-pipeline] Explicit approval received. Committing deliverables to Order #${orderId}...`);
-    approveAndPostOrderPack(orderId, 'Kevin Freese')
+    approveAndPostOrderPack(orderId, 'Kevin Freese', true, {
+      manifestPath: argVal('--manifest'),
+      noteText: noteFile ? fs.readFileSync(noteFile, 'utf8') : undefined,
+      force: args.includes('--force'),
+    })
       .then(res => {
         console.log(`[order-audit-pipeline] Deliverables committed successfully. Note ID: ${res.noteId}`);
         process.exit(0);

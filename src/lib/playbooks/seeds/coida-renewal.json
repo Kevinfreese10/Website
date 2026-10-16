@@ -14,11 +14,68 @@
     "COIDA reference number unknown or belongs to a previous owner's registration"
   ],
   "informationToProvide": [
-    { "label": "Latest COIDA registration documents or previous Letter of Good Standing", "documentKind": "letter_of_good_standing", "inNameOf": "entity", "alternatives": ["Compensation Fund registration confirmation", "Previous notice of assessment"], "isRequired": true, "aiHint": "Any Compensation Fund document showing the employer's 99-series reference number: a Letter of Good Standing, registration confirmation, or a previous notice of assessment. Extract the 99-number and the employer name exactly as the Fund has it." },
-    { "label": "Annual financial statements or payroll information for the past year", "documentKind": "afs", "inNameOf": "entity", "alternatives": ["Payroll register / EMP501 reconciliation for the year", "Signed management accounts"], "isRequired": true, "aiHint": "Signed AFS, management accounts or a payroll register covering the past assessment year (1 March to 28/29 February). Used to read total employee earnings and directors' remuneration. Prefer the EMP501 / payroll register where available because the Fund reconciles with SARS payroll figures." },
-    { "label": "Company registration documents (COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 showing the registered name and enterprise number. Must match the employer name on the Compensation Fund records." },
-    { "label": "Provide the number of employees and total payroll for the preceding year", "type": "text", "isRequired": true, "aiHint": "Number of employees (including working directors) and total gross earnings for the past assessment year, plus an estimate for the coming year. Both the actual and the estimate are required on the Return of Earnings. Ask the client to state which year each figure relates to." },
-    { "label": "If no employees , submit a Declaration for COIDA confirming that there were no employees and no payroll during the previous assessment period", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed declaration on the company's letterhead stating that no employees were employed and no earnings were paid in the past assessment year. Only required for a nil Return of Earnings. Cross-check against the AFS — if salaries appear, a nil declaration is wrong." }
+    {
+      "id": "req_cfn_99_number",
+      "label": "COIDA 99-Series Employer Registration Number & Employer Contact Details (Name, Email, Telephone)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your 10-digit Compensation Fund reference number (starting with 99...) and the contact person details."
+    },
+    {
+      "id": "req_q1if327t",
+      "label": "Latest COIDA registration documents or previous Letter of Good Standing",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Any Compensation Fund document showing the employer's 99-series reference number: a Letter of Good Standing, registration confirmation, or a previous notice of assessment. Extract the 99-number and the employer name exactly as the Fund has it.",
+      "documentKind": "letter_of_good_standing",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Compensation Fund registration confirmation",
+        "Previous notice of assessment"
+      ]
+    },
+    {
+      "id": "req_mvw9d59e",
+      "label": "Annual financial statements or payroll information for the past year",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Signed AFS, management accounts or a payroll register covering the past assessment year (1 March to 28/29 February). Used to read total employee earnings and directors' remuneration. Prefer the EMP501 / payroll register where available because the Fund reconciles with SARS payroll figures.",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Payroll register / EMP501 reconciliation for the year",
+        "Signed management accounts"
+      ]
+    },
+    {
+      "id": "req_v3lrwvvj",
+      "label": "Company registration documents (COR14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3 showing the registered name and enterprise number. Must match the employer name on the Compensation Fund records.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_gx8pr3bp",
+      "label": "Return of Earnings Breakdown (1 March – 28 Feb) — Actual Headcount & Gross Earnings for Past Year AND Provisional Estimate for Upcoming Year (Split Between Regular Employees vs Working Directors)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Number of employees (including working directors) and total gross earnings for the past assessment year, plus an estimate for the coming year. Both the actual and the estimate are required on the Return of Earnings. Ask the client to state which year each figure relates to.",
+      "alternatives": [],
+      "helpText": "Provide (1) Actual average monthly headcount and total gross earnings for Regular Employees + Working Directors for the completed 1 March – 28 Feb assessment year, and (2) Estimated headcount and gross earnings for the upcoming 1 March – 28 Feb assessment year."
+    },
+    {
+      "id": "req_cm05106f",
+      "label": "If no employees , submit a Declaration for COIDA confirming that there were no employees and no payroll during the previous assessment period",
+      "type": "pdf",
+      "isRequired": false,
+      "aiHint": "Signed declaration on the company's letterhead stating that no employees were employed and no earnings were paid in the past assessment year. Only required for a nil Return of Earnings. Cross-check against the AFS — if salaries appear, a nil declaration is wrong.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -53,7 +110,9 @@
       "title": "Prepare ROE hand-off sheet for Kevin",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every W.As.8 value and the source of each figure posted",
       "aiInstructions": "List every field on the Return of Earnings (W.As.8) screen: employer reference, period, number of employees, actual earnings, estimated earnings, and contact details. Cite the source document for each number. Include the previous year's declared estimate if a prior assessment is on file so Kevin can see the movement."
@@ -75,7 +134,11 @@
       "title": "Wait for assessment and Letter of Good Standing",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 5, 10],
+      "followUpAfterDays": [
+        2,
+        5,
+        10
+      ],
       "estimatedDays": 5,
       "doneCriteria": "Notice of assessment received and, once the client has paid, Letter of Good Standing downloaded",
       "aiInstructions": "The assessment amount is payable by the client directly to the Compensation Fund (our fee excludes it). Draft a client message with the assessment amount, the Fund's payment reference and the rule that the Letter of Good Standing is only released after payment reflects. Once the client uploads proof of payment, remind Kevin to download the Letter of Good Standing from the portal; if the portal still shows outstanding, follow up with the Fund quoting the 99-number."
@@ -85,7 +148,10 @@
       "title": "Deliver assessment and Letter of Good Standing to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["notice_of_assessment", "letter_of_good_standing"],
+      "deliverArtefacts": [
+        "notice_of_assessment",
+        "letter_of_good_standing"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Assessment notice and (if paid) Letter of Good Standing posted to Communication History",
       "aiInstructions": "Post the submission confirmation and the assessment. If the Letter of Good Standing is available, post it and note its expiry date. Remind the client that the return is annual and offer the COIDA Renewal service for next year."

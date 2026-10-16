@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import { DollarSign, Search, Receipt, HelpCircle, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { HelpCircle, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import PageHero from '@/components/shared/PageHero';
@@ -9,64 +10,188 @@ import SarsExpertCta from '@/components/sars-online-query/SarsExpertCta';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Find Payment Reference Number (PRN) | SARS Online Query",
-  description: "Find or generate your 19-digit SARS Payment Reference Number (PRN) online for accurate EFT, eFiling, and bank branch tax payments.",
+  title: 'Find Payment Reference Number (PRN) | SARS Online Query',
+  description:
+    'Find or generate your 19-digit SARS Payment Reference Number (PRN) online for accurate EFT, eFiling Credit Push, VAT201, EMP201, IRP6, and Income Tax payments.',
   alternates: {
     canonical: `${SITE_URL}/sars-payment-reference-number-prn`,
   },
   openGraph: {
-    title: "Find SARS Payment Reference Number (PRN)",
-    description: "Generate and verify 19-digit SARS payment reference numbers for error-free tax payments.",
+    title: 'Find SARS Payment Reference Number (PRN) | My Accountant',
+    description: 'Generate and verify 19-digit SARS payment reference numbers for error-free tax payments.',
     url: `${SITE_URL}/sars-payment-reference-number-prn`,
-    siteName: "My Accountant",
-    locale: "en_ZA",
-    type: "website",
-    images: [{ url: GLOBAL_OG_IMAGE, width: 1200, height: 630, alt: "SARS PRN Lookup" }],
+    siteName: 'My Accountant',
+    locale: 'en_ZA',
+    type: 'website',
+    images: [{ url: GLOBAL_OG_IMAGE, width: 1200, height: 630, alt: 'SARS PRN Lookup' }],
   },
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Go to tools.sars.gov.za/soqs or log into SARS eFiling." },
-  { step: "Step 2", title: "Select 'Payment Reference Number (PRN) Inquiry'", detail: "Choose the tax type: Income Tax (IT), VAT, PAYE, Provisional Tax (IRP6), or Administrative Penalties." },
-  { step: "Step 3", title: "Enter Tax Reference Number", detail: "Input your 10-digit SARS reference number and period code." },
-  { step: "Step 4", title: "Retrieve 19-Digit PRN", detail: "View the official 19-character alphanumeric Payment Reference Number generated for your return or notice of assessment (ITA34)." },
-  { step: "Step 5", title: "Make EFT Payment with Correct PRN", detail: "Copy the exact PRN into your internet banking beneficiary reference field when transferring funds to SARS." },
+  {
+    step: 'Step 1',
+    title: 'Access the SARS SOQS "What’s My PRN" Tool or Log into eFiling',
+    detail:
+      'Navigate to tools.sars.gov.za/sarsonlinequery/wmprn or log into SARS eFiling and open the submitted return (ITR12, ITR14, IRP6, VAT201, or EMP201) or Statement of Account.',
+  },
+  {
+    step: 'Step 2',
+    title: 'Understand the 19-Digit PRN Structure',
+    detail:
+      'Every SARS PRN is exactly 19 characters: your 10-digit Tax Reference Number + 1-letter Tax Type indicator (T = Income Tax, V = VAT, P = Provisional, E = PAYE, U = UIF, S = SDL) + 8-digit period/check code (e.g. 9123456789T00002026).',
+  },
+  {
+    step: 'Step 3',
+    title: 'Select the Exact Tax Type & Assessment / Filing Period',
+    detail:
+      'Ensure you select the PRN for the current period being paid (for example, 202602 for February PAYE/VAT) and NEVER reuse last month’s saved PRN.',
+  },
+  {
+    step: 'Step 4',
+    title: 'Choose eFiling Credit Push Over Manual Bank EFT',
+    detail:
+      'Where possible, click "Make Payment > Credit Push" inside eFiling so SARS pushes the pre-populated 19-digit PRN and exact amount directly to your FNB, Standard Bank, Nedbank, ABSA, Capitec, or Investec approvals list.',
+  },
+  {
+    step: 'Step 5',
+    title: 'Select Correct Pre-Approved SARS Beneficiary When Paying via EFT',
+    detail:
+      'If paying via manual internet banking EFT, select the official bank-approved public beneficiary (e.g. SARS-ITA, SARS-VAT, SARS-PAYE, or SARS-PROV) and paste the 19-digit PRN with zero spaces.',
+  },
+];
+
+const rejectionCases = [
+  {
+    title: 'Reusing a Saved Monthly Beneficiary with Last Month’s PRN',
+    desc: 'Because characters 12–19 of a VAT201 or EMP201 PRN encode the specific month/period and check-digit, paying this month’s PAYE using last month’s saved PRN over-credits last month and triggers a 10% late payment penalty on the current month.',
+  },
+  {
+    title: 'Paying on the Last Business Day After Bank Cut-Off Times',
+    desc: 'Under the Tax Administration Act, a payment is only received when it clears into SARS’s account. Initiating a Credit Push after 14:30/15:00 on the 7th (PAYE) or 25th/last business day (VAT) clears the next day and incurs an automatic 10% penalty.',
+  },
+  {
+    title: 'Selecting the Wrong SARS Public Beneficiary Code',
+    desc: 'Paying Provisional Tax (IRP6) into the "SARS-ITA" beneficiary instead of "SARS-PROV" (or vice versa) causes the payment to hang in unallocated suspense.',
+  },
+  {
+    title: 'Adding Spaces, Hyphens, or Company Names to the Reference Field',
+    desc: 'The beneficiary reference field on your bank EFT must contain ONLY the 19-character PRN—adding your company name or spaces truncates the check-digit and breaks automated allocation.',
+  },
 ];
 
 const faqs = [
-  { question: "What is a 19-digit SARS PRN?", answer: "A Payment Reference Number (PRN) is a unique 19-digit code that tells SARS exactly which tax account and period your bank payment should be credited to." },
-  { question: "What happens if I use an incorrect reference number for a SARS payment?", answer: "Using an incorrect reference causes funds to become unallocated in a SARS suspense account, resulting in automated interest charges and penalty notices." },
-  { question: "Can My Accountant resolve unallocated payments?", answer: "Yes! If you paid SARS with an incorrect PRN, we can submit a formal payment reallocation request to SARS to transfer funds to the correct account." },
+  {
+    question: 'What is a 19-digit SARS Payment Reference Number (PRN)?',
+    answer:
+      'A SARS Payment Reference Number (PRN) is a unique 19-character alphanumeric code generated by SARS for a specific tax return, assessment (ITA34), or statement of account. It consists of your 10-digit tax reference number, a 1-letter tax type code (T, P, V, E, U, S), and an 8-digit period and check-digit sequence.',
+  },
+  {
+    question: 'How fast is a SARS PRN generated on SOQS or eFiling?',
+    answer:
+      'A 19-digit PRN is generated instantaneously (in real time) on the SOQS "What’s My PRN" portal or immediately upon submitting a VAT201, EMP201, or IRP6 return on SARS eFiling.',
+  },
+  {
+    question: 'Where do I find my PRN on SARS eFiling?',
+    answer:
+      'On SARS eFiling, your 19-digit PRN is printed at the bottom-left payment slip of your Notice of Assessment (ITA34), Statement of Account (ITSA/VASA/EMPSA), or on the submitted return work page next to the "Make Payment" button.',
+  },
+  {
+    question: 'What happens if I paid SARS using the wrong PRN?',
+    answer:
+      'Your money is not lost—it sits in SARS’s Unallocated Suspense account or as a credit on the prior period. You must submit a formal Payment Allocation / Reallocation query on SOQS with bank-stamped proof of payment to move the funds and reverse any late-payment interest.',
+  },
+  {
+    question: 'Can My Accountant load SARS Credit Push payments so we never use the wrong PRN?',
+    answer:
+      'Yes! For all monthly bookkeeping, VAT, and payroll clients, we prepare the return on eFiling and push the exact payment instruction with the verified 19-digit PRN straight to your online banking app—you simply click "Approve" in your banking app.',
+  },
 ];
 
 export default function SarsPaymentReferenceNumberPrnPage() {
-  const faqSchema = {
+  const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map((f) => ({
-      '@type': 'Question',
-      name: f.question,
-      acceptedAnswer: { '@type': 'Answer', text: f.answer },
-    })),
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'SARS Online Query Guides', item: `${SITE_URL}/sars-online-query-system-guide` },
+          { '@type': 'ListItem', position: 3, name: 'Find Payment Reference Number (PRN)', item: `${SITE_URL}/sars-payment-reference-number-prn` },
+        ],
+      },
+      {
+        '@type': 'HowTo',
+        name: 'How to Find and Use Your 19-Digit SARS Payment Reference Number (PRN)',
+        description: 'Step-by-step instructions to generate your 19-digit SARS PRN via SOQS or eFiling and make an error-free tax payment.',
+        totalTime: 'PT5M',
+        step: diySteps.map((s, idx) => ({
+          '@type': 'HowToStep',
+          position: idx + 1,
+          name: s.title,
+          text: s.detail,
+        })),
+      },
+      {
+        '@type': 'Service',
+        name: 'SARS PRN Verification, Credit Push Setup & Payment Reallocation Service',
+        description: 'Error-free SARS eFiling payment management, PRN generation, and misallocated payment resolution.',
+        provider: { '@type': 'Organization', name: 'My Accountant', url: SITE_URL },
+        areaServed: { '@type': 'Country', name: 'South Africa' },
+        url: `${SITE_URL}/sars-payment-reference-number-prn`,
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
+      },
+    ],
   };
 
   return (
     <div className="space-y-12 pb-16 bg-background">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <PageHero
-        badgeText="SARS Payment Reference Lookup"
+        badgeText="SARS 19-Digit Payment Reference Lookup"
         title={
           <>
             Find Payment Reference <span className="text-gradient">Number (PRN)</span>
           </>
         }
-        subtitle="Retrieve or generate your exact 19-digit SARS Payment Reference Number to ensure your EFT payments are credited without delay."
-        primaryCta={{ text: "Resolve Payment Allocation", href: "/contact" }}
-        secondaryCta={{ text: "View All Tax Services", href: "/products#sars-services" }}
+        subtitle="Retrieve or generate your exact 19-digit SARS Payment Reference Number for Income Tax, Provisional Tax, VAT201, or EMP201 so your EFT payment allocates immediately."
+        primaryCta={{ text: 'Fix Misallocated Payment', href: '/sars-payment-allocation-query' }}
+        secondaryCta={{ text: 'Waive 10% Late Penalties', href: '/remission-of-fines' }}
       />
 
       <TrustIndexWidget />
+
+      <section className="container mx-auto px-4 max-w-4xl">
+        <div className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10 p-6 md:p-8 shadow-sm space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
+            <div className="space-y-1">
+              <Badge className="bg-primary text-primary-foreground font-bold text-xs uppercase tracking-wider">
+                eFiling Navigation &amp; Turnaround
+              </Badge>
+              <h2 className="text-xl md:text-2xl font-black text-foreground">
+                19-Digit PRN Format &amp; eFiling Credit Push Path
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-full shrink-0">
+              <Clock className="h-3.5 w-3.5 text-primary" />
+              <span>PRN Generation: Instant | Bank Clearing: 1–2 Business Days</span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            <strong className="text-foreground">eFiling Navigation Path:</strong> Log into eFiling &rarr;{' '}
+            <code className="bg-muted px-2 py-0.5 rounded font-mono text-foreground">
+              Returns &rarr; Payments &rarr; Create Payment (Credit Push) or Inspect ITA34 / SOA Bottom Slip
+            </code>
+          </p>
+        </div>
+      </section>
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
@@ -81,7 +206,7 @@ export default function SarsPaymentReferenceNumberPrnPage() {
           <Badge variant="outline" className="text-xs uppercase tracking-wider border-primary/30 text-primary font-bold">
             PRN Lookup Instructions
           </Badge>
-          <h2 className="text-3xl font-extrabold text-foreground">How to Retrieve Your SARS PRN</h2>
+          <h2 className="text-3xl font-extrabold text-foreground">How to Retrieve &amp; Use Your SARS PRN</h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
@@ -95,9 +220,31 @@ export default function SarsPaymentReferenceNumberPrnPage() {
                   <CardTitle className="text-lg font-bold">{s.title}</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="text-sm text-muted-foreground pl-14">
-                {s.detail}
-              </CardContent>
+              <CardContent className="text-sm text-muted-foreground pl-14">{s.detail}</CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 max-w-4xl space-y-6 pt-4">
+        <div className="text-center space-y-2">
+          <Badge variant="outline" className="text-xs uppercase tracking-wider border-amber-500/40 text-amber-700 font-bold">
+            EFT Payment Mistakes
+          </Badge>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-foreground">
+            Common PRN Errors That Cause 10% SARS Late Penalties
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {rejectionCases.map((rc, i) => (
+            <Card key={i} className="border border-border/70">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                  {rc.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground leading-relaxed">{rc.desc}</CardContent>
             </Card>
           ))}
         </div>
@@ -114,11 +261,39 @@ export default function SarsPaymentReferenceNumberPrnPage() {
                   {f.question}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {f.answer}
-              </CardContent>
+              <CardContent className="text-sm text-muted-foreground">{f.answer}</CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 max-w-4xl space-y-4 pt-4">
+        <h2 className="text-xl font-bold text-foreground">Related SARS Payment Guides &amp; Packages</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <Link href="/products/vat201-vat-return-submission-filing" className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary font-semibold text-foreground flex items-center justify-between">
+            <span>File VAT201 Return (R650)</span>
+            <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          </Link>
+          <Link href="/sars-payment-allocation-query" className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary font-semibold text-foreground flex items-center justify-between">
+            <span>Reallocate Wrong-PRN Payment</span>
+            <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          </Link>
+          <Link href="/sars-statement-of-account-request" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Request Statement of Account</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-outstanding-debt-query" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>SARS Debt &amp; Payment Plans</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/remission-of-fines" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Remission of SARS Penalties</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-online-query-system-guide" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>All SARS Online Queries (SOQS)</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
         </div>
       </section>
 

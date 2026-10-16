@@ -1,0 +1,165 @@
+{
+  "slug": "sars-tax-number-registration",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Official SARS Notice of Registration (IT150) showing the 10-digit Income Tax Reference Number",
+    "Activated SARS eFiling Profile / Registered Representative Link"
+  ],
+  "playbookCommonFailures": [
+    "Selfie holding ID and \"For SARS Purpose\" note is blurry or the ID number cannot be read in the photo",
+    "Individual already has a dormant historical SARS tax number linked to their ID number (requires eFiling profile recovery / IT150 retrieval rather than new registration)",
+    "Foreign passport holder does not provide a valid visa/work permit or local residential proof with CRA01"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_stnr_entity_type",
+      "label": "Registration Type (Individual Taxpayer vs Registered Company) & Personal / Company Contact Details (Email, Cellphone, Physical Address)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "State whether this registration is for an Individual or a Company, and provide full contact email, cellphone number (for SARS OTP), and physical address."
+    },
+    {
+      "id": "req_stnr_id",
+      "label": "Certified SA ID or Passport Copy (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport & valid visa/work permit (foreign nationals)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a clear certified copy of the taxpayer (or Public Officer) SA ID or Passport (< 3 months).",
+      "aiHint": "Certified South African ID or Passport + valid visa/permit (if foreign national), certified within the last 90 days."
+    },
+    {
+      "id": "req_stnr_selfie",
+      "label": "Clear Photo (Selfie) of Taxpayer / Public Officer Holding Original ID & Handwritten Note Reading \"For SARS Purpose\" with Date",
+      "type": "image",
+      "documentKind": "photo",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "SARS requires a clear photograph showing your face while holding your ID document and a handwritten note reading \"For SARS Purpose\" with the date.",
+      "aiHint": "Photograph of the individual holding their original ID card/book next to their face along with a piece of paper reading \"For SARS Purpose\" so both face and ID text are legible."
+    },
+    {
+      "id": "req_stnr_poa_address",
+      "label": "Proof of Residential Address (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Municipal utility bill",
+        "Signed lease agreement",
+        "CRA01 Confirmation of Residential Address"
+      ],
+      "isRequired": true,
+      "helpText": "Upload proof of residential address dated within the last 3 months.",
+      "aiHint": "Utility bill, municipal account, bank statement, lease agreement, or SARS CRA01 form dated within 90 days confirming residential street address."
+    },
+    {
+      "id": "req_stnr_bank",
+      "label": "Stamped Bank Confirmation Letter or 3 Months Bank Statements (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "3 months stamped bank statements"
+      ],
+      "isRequired": true,
+      "helpText": "Upload an official bank confirmation letter or 3 months bank statements (< 3 months).",
+      "aiHint": "Official bank account confirmation letter or 3 months bank statements dated within 90 days showing the account holder name, account number, and branch code."
+    },
+    {
+      "id": "req_stnr_cor143",
+      "label": "CIPC Registration Certificate (CoR 14.3) — Required If Registering a Company",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Are you registering a Company / Close Corporation for a SARS Income Tax number?",
+      "helpText": "If registering a company that did not automatically receive a SARS tax number from CIPC, upload its CoR 14.3 certificate.",
+      "aiHint": "Official CIPC CoR14.3 registration certificate showing enterprise registration number and registered name."
+    },
+    {
+      "id": "req_stnr_signed_poa",
+      "label": "Signed SARS Power of Attorney (SPPOA)",
+      "type": "pdf",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the signed SARS Special Power of Attorney authorising My Accountant to register your tax number.",
+      "aiHint": "Signed SARS Special Power of Attorney (SPPOA) authorising My Accountant to act on the taxpayer behalf."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "stnr_collect",
+      "title": "Collect certified ID, SARS selfie, proof of address, bank confirmation, and signed POA",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "All KYC documents, SARS selfie, bank confirmation, and contact details for OTP received",
+      "aiInstructions": "Ensure the selfie clearly shows the taxpayer face, original ID, and handwritten \"For SARS Purpose\" note."
+    },
+    {
+      "id": "stnr_verify",
+      "title": "Verify KYC documents, bank confirmation, and check if a SARS tax number already exists",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass verification; SARS eFiling / SOQS checked for any existing tax reference number",
+      "aiInstructions": "Check on SARS eFiling whether the ID number or CIPC registration number already has an issued 10-digit Income Tax number."
+    },
+    {
+      "id": "stnr_file",
+      "title": "Submit SARS Income Tax Registration on SARS eFiling / SARS Online Query System (SOQS)",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.registerIncomeTaxNumber",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "SARS tax registration submitted with all supporting documents and case number recorded",
+      "aiInstructions": "Submit the registration via SARS eFiling or SARS Online Query System (Register for Income Tax) and upload the certified ID, selfie with note, proof of address, bank confirmation, and POA."
+    },
+    {
+      "id": "stnr_wait",
+      "title": "Wait for SARS to issue the IT150 Notice of Registration",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        2,
+        5,
+        10
+      ],
+      "estimatedDays": 3,
+      "doneCriteria": "SARS Notice of Registration (IT150) issued with 10-digit Income Tax number",
+      "aiInstructions": "Monitor SARS case status or download the IT150 Notice of Registration from eFiling once issued."
+    },
+    {
+      "id": "stnr_deliver",
+      "title": "Deliver SARS IT150 Notice of Registration to the client portal",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Official SARS IT150 uploaded to Communication History",
+      "aiInstructions": "Deliver the official SARS IT150 PDF and confirm the 10-digit Income Tax reference number."
+    },
+    {
+      "id": "stnr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

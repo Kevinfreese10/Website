@@ -74,7 +74,7 @@ export default function BookkeepingPageClient() {
   const keywordButtons = [
     { label: 'Monthly Accounting', href: '/monthly-accounting' },
     { label: 'Management Accounts', href: '/products/management-accounts' },
-    { label: 'VAT Registration', href: '/products/vat-registration' },
+    { label: 'VAT Registration', href: '/vat-registration-south-africa' },
     { label: 'SARS Services', href: '/products#sars-services' },
     { label: 'Payroll Services', href: '/products#payroll-services' },
   ];

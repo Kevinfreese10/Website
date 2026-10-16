@@ -5,14 +5,15 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Company Liquidations | My Accountant',
-        description: 'Professional assistance with voluntary company liquidations in South Africa. Close your business legally and responsibly.',
+        title: 'Voluntary Company Liquidations South Africa | My Accountant',
+        description: 'Professional assistance with voluntary solvent and insolvent company liquidations in South Africa. Close your company legally with full CIPC & SARS compliance.',
     };
     return getStaticPageMetadata('liquidations', defaults);
 }
@@ -72,8 +73,25 @@ export default function LiquidationsPage() {
     { label: 'Payroll Services', href: '/products#payroll-services' },
   ];
 
+  const liquidationsSchema = generateServicePillarSchema({
+    title: 'Voluntary Company Liquidations South Africa',
+    description: 'Professional assistance with voluntary solvent and insolvent company liquidations in South Africa. Close your company legally with full CIPC & SARS compliance.',
+    slug: '/liquidations',
+    serviceType: 'ProfessionalService',
+    priceRange: 'From R4,500',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Company Secretarial', url: '/company-secretarial-services-south-africa' },
+      { name: 'Voluntary Liquidations', url: '/liquidations' },
+    ],
+  });
+
   return (
     <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(liquidationsSchema) }}
+      />
       {/* HERO SECTION */}
       <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
         {/* Aurora background blobs */}

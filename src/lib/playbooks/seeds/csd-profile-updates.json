@@ -13,15 +13,115 @@
     "Uploaded B-BBEE affidavit has expired (older than 12 months)"
   ],
   "informationToProvide": [
-    { "label": "CSD Username", "type": "text", "isRequired": true, "isSecret": true },
-    { "label": "CSD Password", "type": "text", "isRequired": true, "isSecret": true },
-    { "label": "Latest company registration documents (e.g., CIPC COR39 or COR15.1A)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Latest CIPC CoR14.3, CoR39 or MOI showing the current registered name, number and active directors — used to reconcile the CSD directors screen." },
-    { "label": "Proof of business address (e.g., utility bill not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Lease agreement"], "isRequired": false, "isConditional": true, "conditionalQuestion": "Has the business address changed?", "aiHint": "Utility bill, lease or statement dated within 3 months showing the new physical business address." },
-    { "label": "Bank confirmation letter  - not older than 3 months", "type": "pdf", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": false, "isConditional": true, "conditionalQuestion": "Have the bank details changed?", "aiHint": "Official bank confirmation letter in the company's name dated within 3 months, with bank stamp or digital verification reference. Extract account holder name exactly, account number, type and branch code." },
-    { "label": "Certified ID copies of all active directors/members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": false, "isConditional": true, "conditionalQuestion": "Have any directors changed?", "aiHint": "Certified SA ID or passport per active director, stamp dated within 3 months. Needed only where the directors screen must change." },
-    { "label": "Latest SARS Tax Compliance Status PIN", "type": "text", "isRequired": false, "helpText": "Current TCS PIN if you have one; CSD refreshes tax status from SARS automatically." },
-    { "label": "Current B-BBEE certificate or sworn affidavit", "type": "pdf", "documentKind": "other", "inNameOf": "entity", "maxAgeDays": 365, "isRequired": false, "aiHint": "Valid B-BBEE certificate or commissioned EME/QSE sworn affidavit for the company, dated within 12 months." },
-    { "label": "List of changes required on the CSD profile", "type": "text", "isRequired": true, "helpText": "E.g. new address, new bank account, new director, upload B-BBEE affidavit, add commodities." }
+    {
+      "id": "req_csdu_maaa_number",
+      "label": "CSD Supplier Number (MAAA Number) & Details of Specific Updates Needed",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your MAAA supplier number and list what needs updating (e.g., Bank Account verification, Tax PIN refresh, Director sync from CIPC, B-BBEE level, or Address/Commodities)."
+    },
+    {
+      "id": "req_csdu_login_email",
+      "label": "CSD Registered Email Address / Username",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "The email address used to log in to secure.csd.gov.za."
+    },
+    {
+      "id": "req_csdu_login_password",
+      "label": "CSD Login Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Your CSD portal password (stored encrypted)."
+    },
+    {
+      "label": "CSD Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "id": "req_w27xtij0"
+    },
+    {
+      "label": "CSD Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "id": "req_n5e3y6dg"
+    },
+    {
+      "label": "Latest company registration documents (e.g., CIPC COR39 or COR15.1A)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Latest CIPC CoR14.3, CoR39 or MOI showing the current registered name, number and active directors — used to reconcile the CSD directors screen.",
+      "id": "req_uhkshgk4"
+    },
+    {
+      "label": "Proof of business address (e.g., utility bill not older than 3 months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Lease agreement"
+      ],
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Has the business address changed?",
+      "aiHint": "Utility bill, lease or statement dated within 3 months showing the new physical business address.",
+      "id": "req_bs75at3m"
+    },
+    {
+      "label": "Bank confirmation letter  - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Have the bank details changed?",
+      "aiHint": "Official bank confirmation letter in the company's name dated within 3 months, with bank stamp or digital verification reference. Extract account holder name exactly, account number, type and branch code.",
+      "id": "req_tb0alufc"
+    },
+    {
+      "label": "Certified ID copies of all active directors/members",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Have any directors changed?",
+      "aiHint": "Certified SA ID or passport per active director, stamp dated within 3 months. Needed only where the directors screen must change.",
+      "id": "req_u3mkfnva"
+    },
+    {
+      "label": "Latest SARS Tax Compliance Status PIN",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Current TCS PIN if you have one; CSD refreshes tax status from SARS automatically.",
+      "id": "req_4rv08u5f"
+    },
+    {
+      "label": "Current B-BBEE certificate or sworn affidavit",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "maxAgeDays": 365,
+      "isRequired": false,
+      "aiHint": "Valid B-BBEE certificate or commissioned EME/QSE sworn affidavit for the company, dated within 12 months.",
+      "id": "req_rncy6onz"
+    },
+    {
+      "label": "List of changes required on the CSD profile",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "E.g. new address, new bank account, new director, upload B-BBEE affidavit, add commodities.",
+      "id": "req_9ov6o9e2"
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -59,7 +159,9 @@
       "title": "Draft profile update handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet with section, current value, new value and supporting document per change",
       "aiInstructions": "One row per change. Include the uploads to attach on each CSD screen."
@@ -81,7 +183,10 @@
       "title": "Wait for verifications to complete",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [3, 5],
+      "followUpAfterDays": [
+        3,
+        5
+      ],
       "estimatedDays": 3,
       "doneCriteria": "Bank, CIPC and SARS statuses show verified / compliant on the updated report",
       "aiInstructions": "Log in and check statuses rather than waiting. On a bank verification failure, compare names and correct."
@@ -91,7 +196,9 @@
       "title": "Deliver updated CSD registration report",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["csd_registration_report"],
+      "deliverArtefacts": [
+        "csd_registration_report"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Updated report and before/after summary posted to Communication History",
       "aiInstructions": "List what changed. Remind the client that B-BBEE affidavits expire after 12 months and the TCS status refreshes from SARS."

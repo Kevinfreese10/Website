@@ -8,8 +8,8 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Terms & Conditions | My Accountant',
-        description: 'Review the official Terms and Conditions for My Accountant services and partner programs.',
+        title: 'Terms & Conditions of Service | My Accountant South Africa',
+        description: 'Review the official Terms and Conditions for My Accountant (Pty) Ltd online accounting, SARS tax submissions, CIPC filings, and partner program services.',
     };
     return getStaticPageMetadata('terms', defaults);
 }

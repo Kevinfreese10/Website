@@ -15,8 +15,53 @@ export const metadata: Metadata = {
 };
 
 export default function SoleProprietorVsPtyLtd() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${SITE_URL}/blog/sole-proprietor-vs-pty-ltd#article`,
+        headline: 'Sole Proprietor vs Pty Ltd: Which is Best in South Africa?',
+        description:
+          'A detailed guide comparing Sole Proprietorships and Private Companies (Pty Ltd) in South Africa. Understand the tax, legal, and operational differences.',
+        datePublished: '2026-01-15T08:00:00+02:00',
+        dateModified: '2026-03-01T08:00:00+02:00',
+        author: {
+          '@id': `${SITE_URL}/#kevin-freese`,
+          '@type': 'Person',
+          name: 'Kevin Freese',
+          url: `${SITE_URL}/about`,
+        },
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/blog/sole-proprietor-vs-pty-ltd`,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'Sole Proprietor vs Pty Ltd',
+            item: `${SITE_URL}/blog/sole-proprietor-vs-pty-ltd`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <article className="prose prose-lg lg:prose-xl prose-blue mx-auto">
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-8">
           Sole Proprietor vs Pty Ltd: Choosing the Right Structure

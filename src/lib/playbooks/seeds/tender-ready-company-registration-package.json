@@ -17,17 +17,125 @@
     "BEE affidavit returned unsigned or not commissioned"
   ],
   "informationToProvide": [
-    { "label": "Certified ID copies of all directors/shareholders", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy (foreign director)"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back, or Green Barcoded ID Book) or passport per director and per shareholder, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names." },
-    { "label": "Proof of residential address for all directors (utility bill, bank statement, etc., not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director in the director's own name. Also used for the SARS eFiling registration of the tax representative." },
-    { "label": "Four proposed company names in order of preference (no special characters)", "type": "text", "isRequired": true },
-    { "label": "Details of shareholding structure", "type": "text", "isRequired": true, "helpText": "Each shareholder, ID number and percentage (must total 100%). Also state each shareholder's race and gender as required for the B-BBEE affidavit." },
-    { "label": "Contact number for the Business", "type": "text", "isRequired": true },
-    { "label": "Email address for the Business", "type": "text", "isRequired": true },
-    { "label": "Contact number for the Director", "type": "text", "isRequired": true },
-    { "label": "Email address for the Director", "type": "text", "isRequired": true },
-    { "label": "Company physical and postal address", "type": "text", "isRequired": true },
-    { "label": "Company financial year-end (normally February)", "type": "text", "isRequired": true },
-    { "label": "Do you want an FNB business bank account opened?", "type": "text", "isRequired": false }
+    {
+      "id": "req_8ax26yyb",
+      "label": "Certified ID Copy (SA Citizens) or Certified/Apostilled Passport (Foreign Nationals) for All Directors & Shareholders",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified & apostilled foreign passport + valid permit (foreign nationals only)"
+      ],
+      "isRequired": true,
+      "helpText": "SA citizens must upload a certified SA ID (Smart ID front & back or Green Book), certified within 3 months. Passports are only accepted for foreign nationals.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_ui8cxcmu",
+      "label": "Proof of Residential Address for All Directors (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "alternatives": [
+        "Signed lease agreement",
+        "Official bank statement showing physical address"
+      ],
+      "isRequired": true,
+      "helpText": "Utility bill, municipal account, signed lease, or bank statement dated within 3 months in each director’s name.",
+      "aiHint": "Proof of residential address dated within 3 months per director in the director’s own name. Also used for SARS Registered Representative activation."
+    },
+    {
+      "id": "req_usdplgwd",
+      "label": "Four (4) Proposed Company Names in Order of Preference",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List 4 unique names in order of preference. Do not include special characters (!@#%). CIPC appends '(Pty) Ltd'.",
+      "aiHint": "Four proposed company names in order of preference, free of special characters."
+    },
+    {
+      "id": "req_d9y1wdjy",
+      "label": "Shareholding Structure (Full Names, ID Numbers & Share % per Shareholder)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List each shareholder, their ID/passport number, and percentage of shares (must total 100%) for issuing Share Certificates.",
+      "aiHint": "Shareholder names, ID numbers, and share percentages totaling 100%."
+    },
+    {
+      "id": "req_tr_bbee_demo",
+      "label": "B-BBEE Ownership Breakdown & Deponent Director Name",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify: (1) Total % Black Owned, (2) Total % Black Female Owned, (3) % Black Youth / Disabled / Unemployed / Rural (if any), and (4) Full name of the Director who will sign the B-BBEE Affidavit before a Commissioner of Oaths.",
+      "aiHint": "Exact Black Ownership %, Black Female Ownership %, designated group %, and full name + ID of the Deponent director for the dtic EME B-BBEE Sworn Affidavit."
+    },
+    {
+      "id": "req_tr_rep_tax_no",
+      "label": "Public Officer / Representative Director Personal SARS Income Tax Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "10-digit personal SARS Income Tax number of the main director (required by SARS to link the new company on eFiling and issue the Tax Clearance PIN).",
+      "aiHint": "10-digit South African personal income tax reference number of the Public Officer / Registered Representative."
+    },
+    {
+      "id": "req_lxv3yjmo",
+      "label": "Company Registered Physical & Postal Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Full South African street address and postal code (cannot be a PO Box).",
+      "aiHint": "Physical and postal street address in South Africa for the company."
+    },
+    {
+      "id": "req_07h5msrr",
+      "label": "Company Contact Phone Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Primary contact number for the business.",
+      "aiHint": "Valid South African contact phone number for the business."
+    },
+    {
+      "id": "req_1kl76lnz",
+      "label": "Company Email Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Primary email address for official company correspondence.",
+      "aiHint": "Valid email address for the company."
+    },
+    {
+      "id": "req_ucyhdpfk",
+      "label": "Director(s) Cellphone Number(s) & Residential Address(es)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Mobile number (for CIPC/SARS OTPs) and residential street address for each director.",
+      "aiHint": "Cellphone number and residential street address for every director."
+    },
+    {
+      "id": "req_qmal1i41",
+      "label": "Director(s) Email Address(es)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Direct email address for each director.",
+      "aiHint": "Valid email address for every director."
+    },
+    {
+      "id": "req_a04yax4u",
+      "label": "Company Financial Year-End",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Default is February (recommended).",
+      "aiHint": "Financial year-end month (e.g. February)."
+    },
+    {
+      "id": "req_rti95lin",
+      "label": "Do You Want a Free FNB Business Bank Account Referral?",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Optional: Reply Yes or No.",
+      "aiHint": "Yes/No preference for FNB business account referral."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -65,7 +173,10 @@
       "title": "Wait for CIPC registration",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [3, 5],
+      "followUpAfterDays": [
+        3,
+        5
+      ],
       "estimatedDays": 3,
       "doneCriteria": "CoR14.3, CoR14.1/14.1A/14.2, MOI and income tax number available",
       "aiInstructions": "Check tracking status before following up. On name rejection request replacements and re-reserve."
@@ -75,7 +186,12 @@
       "title": "Draft share certificates, securities register, BEE affidavit and first resolution",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["share_certificate", "securities_register", "bee_affidavit", "director_resolution"],
+      "templateIds": [
+        "share_certificate",
+        "securities_register",
+        "bee_affidavit",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Share certificates, register, EME sworn affidavit on the dtic template and first board resolution drafted with the new registration number",
       "aiInstructions": "BEE affidavit: new company, so annual turnover is R0 / projected under R10 million = Exempted Micro Enterprise. Black ownership % = sum of shares held by black South African shareholders (as defined in the B-BBEE Act) — compute from the shareholding answer; 100% black-owned EME = Level 1, at least 51% = Level 2, otherwise Level 4. Never guess race — leave blank and flag if not answered. Deponent is a director. Share certificates numbered from 1."
@@ -106,7 +222,15 @@
       "title": "Deliver the tender-ready pack",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration", "tcs_pin", "share_certificate", "securities_register", "bee_affidavit"],
+      "deliverArtefacts": [
+        "cor14_3",
+        "moi",
+        "sars_notice_of_registration",
+        "tcs_pin",
+        "share_certificate",
+        "securities_register",
+        "bee_affidavit"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "All documents posted to Communication History in one pack",
       "aiInstructions": "List each document and what tenders use it for. Explain that the TCS PIN expires after 12 months and the BEE affidavit after 12 months, and that the company must file annual returns and a beneficial ownership declaration. Offer CSD Registration as the natural next step."

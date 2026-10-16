@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  outputFileTracingIncludes: {
+    '/**': ['./src/server/templates/**/*'],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
@@ -65,7 +68,11 @@ const nextConfig: NextConfig = {
       { source: '/signup', headers: noCacheHeaders },
       { source: '/cart', headers: noCacheHeaders },
       { source: '/checkout', headers: noCacheHeaders },
+      { source: '/payment-success/:path*', headers: [...noCacheHeaders, { key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      { source: '/order-confirmation/:path*', headers: [...noCacheHeaders, { key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      { source: '/partner-invite/:path*', headers: [...noCacheHeaders, { key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
       {
+        // White-label partner storefronts (/p/[slug]) emit noindex so they do not compete with canonical pages
         source: '/p/:path*',
         headers: [
           { key: 'X-Robots-Tag', value: 'noindex, follow' },
@@ -74,20 +81,8 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // GLOBAL_OG_URL matches the GLOBAL_OG_IMAGE constant in src/lib/constants.ts
-    const GLOBAL_OG_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FLRM285EOq3gwNMKayY6vtzooaC03%2F1778852737208-South%20Africa%E2%80%99s%20Trusted%20Online%20Accounting%20%26%20Tax%20Compliance%20Partner%20(2).png?alt=media&token=3e8db3bc-8d7a-44b3-a258-dce170c9076d';
+    const CLEAN_OG_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/assets%2Fseo-banner.png?alt=media&token=myacc-seo-banner-2026';
     return [
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'myacc.co.za',
-          },
-        ],
-        destination: 'https://www.myacc.co.za/:path*',
-        permanent: true,
-      },
       {
         source: '/product/:path*',
         destination: '/products/:path*',
@@ -113,9 +108,17 @@ const nextConfig: NextConfig = {
         destination: '/products/annual-returns',
         permanent: true,
       },
-      // NOTE: The /p/:partner/products/:slug route is a live white-label partner page
-      // (see src/app/p/[slug]/products/[serviceSlug]/page.tsx). Do NOT redirect it.
-      // The redirect below was removed to prevent intercepting those active routes.
+      // Direct 1-hop redirect for legacy WP dated NCR post BEFORE the generic dated blog pattern
+      {
+        source: '/blog/2021/07/23/ncr-registration',
+        destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance',
+        permanent: true,
+      },
+      {
+        source: '/blog/2021/07/23/ncr-registration/',
+        destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance',
+        permanent: true,
+      },
       {
         source: '/blog/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})/:slug',
         destination: '/blog/:slug',
@@ -127,13 +130,8 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/about',
-        destination: '/',
-        permanent: true,
-      },
-      {
         source: '/about-us',
-        destination: '/',
+        destination: '/about',
         permanent: true,
       },
       {
@@ -153,12 +151,12 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/og-image.jpg',
-        destination: GLOBAL_OG_URL,
+        destination: CLEAN_OG_URL,
         permanent: true,
       },
       {
         source: '/opengraph-image.jpg',
-        destination: GLOBAL_OG_URL,
+        destination: CLEAN_OG_URL,
         permanent: true,
       },
       {
@@ -176,6 +174,17 @@ const nextConfig: NextConfig = {
         destination: 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/assets%2Fkevin-desk.jpeg?alt=media&token=302e7761676c767178706e76716d746c3131696630',
         permanent: false,
       },
+
+      // ===== KEYWORD CANNIBALISATION CONSOLIDATION 301 REDIRECTS =====
+      { source: '/industries/ecommerce', destination: '/industries/ecommerce-online-sellers', permanent: true },
+      { source: '/industries/restaurants', destination: '/industries/hospitality', permanent: true },
+      { source: '/tax-consultant', destination: '/tax-consulting', permanent: true },
+      { source: '/tax-disputes', destination: '/sars-disputes', permanent: true },
+      { source: '/small-business-accounting-south-africa', destination: '/sme-accounting', permanent: true },
+      { source: '/financial-statements', destination: '/annual-financial-statements', permanent: true },
+      { source: '/sars-verify-tax-compliance-status', destination: '/sars-tax-compliance-status-pin', permanent: true },
+      { source: '/blog/new-vat-registration-thresholds-south-africa-2026', destination: '/blog/vat-registration-threshold-sme-2026', permanent: true },
+      { source: '/cv-checker', destination: '/jobs', permanent: true },
 
       // ===== SEO DEAD SLUG REDIRECTS (from 4xx crawl audit) =====
       // --- Tax Compliance cluster → /tax-compliance ---
@@ -219,11 +228,11 @@ const nextConfig: NextConfig = {
       { source: '/products/international-tax-planning', destination: '/tax-planning', permanent: true },
       { source: '/products/tax-health-check', destination: '/tax-planning', permanent: true },
 
-      // --- Tax Disputes cluster → /tax-disputes ---
+      // --- Tax Disputes cluster → /sars-disputes (1-hop) ---
       { source: '/products/sars-dispute-resolution', destination: '/sars-disputes', permanent: true },
       { source: '/products/tax-dispute-resolution', destination: '/sars-disputes', permanent: true },
-      { source: '/products/tax-objections-appeals', destination: '/tax-disputes', permanent: true },
-      { source: '/products/sars-audit-support', destination: '/tax-disputes', permanent: true },
+      { source: '/products/tax-objections-appeals', destination: '/sars-disputes', permanent: true },
+      { source: '/products/sars-audit-support', destination: '/sars-disputes', permanent: true },
 
       // --- Provisional Tax cluster → /provisional-tax ---
       { source: '/products/provisional-tax', destination: '/provisional-tax', permanent: true },
@@ -241,10 +250,10 @@ const nextConfig: NextConfig = {
       { source: '/products/bookkeeping-services', destination: '/bookkeeping', permanent: true },
       { source: '/products/bookkeeping-payroll', destination: '/bookkeeping', permanent: true },
 
-      // --- Financial Statements cluster → /financial-statements ---
-      { source: '/products/financial-statements', destination: '/financial-statements', permanent: true },
-      { source: '/products/financial-reporting', destination: '/financial-statements', permanent: true },
-      { source: '/products/financial-reporting-services', destination: '/financial-statements', permanent: true },
+      // --- Financial Statements cluster → /annual-financial-statements (1-hop) ---
+      { source: '/products/financial-statements', destination: '/annual-financial-statements', permanent: true },
+      { source: '/products/financial-reporting', destination: '/annual-financial-statements', permanent: true },
+      { source: '/products/financial-reporting-services', destination: '/annual-financial-statements', permanent: true },
       { source: '/products/annual-financial-statements', destination: '/annual-financial-statements', permanent: true },
 
       // --- Financial Advisory cluster → /financial-advisory ---
@@ -274,15 +283,15 @@ const nextConfig: NextConfig = {
       { source: '/products/compliance-consulting', destination: '/compliance-services', permanent: true },
       { source: '/products/business-compliance', destination: '/compliance-services', permanent: true },
 
-      // --- SME Accounting cluster → /sme-accounting ---
+      // --- SME Accounting cluster → /sme-accounting (1-hop) ---
       { source: '/products/sme-accounting', destination: '/sme-accounting', permanent: true },
       { source: '/products/sme-accounting-services', destination: '/sme-accounting', permanent: true },
       { source: '/products/sme-solutions', destination: '/sme-accounting', permanent: true },
       { source: '/products/sme-tax-advisory', destination: '/sme-accounting', permanent: true },
       { source: '/products/sme-tax-services', destination: '/sme-accounting', permanent: true },
       { source: '/products/sme-tax-solutions', destination: '/sme-accounting', permanent: true },
-      { source: '/products/small-business-accounting', destination: '/small-business-accounting-south-africa', permanent: true },
-      { source: '/products/small-business-accounting-services', destination: '/small-business-accounting-south-africa', permanent: true },
+      { source: '/products/small-business-accounting', destination: '/sme-accounting', permanent: true },
+      { source: '/products/small-business-accounting-services', destination: '/sme-accounting', permanent: true },
       { source: '/products/small-business-tax-services', destination: '/sme-accounting', permanent: true },
 
       // --- Trust Services cluster → /trust-services ---
@@ -336,7 +345,7 @@ const nextConfig: NextConfig = {
       { source: '/blog/my-accountant-the-best-accountant-in-bryanston', destination: '/accountant-bryanston', permanent: true },
 
       // --- Top-level orphan redirects ---
-      { source: '/small-business-accounting', destination: '/small-business-accounting-south-africa', permanent: true },
+      { source: '/small-business-accounting', destination: '/sme-accounting', permanent: true },
       { source: '/tax-consultation', destination: '/tax-consulting', permanent: true },
       { source: '/articles/directors-duties', destination: '/blog', permanent: true },
 
@@ -364,10 +373,10 @@ const nextConfig: NextConfig = {
       { source: '/blog/ai-future-of-bookkeeping-a-south-african-view', destination: '/bookkeeping', permanent: true },
       { source: '/blog/ai--future-of-bookkeeping-a-south-african-view', destination: '/bookkeeping', permanent: true },
 
-      // Historical / Truncated Blog Crawl Errors
+      // Historical / Truncated Blog Crawl Errors (1-hop directly to final canonical NCR post)
       { source: '/blog/tax-record-keeping-tips', destination: '/bookkeeping', permanent: true },
-      { source: '/blog/ncr-registration', destination: '/blog/ncr-registration-your-essential-guide-in-south-africa', permanent: true },
-      { source: '/blog/ncr-registration-your-', destination: '/blog/ncr-registration-your-essential-guide-in-south-africa', permanent: true },
+      { source: '/blog/ncr-registration', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
+      { source: '/blog/ncr-registration-your-', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
       { source: '/blog/remission-', destination: '/remission-of-fines', permanent: true },
       { source: '/blog/are-you-providing-loans-in-south-africa-perhaps-even-informally-', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
       { source: '/blog/sars-and-cipc-compliance', destination: '/compliance', permanent: true },
@@ -387,7 +396,7 @@ const nextConfig: NextConfig = {
       { source: '/calculators/provisional-tax', destination: '/calculators/provisional-tax-estimator', permanent: true },
       { source: '/calculators/small-business-tax', destination: '/calculators/sbc-tax-estimator', permanent: true },
       { source: '/calculators/freelance-tax', destination: '/freelancer-gig-economy-tax-hub', permanent: true },
-      { source: '/free-tax-clearance-status-check', destination: '/sars-verify-tax-compliance-status', permanent: true },
+      { source: '/free-tax-clearance-status-check', destination: '/sars-tax-compliance-status-pin', permanent: true },
 
       // --- Search Console Coverage Audit 404 Fixes (2026-10-04) ---
       // Homepage variations
@@ -433,19 +442,13 @@ const nextConfig: NextConfig = {
       { source: '/products/emp201-nil-return-submission', destination: '/products/emp201-return-submission-nil', permanent: true },
       { source: '/products/private-', destination: '/products/private-company-registration', permanent: true },
       { source: '/products/private', destination: '/products/private-company-registration', permanent: true },
-      { source: '/products/ncr-form-40-application--compliance', destination: '/products/ncr-form-40-application-compliance', permanent: true },
-      { source: '/products/sars-login-assistance--troubleshooting', destination: '/products/sars-login-assistance-troubleshooting', permanent: true },
 
       // Industry URL typos
       { source: '/industries/freelancer', destination: '/industries/freelancers', permanent: true },
       { source: '/industries/film', destination: '/movie-film-production-accounting-south-africa', permanent: true },
       { source: '/industries/retail', destination: '/industries/ecommerce-online-sellers', permanent: true },
 
-      // Old WP blog
-      { source: '/blog/2021/07/23/ncr-registration', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
-      { source: '/blog/2021/07/23/ncr-registration/', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
-
-      // NCR Blog Consolidation (Phase 5: 368 clicks winner vs 28 clicks weaker post)
+      // NCR Blog Consolidation (1-hop to winner)
       { source: '/blog/ncr-registration-your-essential-guide-in-south-africa', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
 
       // Duplicate products found in Coverage audit

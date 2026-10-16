@@ -19,8 +19,52 @@ export default function CGTExclusionPage() {
   const title = "CGT Annual Exclusion Increase for 2026";
   const excerpt = "The 2026 budget introduces a welcome relief for investors with an increase in the annual Capital Gains Tax exclusion amount.";
 
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${SITE_URL}/blog/cgt-annual-exclusion-increase-2026#article`,
+        headline: title,
+        description: excerpt,
+        datePublished: '2026-02-25T08:00:00+02:00',
+        dateModified: '2026-03-01T08:00:00+02:00',
+        author: {
+          '@id': `${SITE_URL}/#kevin-freese`,
+          '@type': 'Person',
+          name: 'Kevin Freese',
+          url: `${SITE_URL}/about`,
+        },
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/blog/cgt-annual-exclusion-increase-2026`,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: title,
+            item: `${SITE_URL}/blog/cgt-annual-exclusion-increase-2026`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <section className="relative w-full bg-white border-b pt-20 pb-24 animate-in fade-in">
         <div className="absolute inset-0 bg-grid-slate-100/[0.04] bg-[size:20px_20px]" />
         

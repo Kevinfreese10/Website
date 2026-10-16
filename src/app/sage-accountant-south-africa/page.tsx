@@ -14,14 +14,15 @@ import {
   Database
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Sage Accountant South Africa | Pastel Support | My Accountant',
-        description: 'Expert Sage accounting and Pastel support for South African businesses. Transition to the cloud, automate payroll, and stay compliant with SARS.',
+        title: 'Sage Accountant South Africa | Cloud & Pastel Support',
+        description: 'Expert Sage Business Cloud accounting and Pastel support for South African businesses. Migrate to the cloud, automate payroll, and stay SARS compliant.',
     };
     return getStaticPageMetadata('sage-accountant-south-africa', defaults);
 }
@@ -65,8 +66,26 @@ export default function SageAccountantSouthAfricaPage() {
     }
   ];
 
+  const sageSchema = generateServicePillarSchema({
+    title: 'Sage Accountant South Africa | Cloud & Pastel Support',
+    description: 'Expert Sage Business Cloud accounting and Pastel support for South African businesses. Migrate to the cloud, automate payroll, and stay SARS compliant.',
+    slug: '/sage-accountant-south-africa',
+    serviceType: 'AccountingService',
+    priceRange: 'From R1,850/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Accounting', url: '/monthly-accounting' },
+      { name: 'Sage Accountant South Africa', url: '/sage-accountant-south-africa' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(sageSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         {/* Aurora background blobs */}

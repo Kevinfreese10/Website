@@ -53,7 +53,7 @@ const queryCategories = [
     items: [
       { name: "What's My SARS Tax Reference Number?", href: "/sars-tax-number-query", icon: Search, desc: "Retrieve lost or unknown individual or company tax reference numbers." },
       { name: "Request Tax Compliance Status PIN", href: "/sars-tax-compliance-status-pin", icon: ShieldCheck, desc: "Issue a TCS PIN for Good Standing, Tender, or Foreign Investment." },
-      { name: "Verify Tax Compliance Status PIN", href: "/sars-verify-tax-compliance-status", icon: CheckCircle2, desc: "Verify third-party tax clearance PINs issued by SARS." },
+      { name: "Verify Tax Compliance Status PIN", href: "/sars-tax-compliance-status-pin#verify-tcs-pin", icon: CheckCircle2, desc: "Verify third-party tax clearance PINs issued by SARS." },
       { name: "Request IT150 / Notice of Registration", href: "/sars-notice-of-registration-it150", icon: FileText, desc: "Download official SARS Notice of Registration for individuals & entities." },
       { name: "Request SARS Statement of Account", href: "/sars-statement-of-account-request", icon: Receipt, desc: "Obtain official statements of account for IT, VAT, and PAYE." },
     ]
@@ -82,7 +82,7 @@ const queryCategories = [
     category: 'Entities & Specialized Taxes',
     description: 'Register turnover tax, trusts, report deceased estates, and appoint tax representatives.',
     items: [
-      { name: "SARS Turnover Tax Registration & Rates", href: "/sars-turnover-tax-registration", icon: DollarSign, desc: "Simplified tax system for micro-businesses with turnover under R1 million." },
+      { name: "SARS Turnover Tax Registration & Rates", href: "/sars-turnover-tax-registration", icon: DollarSign, desc: "Simplified tax system for micro-businesses with turnover under R2.3 million." },
       { name: "Register a New Trust with SARS via SOQS", href: "/sars-trust-registration-online", icon: Building2, desc: "Submit IT77T registration for family and trading trusts." },
       { name: "Report a Deceased Estate to SARS", href: "/sars-deceased-estate-reporting", icon: Users, desc: "Notify SARS of deceased taxpayers and register estate profiles." },
       { name: "Appoint Registered Tax Representative / Public Officer", href: "/sars-tax-representative-appointment", icon: UserCheck, desc: "Update registered tax representative details and power of attorney." },
@@ -140,15 +140,34 @@ const faqItems = [
 export default function SarsOnlineQueryGuidePage() {
   const faqSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqItems.map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer,
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'SARS Online Query System Guide', item: `${SITE_URL}/sars-online-query-system-guide` },
+        ],
       },
-    })),
+      {
+        '@type': 'Service',
+        name: 'SARS Online Query System (SOQS) & eFiling Tax Representation',
+        description: 'Registered SARS Tax Practitioner assistance for all SARS Online Query System (SOQS) and eFiling submissions.',
+        provider: { '@type': 'Organization', name: 'My Accountant', url: SITE_URL },
+        areaServed: { '@type': 'Country', name: 'South Africa' },
+        url: `${SITE_URL}/sars-online-query-system-guide`,
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      },
+    ],
   };
 
   return (

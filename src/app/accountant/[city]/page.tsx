@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { CITIES_DATA } from '@/lib/cities';
+import { LOGO_URL } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -117,7 +118,7 @@ export default async function CityAccountantPage({ params }: PageProps) {
     telephone: '+27101091625',
     email: 'info@myacc.co.za',
     priceRange: 'R250 - R4500',
-    image: 'https://www.myacc.co.za/logo.png',
+    image: LOGO_URL,
     areaServed: {
       '@type': 'AdministrativeArea',
       name: `${cityData.name}, ${cityData.province}, South Africa`,

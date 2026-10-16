@@ -14,11 +14,77 @@
     "Signed consent / resolution not returned, so the supporting-document upload cannot be completed"
   ],
   "informationToProvide": [
-    { "label": "Company registration Certificate (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. Must be the company the director is being added to." },
-    { "label": "Certified ID copy of the new director  - not older than 3 months", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy (foreign director)"], "isRequired": true, "aiHint": "Certified SA Smart ID Card (front and back), Green Barcoded ID Book, or Passport for a foreign director. Check for a visible Commissioner of Oaths or SAPS certification stamp dated within 3 months, legible ID number and full names. The name must be the NEW director, not an existing one." },
-    { "label": "Proof of residential address for the new director - not older than 3 months", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Bank statement showing the address", "Municipal rates account"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months (utility bill, rates/taxes, lease or bank statement) in the new director's own name. A business address or a spouse's account is not acceptable without a sworn affidavit." },
-    { "label": "Email address for Director to be added", "type": "text", "isRequired": true },
-    { "label": "Contact number for Director to be added", "type": "text", "isRequired": true }
+    {
+      "label": "Company registration Certificate (COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. Must be the company the director is being added to.",
+      "id": "req_94fx07pt"
+    },
+    {
+      "label": "Certified ID copy of the new director  - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director)"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_ia6a6rr7"
+    },
+    {
+      "label": "Proof of residential address for the new director - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Bank statement showing the address",
+        "Municipal rates account"
+      ],
+      "isRequired": true,
+      "aiHint": "Proof of residential address dated within 3 months (utility bill, rates/taxes, lease or bank statement) in the new director's own name. A business address or a spouse's account is not acceptable without a sworn affidavit.",
+      "id": "req_iovw147t"
+    },
+    {
+      "label": "Email address for Director to be added",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_gzlqwbbb"
+    },
+    {
+      "label": "Contact number for Director to be added",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_7k19lkdg"
+    },
+    {
+      "id": "req_add_dir_res_addr_text",
+      "label": "New Director Residential & Postal Street Address (Full Address with Postal Code)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the full residential street address and postal address of the incoming director."
+    },
+    {
+      "id": "req_add_dir_effective_date",
+      "label": "Effective Date of Director Appointment",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the effective date of appointment (e.g., today / date of resolution)."
+    },
+    {
+      "id": "req_add_dir_existing_contacts",
+      "label": "Existing Active Directors — Full Names, Email Addresses & Cellphone Numbers (for CIPC OTPs)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "CIPC sends both SMS and Email OTPs to active directors to authorise CoR 39 director appointments. List each active director with their direct email and cellphone number."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -44,7 +110,11 @@
       "title": "Draft director resolution, consent to act and CoR39 handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["director_resolution", "consent_to_act", "handoff_sheet"],
+      "templateIds": [
+        "director_resolution",
+        "consent_to_act",
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Resolution appointing the director, the director's written consent to act, and a handoff sheet with every CoR39 field are drafted for Kevin's review",
       "aiInstructions": "Resolution is passed by the existing board (all current directors on the CoR14.3 sign). The consent is signed by the new director and must state they are not disqualified under s69 of the Companies Act. Handoff sheet fields: company name and number, director surname, first names, ID/passport number, date of birth, nationality, residential address, postal address, cell, email, designation (Director), appointment date, status Active. Never guess a residential address — it must come from the proof of address upload."
@@ -75,7 +145,10 @@
       "title": "Wait for CIPC to process the amendment",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 5],
+      "followUpAfterDays": [
+        2,
+        5
+      ],
       "estimatedDays": 2,
       "doneCriteria": "CIPC confirmation email received and the director appears as active on the register",
       "aiInstructions": "Check the CIPC tracking status on e-Services before emailing. If the transaction is rejected, read the rejection reason and create a proposal for Kevin quoting it verbatim with the document it concerns; most rejections are certification age or a Home Affairs mismatch."
@@ -85,7 +158,10 @@
       "title": "Deliver CIPC confirmation and updated company documents",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor39", "cor14_3"],
+      "deliverArtefacts": [
+        "cor39",
+        "cor14_3"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "CoR39 confirmation and re-downloaded CoR14.3 posted to Communication History",
       "aiInstructions": "Download the updated disclosure certificate from CIPC after the change reflects. Remind the client to update the bank mandate, SARS eFiling representative details and the company's share register / beneficial ownership filing if ownership also changed."

@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Calendar, ArrowRight, FileText, FileX, RefreshCw, Shield } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Provisional Tax (IRP6) Services South Africa | My Accountant',
-        description: 'Expert IRP6 provisional tax filing services in South Africa. We handle bi-annual submissions, estimated tax payments & SARS compliance. Get your IRP6 filed on time.',
+        title: 'Provisional Tax (IRP6) Filing Services South Africa',
+        description: 'Expert SARS IRP6 provisional tax filing services in South Africa. Bi-annual P1 & P2 calculations, nil returns, and penalty-free eFiling submissions.',
     };
     return getStaticPageMetadata('provisional-tax', defaults);
 }
@@ -23,13 +24,13 @@ export default function ProvisionalTaxPage() {
       title: "IRP6 Filing for Trading Entities",
       description: "Complete IRP6 provisional tax return preparation and submission for active trading businesses. We calculate your estimated taxable income, apply the correct rates, and file directly with SARS before the deadline.",
       icon: FileText,
-      link: "/products/irp6-provisional-tax-return-filing-for-trading-entities",
+      link: "/products/provisional-tax-return-irp6-for-trading-entities",
     },
     {
       title: "IRP6 Nil Returns",
       description: "If your company or trust had no taxable income during the period, a nil IRP6 return must still be submitted to SARS. We ensure your nil return is filed correctly and on time to avoid unnecessary penalties.",
       icon: FileX,
-      link: "/products/irp6-provisional-tax-return-nil",
+      link: "/products/provisional-tax-return-irp6-nil",
     },
     {
       title: "Provisional Tax Return Submissions",
@@ -41,7 +42,7 @@ export default function ProvisionalTaxPage() {
       title: "Full Tax Services",
       description: "Beyond provisional tax, we offer comprehensive tax services including income tax returns, VAT, PAYE, and SARS dispute resolution. Let us manage your entire tax compliance calendar so you never miss a deadline.",
       icon: Shield,
-      link: "/tax-services-south-africa",
+      link: "/tax-consulting",
     },
   ];
 
@@ -60,8 +61,26 @@ export default function ProvisionalTaxPage() {
     },
   ];
 
+  const provisionalTaxSchema = generateServicePillarSchema({
+    title: 'Provisional Tax (IRP6) Filing Services South Africa',
+    description: 'Expert SARS IRP6 provisional tax filing services in South Africa. Bi-annual P1 & P2 calculations, nil returns, and penalty-free eFiling submissions.',
+    slug: '/provisional-tax',
+    serviceType: 'TaxPreparationService',
+    priceRange: 'From R450',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Tax Services', url: '/tax-consulting' },
+      { name: 'Provisional Tax (IRP6)', url: '/provisional-tax' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(provisionalTaxSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

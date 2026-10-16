@@ -1,0 +1,205 @@
+{
+  "slug": "company-reinstatement-package",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Multiple Deeds Office Search Report (10 Deeds Offices)",
+    "Lodged 6-Part CoR 40.5 Reinstatement Dossier & CIPC Tracking Number",
+    "CIPC Beneficial Ownership Confirmation Certificate",
+    "Catch-Up CIPC Annual Return Certificates for All Outstanding Years",
+    "Updated CoR 14.3 Disclosure Certificate Showing \"In Business\" Status"
+  ],
+  "playbookCommonFailures": [
+    "Certified IDs of directors or customer code holder are older than 3 months at the date CIPC processes the CoR 40.5 dossier",
+    "Documentary proof of economic value does not cover the deregistration period or does not show the company name",
+    "Immovable property is discovered on the Deeds Search without Public Works and National Treasury consent letters",
+    "Client delays settling CIPC statutory Annual Return turnover fees within 30 business days after reinstatement, causing CIPC to re-deregister the entity"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_crp_cor143",
+      "label": "Company Registration Certificate (CoR 14.3 / CK1)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the original CIPC registration certificate or latest disclosure document.",
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or Disclosure Certificate showing the deregistered enterprise name, registration number, and listed directors/members."
+    },
+    {
+      "id": "req_crp_director_ids",
+      "label": "Certified SA ID Copies of All Directors & Beneficial Owners (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified & apostilled foreign passport (foreign nationals only)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) for all active directors and anyone holding >= 5% shares.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_crp_proof_of_address",
+      "label": "Proof of Residential Address for All Directors & Beneficial Owners (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Municipal utility bill",
+        "Bank statement showing residential address",
+        "Signed lease agreement"
+      ],
+      "isRequired": true,
+      "helpText": "Required for the post-reinstatement CIPC Beneficial Ownership declaration so Annual Returns can be filed.",
+      "aiHint": "Proof of residential address dated within 90 days in the name of each director/beneficial owner."
+    },
+    {
+      "id": "req_crp_proof_trading",
+      "label": "Documentary Proof of Active Trading OR Economic Value at Deregistration Date (Bank Statement, Lease, Invoices, or Property Deed)",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Title deed of property in company name",
+        "Signed lease agreement or customer/supplier invoices"
+      ],
+      "isRequired": true,
+      "helpText": "Upload proof that the company was trading or held assets/liabilities at the time of deregistration.",
+      "aiHint": "Bank statement, property title deed, lease agreement, or customer/supplier invoices in the name of the deregistered entity proving economic value or trading activity."
+    },
+    {
+      "id": "req_crp_dpw_treasury",
+      "label": "Dept of Public Works & National Treasury Non-Objection Letters (Required ONLY if Company Owns Immovable Property)",
+      "type": "pdf",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Does the company own any immovable property (land or buildings) registered at the Deeds Office?",
+      "helpText": "Required by CIPC if the Multiple Deeds Search shows property registered in the company name.",
+      "aiHint": "Official letters from the Department of Public Works and National Treasury confirming no objection to CoR 40.5 reinstatement."
+    },
+    {
+      "id": "req_crp_turnover_and_ubo",
+      "label": "Annual Turnover per Outstanding Financial Year & Shareholding / Beneficial Ownership Breakdown (%)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List (1) the reason Annual Returns were missed, (2) annual turnover in Rands for each outstanding year, and (3) each Beneficial Owner full name, ID, residential address, email, cell, and % shareholding."
+    },
+    {
+      "id": "req_crp_signed_cor405_pack",
+      "label": "Signed CoR 40.5 Application, Sworn Affidavit (Commissioned) & BO/Reinstatement Mandate",
+      "type": "pdf",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the signed CoR 40.5 form, commissioned Sworn Affidavit, and signed Mandate once drafted for you.",
+      "aiHint": "Signed CIPC CoR 40.5 form, Sworn Affidavit stamped by a Commissioner of Oaths, and signed Reinstatement & Beneficial Ownership Mandate."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "crp_collect",
+      "title": "Collect CoR 14.3, certified IDs, proof of address, trading proof, and turnover history",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "CoR 14.3, certified IDs (< 3 months), proofs of address, proof of trading/assets, and annual turnover per outstanding year received",
+      "aiInstructions": "Verify all directors on the CoR14.3 have provided certified IDs (< 3 months) and proofs of address, plus documentary proof of trading or assets/liabilities at deregistration."
+    },
+    {
+      "id": "crp_deeds_and_verify",
+      "title": "Run 10-region Multiple Deeds Office search and verify KYC & trading proof",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Multiple Deeds Search across all 10 regional Deeds Offices completed and all KYC documents verified within 90 days",
+      "aiInstructions": "Check CIPC status (must be Final Deregistration for CoR 40.5; if AR Deregistration Process, you can skip CoR 40.5 and go straight to BO + Annual Returns!). Confirm whether the 10-region Deeds Search shows immovable property — if yes, ensure Dept of Public Works and National Treasury letters are obtained."
+    },
+    {
+      "id": "crp_draft",
+      "title": "Draft CoR 40.5 form, Sworn Affidavit, Reinstatement Mandate & BO Register",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "cor40_5",
+        "reinstatement_affidavit",
+        "power_of_attorney",
+        "bo_register"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "CoR 40.5 pack, Sworn Affidavit, Mandate, and BO Register drafted for Kevin review",
+      "aiInstructions": "Prepare the CoR 40.5 application, Sworn Affidavit detailing the reason for non-filing and active trading/assets, and combined Reinstatement + Beneficial Ownership Mandate."
+    },
+    {
+      "id": "crp_client_sign",
+      "title": "Send CoR 40.5, Sworn Affidavit and Mandate to client for signature and commissioning",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Signed CoR 40.5, commissioned Sworn Affidavit, and signed Mandate uploaded by client",
+      "aiInstructions": "Instruct the director to sign the CoR 40.5 and Mandate, and sign the Sworn Affidavit in front of a Commissioner of Oaths / SAPS officer."
+    },
+    {
+      "id": "crp_lodge_cor405",
+      "title": "Compile single merged PDF dossier and lodge CoR 40.5 with CIPC (re-instatements@cipc.co.za)",
+      "type": "email_submission",
+      "owner": "agent",
+      "emailTo": "re-instatements@cipc.co.za",
+      "estimatedDays": 1,
+      "doneCriteria": "Merged 6-part PDF dossier emailed to re-instatements@cipc.co.za (or uploaded via e-Services) with R200 fee credit in CIPC customer account",
+      "aiInstructions": "Merge the 6-part dossier into a single clean PDF (CoR 40.5, Certified IDs of directors + customer code owner, 10-region Multiple Deeds Search, Proof of trading/assets, DPW/Treasury letters if applicable, Sworn Affidavit & Mandate). Ensure R200 credit is available on the My Accountant CIPC customer code before emailing re-instatements@cipc.co.za."
+    },
+    {
+      "id": "crp_wait_reinstatement",
+      "title": "Wait for CIPC to process CoR 40.5 and change status to Reinstatement Process",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        5,
+        10,
+        15
+      ],
+      "estimatedDays": 10,
+      "doneCriteria": "CIPC processes CoR 40.5 and opens the enterprise for BO and Annual Return catch-up filing",
+      "aiInstructions": "Monitor CIPC status until the company moves from Final Deregistration to Reinstatement Process / In Business."
+    },
+    {
+      "id": "crp_file_bo_and_ars",
+      "title": "File Beneficial Ownership Declaration and all outstanding CIPC Annual Returns",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileBeneficialOwnershipAndAnnualReturns",
+      "submitMode": "stage",
+      "estimatedDays": 2,
+      "doneCriteria": "Beneficial Ownership certificate issued and all outstanding Annual Returns + FAS filed on CIPC",
+      "aiInstructions": "Within 30 business days of CoR 40.5 approval: (1) File the Beneficial Ownership declaration first on CIPC e-Services, then (2) Calculate and collect CIPC statutory Annual Return fees from the client if not pre-funded, and file every outstanding Annual Return + Financial Accountability Supplement."
+    },
+    {
+      "id": "crp_deliver",
+      "title": "Deliver updated CoR 14.3 Disclosure Certificate (\"In Business\"), BO Certificate & AR Confirmations",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "cor14_3",
+        "bo_certificate",
+        "annual_return_certificate"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Updated CoR 14.3 showing \"In Business\", BO Confirmation, and Annual Return certificates posted to Communication History",
+      "aiInstructions": "Download the fresh CIPC Disclosure Certificate confirming the company is \"In Business\" and deliver the complete reinstatement pack to the client."
+    },
+    {
+      "id": "crp_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms company is fully reinstated to \"In Business\" status"
+    }
+  ]
+}

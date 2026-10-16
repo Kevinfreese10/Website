@@ -6,8 +6,9 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const defaults: Metadata = {
-    title: { absolute: 'Become a Partner | Bookkeeper Empowerment Initiative | My Accountant' },
-    description: "Join South Africa's fastest-growing accountant network. Get a white-label practice, AI tools, and outsourcing backend for free.",
+    title: { absolute: 'Accounting Practice Partner Program | My Accountant' },
+    description:
+      'Run your accounting practice on one platform: AI Accounting, AI Payroll, Task Manager, and up to 50% wholesale discount on 80+ SARS, CIPC & statutory filings.',
   };
   return getStaticPageMetadata('become-a-partner', defaults);
 }

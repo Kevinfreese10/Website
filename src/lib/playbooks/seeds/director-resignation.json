@@ -1,0 +1,180 @@
+{
+  "slug": "director-resignation",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC CoR 39 Certificate showing the outgoing director status as Resigned",
+    "Updated CIPC CoR 14.3 / Enterprise Disclosure Certificate",
+    "Signed Resignation Letter and Board Acceptance Resolution"
+  ],
+  "playbookCommonFailures": [
+    "Company only has 1 director and no new director is being appointed simultaneously (a Private Company must have at least 1 active director at all times)",
+    "Resigning director email or cellphone number on CIPC records is outdated so the CIPC CoR 39 OTP cannot be received without a contact details amendment first",
+    "Certified IDs of the resigning or remaining directors are older than 3 months",
+    "Client confuses director resignation with shareholder exit — CoR 39 does not transfer shares or update the Beneficial Ownership register"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_dr_cor143",
+      "label": "Company Registration Certificate (CoR 14.3 / Disclosure Certificate)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 or Disclosure Certificate showing enterprise registration number and current active directors."
+    },
+    {
+      "id": "req_dr_resigning_details",
+      "label": "Resigning Director Full Name, ID Number, Email Address, Cellphone Number & Effective Resignation Date",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the resigning director full name, ID number, direct email, cellphone number (for CIPC OTP verification), and effective date of resignation."
+    },
+    {
+      "id": "req_dr_resigning_id",
+      "label": "Certified SA ID Copy of the Resigning Director (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director only)"
+      ],
+      "isRequired": true,
+      "helpText": "Certified ID copy (< 3 months) of the resigning director.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_dr_remaining_ids",
+      "label": "Certified SA ID Copies of All Remaining Active Directors (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director only)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified ID copies (< 3 months) for every remaining active director who will stay on the board.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_dr_remaining_contacts",
+      "label": "Remaining Active Directors — Full Names, Email Addresses & Cellphone Numbers (for CIPC OTPs)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the email address and cellphone number for each remaining active director."
+    },
+    {
+      "id": "req_dr_resignation_letter",
+      "label": "Signed Resignation Letter from the Outgoing Director",
+      "type": "pdf",
+      "documentKind": "letterhead",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload the signed letter of resignation (we can also draft this for signature if not yet prepared).",
+      "aiHint": "Signed formal resignation letter from the outgoing director addressed to the Board of Directors stating the company name, effective date of resignation, and signature."
+    },
+    {
+      "id": "req_dr_board_resolution",
+      "label": "Signed Board Resolution Accepting the Director Resignation",
+      "type": "pdf",
+      "documentKind": "resolution",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the board resolution signed by the directors accepting the voluntary resignation (we draft this for signature if needed).",
+      "aiHint": "Board resolution of the company noting and accepting the resignation of the outgoing director with effective date and signatures of the board."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "dr_collect",
+      "title": "Collect resigning & remaining director IDs, contact details, and effective date",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CoR 14.3, certified IDs (< 3 months), OTP contact details, and effective resignation date received",
+      "aiInstructions": "Confirm that at least 1 active director will remain on the board after the resignation (if the resigning director is the sole director, a replacement director must be appointed simultaneously). Clarify whether the resigning director is also selling/transferring shares."
+    },
+    {
+      "id": "dr_verify",
+      "title": "Verify KYC certifications, board minimum count, and CIPC company status",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All ID certifications verified < 90 days; company is \"In Business\" and has >= 1 remaining director",
+      "aiInstructions": "Verify the company status on CIPC and check that all uploaded IDs meet the 90-day Commissioner of Oaths certification rule."
+    },
+    {
+      "id": "dr_draft",
+      "title": "Draft Director Resignation Letter, Board Acceptance Resolution & CoR 39 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "director_resignation_letter",
+        "director_resolution",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Resignation letter, board acceptance resolution, and CoR 39 handoff sheet drafted for review",
+      "aiInstructions": "If the client has not already uploaded a signed resignation letter and board resolution, draft both documents ready for signature."
+    },
+    {
+      "id": "dr_client_sign",
+      "title": "Obtain signed Resignation Letter and signed Board Acceptance Resolution",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed resignation letter and signed board resolution uploaded by client",
+      "aiInstructions": "Send the drafted resignation letter and board resolution to the client for signature and PDF upload."
+    },
+    {
+      "id": "dr_file",
+      "title": "Stage CoR 39 voluntary resignation on CIPC e-Services and coordinate OTPs",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR39Resignation",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "CoR 39 resignation filed on CIPC e-Services, dual-channel OTPs verified, and supporting documents uploaded",
+      "aiInstructions": "File CoR 39 on CIPC e-Services changing the director status to Resigned with the effective date. Coordinate the SMS + Email OTPs with the directors and upload the certified IDs, signed resignation letter, and board resolution."
+    },
+    {
+      "id": "dr_wait",
+      "title": "Wait for CIPC to issue the CoR 39 certificate",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        2,
+        5
+      ],
+      "estimatedDays": 2,
+      "doneCriteria": "CIPC CoR 39 confirmation received showing the director as Resigned",
+      "aiInstructions": "Monitor CIPC tracking status until the CoR 39 certificate is issued."
+    },
+    {
+      "id": "dr_deliver",
+      "title": "Deliver CoR 39 confirmation and updated CoR 14.3 disclosure certificate",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "cor39",
+        "cor14_3"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "CoR 39 certificate and updated CoR 14.3 posted to Communication History",
+      "aiInstructions": "Deliver the CoR 39 and updated disclosure certificate. Remind the client to update bank signatories and, if shareholding also changed, to update the Share Register and Beneficial Ownership filing."
+    },
+    {
+      "id": "dr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

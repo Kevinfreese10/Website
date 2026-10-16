@@ -15,8 +15,53 @@ export const metadata: Metadata = {
 };
 
 export default function AccountantVsBookkeeperGuide() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${SITE_URL}/blog/accountant-vs-bookkeeper-guide#article`,
+        headline: 'Accountant vs Bookkeeper: Which Does Your Business Need?',
+        description:
+          'Discover the key differences between an accountant and a bookkeeper, and find out which financial professional your South African business needs.',
+        datePublished: '2026-01-20T08:00:00+02:00',
+        dateModified: '2026-03-01T08:00:00+02:00',
+        author: {
+          '@id': `${SITE_URL}/#kevin-freese`,
+          '@type': 'Person',
+          name: 'Kevin Freese',
+          url: `${SITE_URL}/about`,
+        },
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/blog/accountant-vs-bookkeeper-guide`,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'Accountant vs Bookkeeper Guide',
+            item: `${SITE_URL}/blog/accountant-vs-bookkeeper-guide`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <article className="prose prose-lg lg:prose-xl prose-blue mx-auto">
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-8">
           Accountant vs Bookkeeper: Which Does Your Business Need?

@@ -61,12 +61,44 @@ const faqs = [
 export default function SarsTaxNumberQueryPage() {
   const faqSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map((f) => ({
-      '@type': 'Question',
-      name: f.question,
-      acceptedAnswer: { '@type': 'Answer', text: f.answer },
-    })),
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'SARS Online Query Guides', item: `${SITE_URL}/sars-online-query-system-guide` },
+          { '@type': 'ListItem', position: 3, name: 'SARS Tax Number Query', item: `${SITE_URL}/sars-tax-number-query` },
+        ],
+      },
+      {
+        '@type': 'HowTo',
+        name: 'How to Find or Get Your SARS Tax Reference Number',
+        description: 'Step-by-step instructions to retrieve your 10-digit SARS tax reference number via SMS, SOQS, or eFiling.',
+        totalTime: 'PT10M',
+        step: diySteps.map((s, idx) => ({
+          '@type': 'HowToStep',
+          position: idx + 1,
+          name: s.title,
+          text: s.detail,
+        })),
+      },
+      {
+        '@type': 'Service',
+        name: 'SARS Tax Reference Number Retrieval & IT150 Registration Service',
+        description: 'Professional SARS tax number retrieval, RAV01 contact detail updates, and IT150 Notice of Registration issuance within 24 hours.',
+        provider: { '@type': 'Organization', name: 'My Accountant', url: SITE_URL },
+        areaServed: { '@type': 'Country', name: 'South Africa' },
+        url: `${SITE_URL}/sars-tax-number-query`,
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
+      },
+    ],
   };
 
   return (
@@ -247,6 +279,37 @@ export default function SarsTaxNumberQueryPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Related Guides & Service Packages */}
+      <section className="container mx-auto px-4 max-w-4xl space-y-4 pt-4">
+        <h2 className="text-xl font-bold text-foreground">Related SARS Guides &amp; Fixed-Fee Packages</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <Link href="/products/sars-registered-representative-appointment" className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary font-semibold text-foreground flex items-center justify-between">
+            <span>Retrieve Tax Number / Appoint Rep</span>
+            <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          </Link>
+          <Link href="/products/individual-tax-returns" className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary font-semibold text-foreground flex items-center justify-between">
+            <span>Individual Tax Return (ITR12)</span>
+            <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          </Link>
+          <Link href="/sars-notice-of-registration-it150" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Download IT150 Notice of Registration</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-tax-compliance-status-pin" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Request or Verify SARS TCS PIN</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-tax-representative-appointment" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Public Officer Appointment Guide</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-online-query-system-guide" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>All SARS Online Queries (SOQS)</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
         </div>
       </section>
 

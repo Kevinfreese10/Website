@@ -18,7 +18,7 @@ import {
   Star,
   AlertTriangle,
 } from 'lucide-react';
-import { SITE_URL, KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
+import { SITE_URL, KEVIN_FREESE_PROFILE_IMAGE, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Outsourcing vs Hiring Practice Staff Guide",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Outsourcing vs Hiring Staff: The Guide for South African Accountants',
     description: 'Compare the real cost of hiring vs outsourcing for your accounting practice. Discover how to scale without the risk.',
-    images: [{ url: '/og-image.jpg' }],
+    images: [{ url: GLOBAL_OG_IMAGE }],
   },
 };
 
@@ -208,6 +208,8 @@ export default function OutsourcingVsHiringPage() {
                 <img
                   src={KEVIN_FREESE_PROFILE_IMAGE}
                   alt="Kevin Freese - Managing Director & Founder of My Accountant"
+                  width={400}
+                  height={300}
                   className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md mb-4"
                 />
                 <h3 className="text-lg font-black text-slate-900">Kevin Freese</h3>

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import { AlertTriangle, ShieldAlert, HelpCircle, CheckCircle2, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, ShieldAlert, HelpCircle, CheckCircle2, Lock, Clock, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import PageHero from '@/components/shared/PageHero';
@@ -26,33 +27,80 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Anti-Corruption Hotline / SOQS", detail: "Go to tools.sars.gov.za/soqs or access the toll-free SARS Anti-Corruption Hotline (0800 00 2870)." },
-  { step: "Step 2", title: "Choose Anonymous vs Named Disclosure", detail: "Select whether to file an anonymous whistleblowing report or provide your contact details under Protected Disclosures Act." },
-  { step: "Step 3", title: "Detail the Alleged Misconduct", detail: "Provide specific details: SARS official's name, employee number (if known), branch location, case/audit reference, and date of occurrence." },
-  { step: "Step 4", title: "Attach Supporting Evidence", detail: "Upload email threads, audio recordings, WhatsApp messages, or financial extortion demands." },
-  { step: "Step 5", title: "Submit to Anti-Corruption Unit", detail: "SARS Internal Integrity Unit and independent auditors will investigate the report confidentially." },
+  { step: "Step 1", title: "Access the SARS Anti-Corruption Portal or Hotline", detail: "Navigate to tools.sars.gov.za/sarsonlinequery/ACReporting or phone the independent toll-free SARS Anti-Corruption Hotline on 0800 00 2870. Do not respond directly to suspicious personal emails or WhatsApp messages from purported officials." },
+  { step: "Step 2", title: "Select Anonymous Whistleblowing or Protected Disclosure", detail: "Elect whether to lodge a 100% anonymous disclosure or provide confidential contact details protected under the Protected Disclosures Act 26 of 2000." },
+  { step: "Step 3", title: "Document Specific Official & Case Identifiers", detail: "Record the SARS official's full name, S-number (employee number), SARS branch office or customs port of entry, eFiling audit case reference number, and exact date/time of the improper solicitation." },
+  { step: "Step 4", title: "Attach Unaltered Contemporaneous Evidence", detail: "Upload unedited email headers, WhatsApp chat exports, call logs, bank account details provided for bribes, or written demands to manipulate an ITA34/VAT201 assessment." },
+  { step: "Step 5", title: "Escalate Concurrent Audit Disputes Formally", detail: "Obtain your SARS Internal Integrity Unit reference number and simultaneously appoint a registered tax practitioner to take over formal audit correspondence on eFiling so your legitimate tax position is protected." },
+];
+
+const rejectionCases = [
+  {
+    title: "Paying 'Informal Facilitation Fees' to Clear Debt",
+    detail: "Any payment made outside of an official 19-digit SARS Payment Reference Number (PRN) into a personal or third-party bank account never clears your SARS ledger—leaving the full tax debt, interest, and criminal liability intact."
+  },
+  {
+    title: "Confusing Aggressive Audit Verification with Corruption",
+    detail: "Demanding strict Section 46 third-party verifications or disallowing unsubstantiated expenses is lawful SARS audit conduct; those grievances must be challenged via a formal NOO1 dispute or the Office of the Tax Ombud rather than the anti-corruption unit."
+  },
+  {
+    title: "Retaliatory Audit Fear Blocking Valid Objections",
+    detail: "Taxpayers often miss the strict 80-business-day objection deadline while waiting for an integrity investigation to conclude. Formal Chapter 9 dispute timelines run independently of internal misconduct probes."
+  }
 ];
 
 const faqs = [
-  { question: "Is whistleblowing on SARS employee corruption completely anonymous?", answer: "Yes. SARS utilizes independent anti-corruption channels (operated by external administrators like KPMG/Deloitte or secure SOQS portals) ensuring your identity is never revealed." },
-  { question: "What constitutes SARS employee corruption?", answer: "Soliciting bribes or kickbacks to clear tax debt, manipulating audit findings in exchange for money, unauthorized disclosure of taxpayer records, or extortion." },
-  { question: "Can My Accountant protect my tax compliance if an official acts improperly?", answer: "Yes! As SAIT registered tax practitioners, we strictly enforce statutory tax laws, escalate abusive audit behavior to the Tax Ombudsman, and protect your legal rights." },
+  { question: "Is whistleblowing on SARS employee corruption completely anonymous?", answer: "Yes. SARS utilizes independent anti-corruption reporting channels and isolated Internal Integrity Unit queues ensuring your personal and corporate tax profiles are shielded from the reported official." },
+  { question: "What constitutes SARS employee corruption or misconduct?", answer: "Soliciting bribes or kickbacks to erase tax debt, offering to expedite or cancel a VAT/Income Tax audit in exchange for money, unauthorized browsing or leaking of taxpayer records, and customs clearance extortion." },
+  { question: "Does reporting a corrupt official pause my active SARS audit or tax debt?", answer: "No. Your statutory deadlines under the Tax Administration Act (21 business days for verification uploads or 80 business days for objections) remain legally binding unless formally extended or suspended under Section 164." },
+  { question: "When should I escalate to the Office of the Tax Ombud (OTO) instead?", answer: "If a SARS official is not soliciting a bribe but is acting with extreme procedural unfairness, ignoring uploaded documents, or delaying a legitimate refund beyond systemic service standards, the Office of the Tax Ombud is the correct statutory channel." },
+  { question: "Can My Accountant protect my tax compliance if an official acts improperly?", answer: "Yes. As SAIT-accredited tax practitioners, we step in as your legal representative on eFiling, demand reassignment of tainted audit cases, lodge formal Tax Ombud complaints, and defend your assessments strictly on the law." },
 ];
 
 export default function SarsReportEmployeeCorruptionPage() {
-  const faqSchema = {
+  const schema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map((f) => ({
-      '@type': 'Question',
-      name: f.question,
-      acceptedAnswer: { '@type': 'Answer', text: f.answer },
-    })),
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'SARS Online Query Guide', item: `${SITE_URL}/sars-online-query-system-guide` },
+          { '@type': 'ListItem', position: 3, name: 'Report SARS Employee Corruption', item: `${SITE_URL}/sars-report-employee-corruption` },
+        ],
+      },
+      {
+        '@type': 'HowTo',
+        name: 'How to Report SARS Employee Corruption and Misconduct',
+        description: 'Step-by-step instructions to report bribery, extortion, or audit tampering by SARS officials via SOQS.',
+        step: diySteps.map((s, i) => ({
+          '@type': 'HowToStep',
+          position: i + 1,
+          name: s.title,
+          text: s.detail,
+        })),
+      },
+      {
+        '@type': 'Service',
+        name: 'SARS Audit Defence & Tax Ombud Escalation',
+        provider: { '@type': 'Organization', name: 'My Accountant', url: SITE_URL },
+        areaServed: 'ZA',
+        serviceType: 'Tax Dispute & Representation',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
+      },
+    ],
   };
 
   return (
     <div className="space-y-12 pb-16 bg-background">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
 
       <PageHero
         badgeText="Anti-Corruption & Whistleblowing"
@@ -103,6 +151,41 @@ export default function SarsReportEmployeeCorruptionPage() {
         </div>
       </section>
 
+      <section className="container mx-auto px-4 max-w-4xl space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Investigation Turnaround &amp; Protocol
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-3">
+              <p><strong>Case Reference Issuance:</strong> Immediate upon submitting the online ACReporting form or calling 0800 00 2870.</p>
+              <p><strong>Internal Integrity Triage:</strong> 48 to 72 hours for active extortion or customs detention matters.</p>
+              <p><strong>Statutory Audit Protection:</strong> Appointing a registered tax representative immediately routes all official audit queries through your practitioner.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                Critical Legal Pitfalls to Avoid
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-3">
+              {rejectionCases.map((rc, idx) => (
+                <div key={idx}>
+                  <p className="font-semibold text-foreground">{rc.title}</p>
+                  <p>{rc.detail}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       <section className="container mx-auto px-4 max-w-4xl space-y-6 pt-6">
         <h2 className="text-2xl font-bold text-foreground text-center">Frequently Asked Questions</h2>
         <div className="grid grid-cols-1 gap-4">
@@ -119,6 +202,28 @@ export default function SarsReportEmployeeCorruptionPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 max-w-4xl space-y-4">
+        <h2 className="text-xl font-bold text-foreground">Related SARS Guides &amp; Legal Remedies</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <Link href="/sars-report-digital-fraud" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Report SARS Digital Fraud &amp; Phishing</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
+          <Link href="/sars-disputes" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>SARS Objections, Appeals &amp; Audit Defence</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
+          <Link href="/products/sars-objection-and-appeal" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Formal SARS Objection &amp; Appeal Package</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
+          <Link href="/sars-online-query-system-guide" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Complete SARS SOQS Directory</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
         </div>
       </section>
 

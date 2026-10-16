@@ -7,8 +7,8 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Contact Us | My Accountant',
-        description: 'Get in touch with the My Accountant team. Fill out our contact form with your questions or inquiries.',
+        title: 'Contact My Accountant | Randburg, Johannesburg Office',
+        description: 'Contact My Accountant in Darrenwood, Randburg (010 109 1625 or info@myacc.co.za) for CIBA & SARS accredited accounting, tax, payroll, and CIPC support.',
     };
     return getStaticPageMetadata('contact', defaults);
 }

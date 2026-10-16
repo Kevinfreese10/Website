@@ -9,14 +9,13 @@
     "dev": "next dev -p 9003",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "next build && node scripts/copy-standalone-assets.mjs",
     "start": "next start",
     "lint": "eslint src --max-warnings=150",
     "typecheck": "tsc --noEmit",
     "test:rules": "firebase emulators:exec \"tsx scratch/test_firestore_rules.ts\"",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "telegram:bot": "node scripts/telegram_bot.js"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",

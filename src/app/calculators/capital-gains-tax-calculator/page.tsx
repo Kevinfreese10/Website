@@ -1,57 +1,50 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
+import { SITE_URL } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
-import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
+import { Button } from '@/components/ui/button';
+import CapitalGainsTaxCalculatorClient from './CalculatorClient';
 
 export default function CapitalGainsTaxCalculatorPage() {
-  const [proceeds, setProceeds] = useState<string>('');
-  const [baseCost, setBaseCost] = useState<string>('');
-  const [taxpayerType, setTaxpayerType] = useState<'individual' | 'company'>('individual');
-  const [marginalRate, setMarginalRate] = useState<string>('45');
-
-  const calculateCGT = () => {
-    const numProceeds = parseFloat(proceeds) || 0;
-    const numBaseCost = parseFloat(baseCost) || 0;
-    
-    const capitalGain = Math.max(0, numProceeds - numBaseCost);
-    
-    // Annual exclusion for individuals is R40,000
-    const annualExclusion = taxpayerType === 'individual' ? 40000 : 0;
-    const netCapitalGain = Math.max(0, capitalGain - annualExclusion);
-    
-    const inclusionRate = taxpayerType === 'individual' ? 0.40 : 0.80;
-    const taxableCapitalGain = netCapitalGain * inclusionRate;
-    
-    const taxRate = taxpayerType === 'individual' ? (parseFloat(marginalRate) || 0) / 100 : 0.27; // Corporate rate 27%
-    const cgtPayable = taxableCapitalGain * taxRate;
-
-    return {
-      capitalGain,
-      netCapitalGain,
-      taxableCapitalGain,
-      cgtPayable
-    };
-  };
-
-  const results = calculateCGT();
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-ZA', {
-      style: 'currency',
-      currency: 'ZAR',
-      maximumFractionDigits: 0
-    }).format(val);
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        '@id': `${SITE_URL}/calculators/capital-gains-tax-calculator#app`,
+        name: 'Capital Gains Tax (CGT) Calculator South Africa',
+        url: `${SITE_URL}/calculators/capital-gains-tax-calculator`,
+        applicationCategory: 'FinanceApplication',
+        operatingSystem: 'All',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'ZAR',
+        },
+        provider: { '@id': `${SITE_URL}/#organization` },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Calculators', item: `${SITE_URL}/calculators` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'Capital Gains Tax Calculator',
+            item: `${SITE_URL}/calculators/capital-gains-tax-calculator`,
+          },
+        ],
+      },
+    ],
   };
 
   return (
     <div className="space-y-16 pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <section className="bg-slate-50 text-slate-900 py-16 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center max-w-3xl space-y-4">
           <div className="h-14 w-14 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
@@ -66,111 +59,32 @@ export default function CapitalGainsTaxCalculatorPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 max-w-5xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          <div className="lg:col-span-6 space-y-6">
-            <Card className="border border-border bg-card shadow-sm">
-              <CardContent className="p-6 space-y-6">
-                
-                <div className="space-y-3">
-                  <Label className="font-bold text-slate-800 text-sm">Taxpayer Type</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant={taxpayerType === 'individual' ? 'default' : 'outline'}
-                      onClick={() => setTaxpayerType('individual')}
-                      className="font-semibold text-xs h-10 border border-border"
-                    >
-                      Individual
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={taxpayerType === 'company' ? 'default' : 'outline'}
-                      onClick={() => setTaxpayerType('company')}
-                      className="font-semibold text-xs h-10 border border-border"
-                    >
-                      Company
-                    </Button>
-                  </div>
-                </div>
+      <CapitalGainsTaxCalculatorClient />
 
-                <div className="space-y-2">
-                  <Label htmlFor="proceeds" className="font-bold text-slate-800 text-sm">Proceeds (Selling Price)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">R</span>
-                    <Input
-                      id="proceeds"
-                      type="number"
-                      value={proceeds}
-                      onChange={(e) => setProceeds(e.target.value)}
-                      className="pl-8 h-11 border-border font-semibold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="baseCost" className="font-bold text-slate-800 text-sm">Base Cost (Original Purchase Price + Costs)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">R</span>
-                    <Input
-                      id="baseCost"
-                      type="number"
-                      value={baseCost}
-                      onChange={(e) => setBaseCost(e.target.value)}
-                      className="pl-8 h-11 border-border font-semibold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                {taxpayerType === 'individual' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="marginalRate" className="font-bold text-slate-800 text-sm">Marginal Tax Rate (%)</Label>
-                    <div className="relative">
-                      <Input
-                        id="marginalRate"
-                        type="number"
-                        value={marginalRate}
-                        onChange={(e) => setMarginalRate(e.target.value)}
-                        className="h-11 border-border font-semibold text-slate-800"
-                      />
-                    </div>
-                  </div>
-                )}
-
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-6">
-            <Card className="border-2 border-primary/20 bg-card shadow-md overflow-hidden">
-              <div className="bg-primary text-white p-5 text-center">
-                <h3 className="font-bold text-lg">Calculation Summary</h3>
-              </div>
-              <CardContent className="p-6 space-y-6 bg-white">
-                
-                <div className="bg-slate-50 border border-border rounded-xl p-5 text-center space-y-1">
-                  <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">Estimated CGT Payable</span>
-                  <div className="text-3xl font-black text-slate-900">{formatCurrency(results.cgtPayable)}</div>
-                </div>
-
-                <div className="space-y-4 pt-2">
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Total Capital Gain:</span>
-                    <span className="font-semibold text-slate-800">{formatCurrency(results.capitalGain)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Taxable Capital Gain:</span>
-                    <span className="font-semibold text-slate-800">{formatCurrency(results.taxableCapitalGain)}</span>
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-          </div>
-
+      <section className="container mx-auto px-4 max-w-4xl space-y-6">
+        <h2 className="text-2xl font-bold text-slate-900">
+          How SARS Calculates Capital Gains Tax (Eighth Schedule)
+        </h2>
+        <Separator className="w-12 border-b-2 border-primary/20" />
+        <p className="text-slate-600 text-sm leading-relaxed">
+          Under the Eighth Schedule to the South African Income Tax Act 58 of 1962, Capital Gains Tax (CGT) is not a separate tax but forms part of income tax. Your capital gain is calculated as Proceeds minus Base Cost. Natural persons qualify for an annual exclusion (R40,000) and a R2 million primary residence exclusion, with 40% of the net capital gain included in taxable income and taxed at your marginal rate (effective maximum 18%). Companies and trusts have an 80% inclusion rate, resulting in an effective CGT rate of 21.6% for companies (80% × 27%) and 36% for trusts (80% × 45%).
+        </p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/calculators">
+              All Calculators <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/individual-tax-returns">Individual Tax Returns (ITR12)</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/tax-planning">Strategic Tax Planning</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/blog/cgt-annual-exclusion-increase-2026">CGT Annual Exclusion Guide</Link>
+          </Button>
         </div>
-        <CalculatorDisclaimer note="This tool assumes the top marginal rate unless you change it, and does not apply the primary residence exclusion, roll-over relief, or exclusions on death. Actual CGT is frequently lower." />
       </section>
     </div>
   );

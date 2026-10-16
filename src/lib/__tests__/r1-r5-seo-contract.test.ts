@@ -258,7 +258,7 @@ describe('R1-R5 SEO & Platform Overhaul Contract Test Suite', () => {
       const TARGET_TITLE_PAGES = [
         { path: 'src/app/sars-turnover-tax-registration/page.tsx', name: 'Turnover Tax Registration' },
         { path: 'src/app/ai-accountant/page.tsx', name: 'AI Accountant' },
-        { path: 'src/app/blog/new-vat-registration-thresholds-south-africa-2026/page.tsx', name: 'New VAT Thresholds Blog' },
+        { path: 'src/app/blog/vat-registration-threshold-sme-2026/page.tsx', name: 'New VAT Thresholds Blog' },
         { path: 'src/app/sars-tax-representative-appointment/page.tsx', name: 'SARS Tax Representative Appointment' },
         { path: 'src/app/outsourcing-vs-hiring/page.tsx', name: 'Outsourcing vs Hiring' },
         { path: 'src/app/tax-glossary/page.tsx', name: 'Tax Glossary' },

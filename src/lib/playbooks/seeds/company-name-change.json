@@ -15,12 +15,65 @@
     "Proposed name includes special characters or a word like 'Bank', 'Holdings' requiring consent"
   ],
   "informationToProvide": [
-    { "label": "Current company registration number and name", "type": "text", "isRequired": true },
-    { "label": "Company registration document (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 or MOI showing the current name, registration number and active directors." },
-    { "label": "At least 3-4 proposed new company names in order of preference", "type": "text", "isRequired": true, "helpText": "No special characters (!@#% etc). Do not include '(Pty) Ltd' — CIPC adds the suffix.", "aiHint": "Up to four names in preference order. Reject names with special characters or words that need consent (e.g. 'Bank', 'Insurance', 'University')." },
-    { "label": "Certified ID copies of all active directors", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID or passport per active director on the CoR14.3, Commissioner of Oaths / SAPS stamp dated within 3 months." },
-    { "label": "Proof of address for the company's registered office", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": false, "aiHint": "Utility bill, lease or statement for the registered office dated within 3 months. Only needed if CIPC asks for supporting documents on the amendment." },
-    { "label": "Resolution from directors/shareholders approving the name change", "type": "pdf", "documentKind": "resolution", "inNameOf": "entity", "isRequired": false, "alternatives": ["The agent drafts a special resolution for signature"], "aiHint": "Signed special resolution of shareholders approving the change of name and amendment of the MOI. If not supplied, the agent drafts it (template special_resolution)." }
+    {
+      "label": "Current company registration number and name",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_vyyw6wg8"
+    },
+    {
+      "label": "Company registration document (COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3 or MOI showing the current name, registration number and active directors.",
+      "id": "req_4p16q2ps"
+    },
+    {
+      "label": "At least 3-4 proposed new company names in order of preference",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "No special characters (!@#% etc). Do not include '(Pty) Ltd' — CIPC adds the suffix.",
+      "aiHint": "Up to four names in preference order. Reject names with special characters or words that need consent (e.g. 'Bank', 'Insurance', 'University').",
+      "id": "req_vhtrrqf0"
+    },
+    {
+      "label": "Certified ID copies of all active directors",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_89lvdhqz"
+    },
+    {
+      "label": "Proof of address for the company's registered office",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": false,
+      "aiHint": "Utility bill, lease or statement for the registered office dated within 3 months. Only needed if CIPC asks for supporting documents on the amendment.",
+      "id": "req_0kkm8wyi"
+    },
+    {
+      "label": "Resolution from directors/shareholders approving the name change",
+      "type": "pdf",
+      "documentKind": "resolution",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "alternatives": [
+        "The agent drafts a special resolution for signature"
+      ],
+      "aiHint": "Signed special resolution of shareholders approving the change of name and amendment of the MOI. If not supplied, the agent drafts it (template special_resolution).",
+      "id": "req_ftu80fan"
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -58,7 +111,10 @@
       "title": "Wait for name reservation outcome",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [5, 10],
+      "followUpAfterDays": [
+        5,
+        10
+      ],
       "estimatedDays": 5,
       "doneCriteria": "CoR9.4 approved-name confirmation received, or all names rejected",
       "aiInstructions": "If all four names are rejected, draft a client message with the CIPC reasons and ask for four new names; loop back to nm_reserve."
@@ -68,7 +124,10 @@
       "title": "Draft special resolution and CoR15.2 handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["special_resolution", "handoff_sheet"],
+      "templateIds": [
+        "special_resolution",
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Special resolution with the exact approved name and handoff sheet with CoR15.2 fields drafted",
       "aiInstructions": "Use the name exactly as approved on the CoR9.4 including capitalisation. The resolution amends the MOI to substitute the new name under s16(1)(c) of the Companies Act and records the % of voting rights in favour (must be at least 75%). Handoff sheet: registration number, old name, new name, CoR9.4 reference and expiry, date of resolution, signatories."
@@ -99,7 +158,10 @@
       "title": "Wait for CIPC to process the name change",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [10, 15],
+      "followUpAfterDays": [
+        10,
+        15
+      ],
       "estimatedDays": 10,
       "doneCriteria": "CoR15.2 confirmation received and the new name shows on the register",
       "aiInstructions": "Check the tracking status before emailing. If CIPC rejects for a resolution defect, quote the reason to Kevin and re-draft."
@@ -109,7 +171,11 @@
       "title": "Deliver new CoR14.3 and confirmations",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor14_3", "cor15_2_confirmation", "cor9_4"],
+      "deliverArtefacts": [
+        "cor14_3",
+        "cor15_2_confirmation",
+        "cor9_4"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "New CoR14.3, CoR15.2 confirmation and signed resolution posted to Communication History",
       "aiInstructions": "Remind the client to update the name with SARS, the bank, CSD/CIDB, letterheads and invoices. The registration number does not change."

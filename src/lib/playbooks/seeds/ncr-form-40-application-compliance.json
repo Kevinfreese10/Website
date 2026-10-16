@@ -14,13 +14,75 @@
     "Portal credentials unknown or registered contact person has left the company"
   ],
   "informationToProvide": [
-    { "label": "Certified copy of the latest annual financial statements", "documentKind": "afs", "inNameOf": "entity", "mustBeCertified": false, "isRequired": true, "aiHint": "Signed AFS for the financial year being reported, with the auditor's / independent reviewer's report. The financial section of Form 40 is completed from these; an unsigned draft is not acceptable." },
-    { "label": "Detailed loan book report (outstanding balances, credit granted, etc.)", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Loan management system export", "Debtors age analysis with new-agreement listing"], "isRequired": true, "aiHint": "Loan book for the financial year: credit granted in the year by credit type, outstanding balances and arrears at year-end, write-offs, interest and fee income, number of active consumers. Must reconcile to receivables and revenue in the AFS." },
-    { "label": "Proof of payment for NCR annual fees (if applicable)", "documentKind": "receipt", "inNameOf": "entity", "isRequired": false, "aiHint": "Proof of payment of the NCR annual registration fee for the current year, or the NCR's fee invoice. The NCR will not accept the annual return if the registration is in arrears — flag if missing." },
-    { "label": "Previous year's NCR Form 40 submission (if available)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Last year's Form 40 as submitted. Used for continuity of opening balances and to follow the same classification conventions." },
-    { "label": "Your registered National Credit Regulator (NCR) registration number", "type": "text", "isRequired": true, "aiHint": "The NCRCP number from the NCR certificate. Confirm against the certificate." },
-    { "label": "NCR online portal username", "type": "text", "isSecret": true, "isRequired": false },
-    { "label": "NCR online portal password", "type": "text", "isSecret": true, "isRequired": false }
+    {
+      "label": "Certified copy of the latest annual financial statements",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "mustBeCertified": false,
+      "isRequired": true,
+      "aiHint": "Signed AFS for the financial year being reported, with the auditor's / independent reviewer's report. The financial section of Form 40 is completed from these; an unsigned draft is not acceptable.",
+      "id": "req_bk2ijzcb",
+      "type": "pdf"
+    },
+    {
+      "label": "Detailed loan book report (outstanding balances, credit granted, etc.)",
+      "type": "excel",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Loan management system export",
+        "Debtors age analysis with new-agreement listing"
+      ],
+      "isRequired": true,
+      "aiHint": "Loan book for the financial year: credit granted in the year by credit type, outstanding balances and arrears at year-end, write-offs, interest and fee income, number of active consumers. Must reconcile to receivables and revenue in the AFS.",
+      "id": "req_tqc4cg14"
+    },
+    {
+      "label": "Proof of payment for NCR annual fees (if applicable)",
+      "documentKind": "receipt",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Proof of payment of the NCR annual registration fee for the current year, or the NCR's fee invoice. The NCR will not accept the annual return if the registration is in arrears — flag if missing.",
+      "id": "req_32pv5mrs",
+      "type": "pdf"
+    },
+    {
+      "label": "Previous year's NCR Form 40 submission (if available)",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Last year's Form 40 as submitted. Used for continuity of opening balances and to follow the same classification conventions.",
+      "id": "req_ff0heuo2",
+      "type": "pdf"
+    },
+    {
+      "label": "Your registered National Credit Regulator (NCR) registration number",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The NCRCP number from the NCR certificate. Confirm against the certificate.",
+      "id": "req_ffblchq5"
+    },
+    {
+      "label": "NCR online portal username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": false,
+      "id": "req_ac7pqevo"
+    },
+    {
+      "label": "NCR online portal password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": false,
+      "id": "req_4abkf64g"
+    },
+    {
+      "id": "req_f40_compliance_questionnaire",
+      "label": "Form 40 Operational & Compliance Questionnaire — Financial Year-End, Active Branches & Staff Count, Consumer Complaints Received/Resolved, Debt Counselling Matters & Credit Life Insurance",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Financial Year-End date, (2) Number of active branches & employees, (3) Number of consumer complaints received and resolved during the year, (4) Number of accounts under debt review / debt counselling, and (5) Whether mandatory or optional credit life insurance is offered."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -55,7 +117,9 @@
       "title": "Prepare Form 40 hand-off sheet and working paper",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every Form 40 field in portal order and the reconciliation posted for Kevin",
       "aiInstructions": "List each Form 40 field with value and source (AFS note / loan book column / questionnaire). Include judgement items and anything left blank. Never invent a compliance answer (e.g. number of complaints) — leave blank and flag."
@@ -77,7 +141,10 @@
       "title": "Wait for NCR acknowledgement or query",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [3, 7],
+      "followUpAfterDays": [
+        3,
+        7
+      ],
       "estimatedDays": 5,
       "doneCriteria": "NCR acknowledgement received, or query answered",
       "aiInstructions": "If the NCR queries a figure, create a proposal for Kevin quoting the query and the working-paper line. Draft a status query if nothing arrives by the follow-up point."
@@ -87,7 +154,10 @@
       "title": "Deliver Form 40 and confirmation to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["ncr_form_40", "ncr_submission_confirmation"],
+      "deliverArtefacts": [
+        "ncr_form_40",
+        "ncr_submission_confirmation"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Submitted Form 40, confirmation and working paper posted to Communication History",
       "aiInstructions": "Post the return, confirmation and reconciliation. Note next year's due date (6 months after year-end, ⚠ verify), the Form 39 statistical returns and the annual fee; offer the Form 39 service."

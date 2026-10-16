@@ -14,13 +14,74 @@
     "NCR portal credentials unknown or the registered contact person has left the company"
   ],
   "informationToProvide": [
-    { "label": "Latest audited or independently reviewed annual financial statements", "documentKind": "afs", "inNameOf": "entity", "isRequired": true, "aiHint": "Signed AFS for the most recent financial year of the credit provider, with the accountant's / auditor's report. Used to reconcile total credit granted, receivables and impairments to the loan book." },
-    { "label": "Your registered National Credit Regulator (NCR) registration number", "type": "text", "isRequired": true, "aiHint": "The NCRCP number from the NCR certificate (format NCRCP followed by digits). Confirm it against the certificate and the NCR's public register." },
-    { "label": "Details of credit granted and associated financials for the reporting period", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Loan management system export", "Debtors age analysis with new-agreement listing"], "isRequired": true, "aiHint": "Loan book export for the reporting period: every credit agreement with date, credit type (short-term, unsecured, developmental, mortgage, etc.), principal, term, interest rate and fees, plus outstanding balances and arrears at period end. Form 39 needs counts and rand values by agreement size band and term band, so a transaction-level list is essential." },
-    { "label": "Previous year's NCR Form 39 submission (if applicable)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "The last Form 39 as submitted (PDF or portal printout). Used for continuity checks on opening balances and to copy the reporting conventions the client used before." },
-    { "label": "Signed Letter of Engagement or Power of Attorney (if required for submission)", "documentKind": "power_of_attorney", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed engagement letter or Special POA authorising My Accountant to prepare and submit the return. If absent, the agent drafts the POA (template: power_of_attorney) for signature." },
-    { "label": "NCR online portal username", "type": "text", "isSecret": true, "isRequired": false },
-    { "label": "NCR online portal password", "type": "text", "isSecret": true, "isRequired": false }
+    {
+      "label": "Latest audited or independently reviewed annual financial statements",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Signed AFS for the most recent financial year of the credit provider, with the accountant's / auditor's report. Used to reconcile total credit granted, receivables and impairments to the loan book.",
+      "id": "req_41uzogkx",
+      "type": "pdf"
+    },
+    {
+      "label": "Your registered National Credit Regulator (NCR) registration number",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The NCRCP number from the NCR certificate (format NCRCP followed by digits). Confirm it against the certificate and the NCR's public register.",
+      "id": "req_j5mfsaur"
+    },
+    {
+      "label": "Details of credit granted and associated financials for the reporting period",
+      "type": "excel",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Loan management system export",
+        "Debtors age analysis with new-agreement listing"
+      ],
+      "isRequired": true,
+      "aiHint": "Loan book export for the reporting period: every credit agreement with date, credit type (short-term, unsecured, developmental, mortgage, etc.), principal, term, interest rate and fees, plus outstanding balances and arrears at period end. Form 39 needs counts and rand values by agreement size band and term band, so a transaction-level list is essential.",
+      "id": "req_bn29wt74"
+    },
+    {
+      "label": "Previous year's NCR Form 39 submission (if applicable)",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "The last Form 39 as submitted (PDF or portal printout). Used for continuity checks on opening balances and to copy the reporting conventions the client used before.",
+      "id": "req_ej44edrc",
+      "type": "pdf"
+    },
+    {
+      "label": "Signed Letter of Engagement or Power of Attorney (if required for submission)",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Signed engagement letter or Special POA authorising My Accountant to prepare and submit the return. If absent, the agent drafts the POA (template: power_of_attorney) for signature.",
+      "id": "req_f79z8nrn",
+      "type": "pdf"
+    },
+    {
+      "label": "NCR online portal username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": false,
+      "id": "req_17q7bkge"
+    },
+    {
+      "label": "NCR online portal password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": false,
+      "id": "req_ikskkixm"
+    },
+    {
+      "id": "req_f39_reporting_period",
+      "label": "Reporting Period Covered (Quarter / Half-Year / Financial Year Dates) & Registered Contact Person Details",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the exact reporting period (e.g., Q1–Q4 or 6-month statistical period ending 30 June / 31 December) and the name, email, and telephone number of your NCR compliance officer."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -55,7 +116,10 @@
       "title": "Prepare Form 39 hand-off sheet and working paper for Kevin",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "power_of_attorney"],
+      "templateIds": [
+        "handoff_sheet",
+        "power_of_attorney"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every Form 39 field value, the reconciliation, and POA (if needed) posted for Kevin",
       "aiInstructions": "Lay out every Form 39 field in portal order with the value and its source table. Include the reconciliation and a list of judgement calls (e.g. how restructured agreements were classified). Draft the POA only if the client has not supplied an engagement letter / POA."
@@ -77,7 +141,10 @@
       "title": "Wait for NCR acknowledgement or query",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [3, 7],
+      "followUpAfterDays": [
+        3,
+        7
+      ],
       "estimatedDays": 5,
       "doneCriteria": "NCR acknowledgement received, or a query answered",
       "aiInstructions": "If the NCR queries a figure, create a proposal for Kevin quoting the query and the working-paper line it concerns. Draft a status query if no acknowledgement arrives by the follow-up point."
@@ -87,7 +154,10 @@
       "title": "Deliver Form 39 and submission confirmation to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["ncr_form_39", "ncr_submission_confirmation"],
+      "deliverArtefacts": [
+        "ncr_form_39",
+        "ncr_submission_confirmation"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Submitted Form 39, confirmation and working paper posted to Communication History",
       "aiInstructions": "Post the submitted return, the confirmation and the reconciliation working paper. Note the next Form 39 due date and the Form 40 / annual fee obligations; offer the Form 40 service."

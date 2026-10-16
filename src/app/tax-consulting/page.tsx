@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Scale, ArrowRight, BookOpen, UserCheck, Building2, MessageSquare } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Expert Tax Consulting & Advisory Services | My Accountant',
-        description: 'Professional tax consulting services in South Africa. Strategic tax advice for businesses and individuals from qualified tax practitioners. Book a consultation today.',
+        title: 'Tax Consulting & Advisory Services South Africa',
+        description: 'Professional tax consulting services in South Africa. Strategic tax advice for businesses and individuals from SAIT & SARS registered tax practitioners.',
     };
     return getStaticPageMetadata('tax-consulting', defaults);
 }
@@ -23,7 +24,7 @@ export default function TaxConsultingPage() {
       title: "Comprehensive Tax Services",
       description: "From individual income tax to corporate tax structuring, our qualified tax practitioners cover every aspect of South African taxation. We stay current with SARS legislation so you can focus on growing your business.",
       icon: BookOpen,
-      link: "/tax-services-south-africa",
+      link: "/tax-returns",
     },
     {
       title: "Complex Individual Tax Returns",
@@ -60,8 +61,26 @@ export default function TaxConsultingPage() {
     },
   ];
 
+  const taxConsultingSchema = generateServicePillarSchema({
+    title: 'Tax Consulting & Advisory Services South Africa',
+    description: 'Professional tax consulting services in South Africa. Strategic tax advice for businesses and individuals from SAIT & SARS registered tax practitioners.',
+    slug: '/tax-consulting',
+    serviceType: 'TaxConsultingService',
+    priceRange: 'From R950',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Tax Services', url: '/tax-returns' },
+      { name: 'Tax Consulting', url: '/tax-consulting' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(taxConsultingSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

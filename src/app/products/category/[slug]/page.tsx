@@ -85,7 +85,27 @@ async function getCategoryServices(categoryName: string): Promise<Service[]> {
   const lowerName = categoryName.toLowerCase().trim();
 
   const services = snap.docs
-    .map((doc) => ({ id: doc.id, ...serializeDbData(doc.data()) }) as Service)
+    .map((doc) => {
+      const d = serializeDbData(doc.data());
+      const rawDesc = String(d.description || d.metaDescription || '');
+      const description = rawDesc.length > 220 ? `${rawDesc.slice(0, 217).trimEnd()}...` : rawDesc;
+      return {
+        id: doc.id,
+        slug: d.slug,
+        title: d.title,
+        price: d.price,
+        pricingType: d.pricingType,
+        isPriceTbc: Boolean(d.isPriceTbc || d.pricingType === 'tbc'),
+        category: d.category,
+        description,
+        turnaroundTime: d.turnaroundTime,
+        popular: Boolean(d.popular || d.isFeatured),
+        isFeatured: Boolean(d.isFeatured || d.popular),
+        isActive: d.isActive ?? true,
+        order: d.order ?? 0,
+        whatsIncluded: Array.isArray(d.whatsIncluded) ? d.whatsIncluded.slice(0, 3) : [],
+      } as unknown as Service;
+    })
     .filter((s) => {
       const cat = (s.category || '').toLowerCase().trim();
       return cat === lowerName || cat.includes(lowerName) || lowerName.includes(cat);

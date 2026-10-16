@@ -13,11 +13,50 @@
     "Company has more outstanding years than the client knew about, and the total is higher than quoted"
   ],
   "informationToProvide": [
-    { "label": "Company registration number", "type": "text", "isRequired": true, "helpText": "CIPC registration number, e.g. 2015/123456/07." },
-    { "label": "Latest CIPC annual return filing details (if available)", "type": "text", "isRequired": false, "helpText": "Last year filed and the date, if you know it." },
-    { "label": "Details of current company directors and their ID numbers", "type": "text", "isRequired": true },
-    { "label": "Turnover amount for each year to be paid", "type": "text", "isRequired": true, "helpText": "Turnover for each financial year whose annual return fee must be paid. R0 if the company did not trade.", "aiHint": "One Rand figure per outstanding year. Used only to select the CIPC fee band." },
-    { "label": "Signed Letter of Engagement/Power of Attorney", "type": "pdf", "documentKind": "power_of_attorney", "inNameOf": "entity", "isRequired": true, "aiHint": "Signed engagement letter or Power of Attorney authorising My Accountant to file and pay CIPC fees on the company's behalf. Verify a director's signature and date. If none exists the agent drafts one (template engagement_letter)." }
+    {
+      "label": "Company registration number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "CIPC registration number, e.g. 2015/123456/07.",
+      "id": "req_cxi5n4eo"
+    },
+    {
+      "label": "Latest CIPC annual return filing details (if available)",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Last year filed and the date, if you know it.",
+      "id": "req_4oizjejs"
+    },
+    {
+      "label": "Details of current company directors and their ID numbers",
+      "type": "text",
+      "isRequired": true,
+      "id": "req_044nj4ts"
+    },
+    {
+      "label": "Turnover amount for each year to be paid",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Turnover for each financial year whose annual return fee must be paid. R0 if the company did not trade.",
+      "aiHint": "One Rand figure per outstanding year. Used only to select the CIPC fee band.",
+      "id": "req_khob0ntb"
+    },
+    {
+      "label": "Signed Letter of Engagement/Power of Attorney",
+      "type": "pdf",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Signed engagement letter or Power of Attorney authorising My Accountant to file and pay CIPC fees on the company's behalf. Verify a director's signature and date. If none exists the agent drafts one (template engagement_letter).",
+      "id": "req_w9y1xv51"
+    },
+    {
+      "id": "req_caf_fye_and_officer",
+      "label": "Financial Year-End Month & Designated Director Name, Email and Cellphone (for CIPC FAS)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the company financial year-end month and the contact details of the director responsible for financial records (required for the CIPC Financial Accountability Supplement)."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -55,7 +94,10 @@
       "title": "Deliver receipt and compliance confirmation",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cipc_fee_receipt", "annual_return_certificate"],
+      "deliverArtefacts": [
+        "cipc_fee_receipt",
+        "annual_return_certificate"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Receipt, fee table and current CIPC status posted to Communication History",
       "aiInstructions": "State the next annual return anniversary date. Note the disbursement amount for invoicing."

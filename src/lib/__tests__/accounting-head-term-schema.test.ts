@@ -4,8 +4,11 @@ import path from 'path';
 import {
   generateAccountingHeadTermSchema,
   generateOrganizationSchema,
+  generateWebSiteSchema,
+  generateStructuredData,
 } from '@/lib/schema/productSchema';
-import { SITE_URL } from '@/lib/constants';
+import { SITE_URL, LOGO_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
+import { Service } from '@/lib/types';
 
 const ROOT_DIR = path.resolve(__dirname, '../../..');
 
@@ -108,54 +111,28 @@ describe('Accounting Head Term Schema & Metadata Suite (/accounting-services-sou
   });
 
   // =========================================================================
-  // 2. AggregateRating & Corroborated Review Specifications
+  // 2. Google Search Essentials Self-Serving Review Prohibition
   // =========================================================================
-  describe('2. AggregateRating & Corroborated Review Specifications', () => {
-    it('2.1: Emits 4.9 rating with integer review count (204) matching on-page evidence', () => {
+  describe('2. Google Search Essentials Self-Serving Review Prohibition', () => {
+    it('2.1: Does NOT emit self-serving aggregateRating on AccountingService / LocalBusiness node', () => {
       const schema: any = generateAccountingHeadTermSchema();
       const serviceEntity: any = schema['@graph'].find(
         (node: any) => node['@id'] === `${PAGE_URL}#service`
       );
 
       expect(serviceEntity).toBeDefined();
-      expect(serviceEntity.aggregateRating).toBeDefined();
-      expect(serviceEntity.aggregateRating['@type']).toBe('AggregateRating');
-      expect(serviceEntity.aggregateRating.ratingValue).toBe('4.9');
-      expect(serviceEntity.aggregateRating.reviewCount).toBe('204');
-      expect(serviceEntity.aggregateRating.bestRating).toBe('5');
-      expect(serviceEntity.aggregateRating.worstRating).toBe('1');
-
-      // Review count must strictly be numeric integer without '+' symbol
-      expect(serviceEntity.aggregateRating.reviewCount).not.toContain('+');
-      expect(/^\d+$/.test(serviceEntity.aggregateRating.reviewCount)).toBe(true);
+      expect(serviceEntity.aggregateRating).toBeUndefined();
+      expect(JSON.stringify(serviceEntity)).not.toContain('aggregateRating');
     });
 
-    it('2.2: Includes sample 5-star review from Verified Client via Google Reviews', () => {
+    it('2.2: Does NOT emit fabricated self-serving review on AccountingService / LocalBusiness node', () => {
       const schema: any = generateAccountingHeadTermSchema();
       const serviceEntity: any = schema['@graph'].find(
         (node: any) => node['@id'] === `${PAGE_URL}#service`
       );
 
       expect(serviceEntity).toBeDefined();
-      expect(Array.isArray(serviceEntity.review)).toBe(true);
-      expect(serviceEntity.review.length).toBeGreaterThanOrEqual(1);
-
-      const review = serviceEntity.review[0];
-      expect(review['@type']).toBe('Review');
-      expect(review.reviewRating).toEqual({
-        '@type': 'Rating',
-        ratingValue: '5',
-        bestRating: '5',
-      });
-      expect(review.author).toEqual({
-        '@type': 'Person',
-        name: 'Verified Client',
-      });
-      expect(review.publisher).toEqual({
-        '@type': 'Organization',
-        name: 'Google Reviews',
-      });
-      expect(review.reviewBody).toBeTruthy();
+      expect(serviceEntity.review).toBeUndefined();
     });
   });
 
@@ -224,12 +201,60 @@ describe('Accounting Head Term Schema & Metadata Suite (/accounting-services-sou
   // 4. Google Search Essentials Compliance & Global Org Isolation
   // =========================================================================
   describe('4. Google Search Essentials Compliance & Global Org Isolation', () => {
-    it('4.1: Confirms generateOrganizationSchema() remains strictly free of aggregateRating', () => {
+    it('4.1: Confirms generateOrganizationSchema() remains strictly free of aggregateRating and uses LOGO_URL + unified sameAs', () => {
       const orgSchema = generateOrganizationSchema() as any;
 
       // Global Organization schema must NOT have self-serving aggregate reviews
       expect(orgSchema.aggregateRating).toBeUndefined();
       expect(JSON.stringify(orgSchema)).not.toContain('aggregateRating');
+
+      expect(orgSchema.logo).toBe(LOGO_URL);
+      expect(orgSchema.image).toBe(LOGO_URL);
+      expect(orgSchema.sameAs).toContain('https://www.facebook.com/myaccountantsa');
+      expect(orgSchema.sameAs).toContain('https://www.facebook.com/myaccountantza');
+      expect(orgSchema.sameAs).toContain('https://www.linkedin.com/company/myaccountantza');
+      expect(orgSchema.sameAs).toContain('https://myciba.org');
+      expect(orgSchema.sameAs).toContain('https://www.thesait.org.za');
+    });
+
+    it('4.2: Confirms generateWebSiteSchema() omits retired SearchAction', () => {
+      const webSiteSchema = generateWebSiteSchema() as any;
+      expect(webSiteSchema.potentialAction).toBeUndefined();
+      expect(JSON.stringify(webSiteSchema)).not.toContain('SearchAction');
+    });
+
+    it('4.3: Confirms generateStructuredData() omits mpn, shippingDetails, synthetic TBC offers, and fabricated reviews', () => {
+      const tbcService = {
+        id: 'tbc-1',
+        slug: 'custom-advisory',
+        title: 'Custom Tax Advisory',
+        price: 0,
+        isPriceTbc: true,
+        category: 'SARS Services',
+        aggregateRatingValue: 4.9,
+        reviewCount: 120,
+      } as unknown as Service;
+
+      const tbcSchema = generateStructuredData(tbcService);
+      expect(tbcSchema.offers).toBeUndefined();
+      expect(tbcSchema.mpn).toBeUndefined();
+      expect(tbcSchema.aggregateRating).toBeUndefined();
+      expect(tbcSchema.review).toBeUndefined();
+      expect(tbcSchema.image).toEqual([GLOBAL_OG_IMAGE]);
+
+      const fixedService = {
+        id: 'fixed-1',
+        slug: 'vat-registration',
+        title: 'VAT Registration',
+        price: 2250,
+        category: 'SARS Registrations',
+      } as unknown as Service;
+
+      const fixedSchema = generateStructuredData(fixedService);
+      expect(fixedSchema.offers).toBeDefined();
+      expect(fixedSchema.offers.price).toBe(2250);
+      expect(fixedSchema.offers.shippingDetails).toBeUndefined();
+      expect(fixedSchema.mpn).toBeUndefined();
     });
   });
 

@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'My Accountant',
     description:
       'Professional accounting, tax and payroll services for South African businesses.',
-    start_url: '/dashboard',
+    start_url: '/',
     scope: '/',
     display: 'standalone',
     background_color: '#ffffff',

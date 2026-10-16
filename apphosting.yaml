@@ -12,10 +12,7 @@ runConfig:
 # Environment variables and secrets
 env:
   - variable: TELEGRAM_BOT_TOKEN
-    value: "8832420807:AAHyCKyDupESCemmorEsU1ibh53jaRJ5CVw"
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: TELEGRAM_BOT_TOKEN
   - variable: TELEGRAM_CHAT_ID
     value: "7774285240"
     availability:

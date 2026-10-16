@@ -8,8 +8,12 @@ export default function robots(): MetadataRoute.Robots {
     '/cart',
     '/checkout',
     '/admin',
-    '/partner/',     // Authenticated partner portal — not indexable
-    '/reseller/',    // Reseller portal — not indexable
+    '/partner/',           // Authenticated partner portal — not indexable
+    '/reseller/',          // Reseller portal — not indexable
+    '/payment-success',    // Transactional order completion routes
+    '/order-confirmation', // Transactional order confirmation routes
+    '/partner-invite',     // Private token invitation routes
+    '/templates/',         // Private server templates
   ];
 
   const aiBots = [

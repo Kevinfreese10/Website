@@ -7,8 +7,8 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Refund Policy | My Accountant',
-        description: 'Understand the terms and conditions for refunds on services purchased from My Accountant.',
+        title: 'Refund & Cancellation Policy | My Accountant South Africa',
+        description: 'Understand the official refund and cancellation policy for online accounting, SARS tax, CIPC secretarial, and compliance services purchased from My Accountant.',
     };
     return getStaticPageMetadata('refund-policy', defaults);
 }

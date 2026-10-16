@@ -77,12 +77,44 @@ const faqs = [
 export default function SarsVatVendorSearchVerificationPage() {
   const faqSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map((f) => ({
-      '@type': 'Question',
-      name: f.question,
-      acceptedAnswer: { '@type': 'Answer', text: f.answer },
-    })),
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'SARS Online Query Guides', item: `${SITE_URL}/sars-online-query-system-guide` },
+          { '@type': 'ListItem', position: 3, name: 'SARS VAT Vendor Search & Verification', item: `${SITE_URL}/sars-vat-vendor-search-verification` },
+        ],
+      },
+      {
+        '@type': 'HowTo',
+        name: 'How to Verify a SARS VAT Registration Number Online',
+        description: 'Step-by-step instructions to verify a South African supplier VAT number on SARS eFiling VAT Vendor Search.',
+        totalTime: 'PT5M',
+        step: diySteps.map((s, idx) => ({
+          '@type': 'HowToStep',
+          position: idx + 1,
+          name: s.title,
+          text: s.detail,
+        })),
+      },
+      {
+        '@type': 'Service',
+        name: 'SARS VAT201 Compliance & Section 20 Input Tax Verification Service',
+        description: 'Registered Tax Practitioner VAT201 preparation, supplier VAT verification, and SARS VAT refund audit representation.',
+        provider: { '@type': 'Organization', name: 'My Accountant', url: SITE_URL },
+        areaServed: { '@type': 'Country', name: 'South Africa' },
+        url: `${SITE_URL}/sars-vat-vendor-search-verification`,
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
+      },
+    ],
   };
 
   return (
@@ -252,6 +284,37 @@ export default function SarsVatVendorSearchVerificationPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Related Guides & Service Packages */}
+      <section className="container mx-auto px-4 max-w-4xl space-y-4 pt-4">
+        <h2 className="text-xl font-bold text-foreground">Related SARS Guides &amp; Fixed-Fee Packages</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <Link href="/products/vat201-vat-return-submission-filing" className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary font-semibold text-foreground flex items-center justify-between">
+            <span>File VAT201 Return (R650)</span>
+            <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          </Link>
+          <Link href="/products/vat-registration" className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary font-semibold text-foreground flex items-center justify-between">
+            <span>SARS VAT Registration Package</span>
+            <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+          </Link>
+          <Link href="/sars-tax-compliance-status-pin" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Request &amp; Verify SARS TCS PIN</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-supporting-documents-upload-guide" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Upload VAT Audit Supporting Docs</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/sars-statement-of-account-request" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>Request SARS VAT Statement (VASA)</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
+          <Link href="/calculators/vat-calculator" className="p-3.5 rounded-xl border border-border hover:border-primary/50 font-semibold text-foreground flex items-center justify-between">
+            <span>15% South African VAT Calculator</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </Link>
         </div>
       </section>
 

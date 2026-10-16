@@ -6,58 +6,61 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { getAdminDb } from '../../../../src/lib/firebase-admin';
 import { Order } from '../../../../src/lib/types';
+import { resolveOrderDoc } from '../../../../src/lib/agent/order-audit-pipeline';
 
-async function queryOrders(filter: { status?: string; service?: string; orderIds?: string[] }): Promise<Order[]> {
+async function queryOrders(filter: { status?: string; service?: string; orderIds?: string[]; limit: number }): Promise<Order[]> {
   const db = getAdminDb();
-  let query: any = db.collection('orders');
 
   if (filter.orderIds && filter.orderIds.length > 0) {
     const orders: Order[] = [];
     for (const id of filter.orderIds) {
-      const snap = await db.collection('orders').doc(id).get();
-      if (snap.exists) {
-        orders.push({ id: snap.id, ...snap.data() } as Order);
+      try {
+        // Accepts portal order numbers as well as Firestore doc IDs
+        const { doc, data } = await resolveOrderDoc(db, id);
+        orders.push({ id: doc.id, ...data } as Order);
+      } catch (_) {
+        console.warn(`Order ${id} not found.`);
       }
     }
     return orders;
   }
 
+  let query: any = db.collection('orders');
   if (filter.status) {
     query = query.where('status', '==', filter.status);
   }
 
-  const snapshot = await query.limit(20).get();
+  // Filter by service before limiting, otherwise matches beyond the first page are silently dropped
+  const snapshot = await query.get();
   let results = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Order));
 
   if (filter.service) {
     const sLow = filter.service.toLowerCase();
-    results = results.filter((o: Order) => 
-      o.items?.some(i => i.title.toLowerCase().includes(sLow))
+    results = results.filter((o: Order) =>
+      o.items?.some(i => (i.title || '').toLowerCase().includes(sLow))
     );
   }
 
-  return results;
+  return results.slice(0, filter.limit);
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  const statusIdx = args.indexOf('--status');
-  const status = statusIdx !== -1 ? args[statusIdx + 1] : undefined;
+  const argVal = (name: string) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : undefined; };
+  const status = argVal('--status');
+  const service = argVal('--service');
+  const ids = argVal('--ids')?.split(',').map(s => s.trim()).filter(Boolean);
+  const limit = parseInt(argVal('--limit') || '50', 10);
 
-  const serviceIdx = args.indexOf('--service');
-  const service = serviceIdx !== -1 ? args[serviceIdx + 1] : undefined;
-
-  const idsIdx = args.indexOf('--ids');
-  const ids = idsIdx !== -1 ? args[idsIdx + 1].split(',').map(s => s.trim()) : undefined;
-
-  console.log('Querying orders with criteria:', { status, service, ids });
-  const orders = await queryOrders({ status, service, orderIds: ids });
+  console.log('Querying orders with criteria:', { status, service, ids, limit });
+  const orders = await queryOrders({ status, service, orderIds: ids, limit });
 
   console.log(`Found ${orders.length} order(s):\n`);
   for (const o of orders) {
     const serviceTitle = o.items?.map(i => i.title).join(', ') || 'Unknown Service';
     const entity = (o as any).companyName || o.customerName;
-    console.log(`- Order #${o.id} | ${entity} | Status: ${o.status} | Service: ${serviceTitle}`);
+    const orderNo = (o as any).originalOrderId || o.id;
+    console.log(`- Order #${orderNo} | ${entity} | Status: ${o.status} | Updated: ${(o as any).updatedAt || 'n/a'} | Service: ${serviceTitle}`);
   }
 }
 

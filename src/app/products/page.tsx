@@ -25,11 +25,27 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ProductsPage() {
   // Fetch data server-side for bot discovery and SEO
   const servicesSnapshot = await getDocs(query(collection(db, "services"), orderBy("title")));
-  const rawServices = servicesSnapshot.docs.map(doc => ({
-    ...doc.data(),
-    id: doc.id,
-  }));
-  const services = toPlainObject(rawServices) as Service[];
+  const rawServices = servicesSnapshot.docs.map(doc => {
+    const d = doc.data();
+    const rawDesc = String(d.description || '');
+    const description = rawDesc.length > 220 ? `${rawDesc.slice(0, 217).trimEnd()}...` : rawDesc;
+    return {
+      id: doc.id,
+      slug: d.slug,
+      title: d.title,
+      price: d.price,
+      pricingType: d.pricingType,
+      isPriceTbc: Boolean(d.isPriceTbc || d.pricingType === 'tbc'),
+      category: d.category,
+      description,
+      turnaroundTime: d.turnaroundTime,
+      popular: Boolean(d.popular || d.isFeatured),
+      isFeatured: Boolean(d.isFeatured || d.popular),
+      isActive: d.isActive ?? true,
+      order: d.order ?? 0,
+    };
+  });
+  const services = toPlainObject(rawServices) as unknown as Service[];
 
   const categoriesSnapshot = await getDocs(query(collection(db, "categories"), orderBy("order")));
   const rawCategories = categoriesSnapshot.docs.map(doc => ({

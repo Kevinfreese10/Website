@@ -6,13 +6,14 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import TaxReturnWizard from '@/components/tax/TaxReturnWizard';
 import { FileText, Calculator, ShieldCheck, Target, ArrowRight, Building, Landmark } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Individual Income Tax Returns (ITR12) Services | My Accountant',
-        description: 'Professional, affordable, and accurate Individual Income Tax Return (ITR12) filing in South Africa. Let our registered tax practitioners maximize your refund and ensure full SARS compliance.',
+        title: 'Individual Tax Returns (ITR12) Filing South Africa',
+        description: 'Professional Individual Income Tax Return (ITR12) filing in South Africa. Registered SARS tax practitioners maximize your refund and ensure compliance.',
     };
     return getStaticPageMetadata('individual-tax-returns', defaults);
 }
@@ -41,8 +42,26 @@ export default function IndividualTaxReturnsPage() {
     },
   ];
 
+  const itr12Schema = generateServicePillarSchema({
+    title: 'Individual Income Tax Returns (ITR12) Services South Africa',
+    description: 'Professional Individual Income Tax Return (ITR12) filing in South Africa. Registered SARS tax practitioners maximize your refund and ensure compliance.',
+    slug: '/individual-tax-returns',
+    serviceType: 'TaxPreparationService',
+    priceRange: 'From R450',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Tax Services', url: '/tax-returns' },
+      { name: 'Individual Tax Returns (ITR12)', url: '/individual-tax-returns' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itr12Schema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Turnover Tax vs Company Tax in South Africa',
   description: 'A comprehensive guide to understanding the difference between Turnover Tax and standard Company Tax for small businesses in South Africa.',
+  alternates: {
+    canonical: `${SITE_URL}/blog/turnover-tax-vs-company-tax`,
+  },
   openGraph: {
     title: 'Turnover Tax vs Company Tax | My Accountant',
     description: 'Find out which tax system is best for your small business: Turnover Tax or standard Company Tax.',
@@ -11,8 +15,53 @@ export const metadata: Metadata = {
 };
 
 export default function TurnoverTaxVsCompanyTax() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${SITE_URL}/blog/turnover-tax-vs-company-tax#article`,
+        headline: 'Turnover Tax vs Company Tax: Which is Right for You?',
+        description:
+          'A comprehensive guide to understanding the difference between Turnover Tax and standard Company Tax for small businesses in South Africa.',
+        datePublished: '2026-01-30T08:00:00+02:00',
+        dateModified: '2026-03-01T08:00:00+02:00',
+        author: {
+          '@id': `${SITE_URL}/#kevin-freese`,
+          '@type': 'Person',
+          name: 'Kevin Freese',
+          url: `${SITE_URL}/about`,
+        },
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/blog/turnover-tax-vs-company-tax`,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'Turnover Tax vs Company Tax',
+            item: `${SITE_URL}/blog/turnover-tax-vs-company-tax`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <article className="prose prose-lg lg:prose-xl prose-blue mx-auto">
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-8">
           Turnover Tax vs Company Tax: Which is Right for You?

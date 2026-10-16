@@ -14,13 +14,90 @@
     "Registered office proof of address missing"
   ],
   "informationToProvide": [
-    { "label": "Certified copies of Identity Documents for all founding members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back or Green Book) or passport per founding member, Commissioner of Oaths / SAPS stamp dated within 3 months. Count the members — a primary co-operative needs at least five natural persons." },
-    { "label": "Proof of address for all founding members", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Bank statement showing the address", "Affidavit for informal addresses"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per founding member (utility bill, rates, lease or bank statement)." },
-    { "label": "Proposed name for the co-operative society (with alternatives)", "type": "text", "isRequired": true, "helpText": "Up to four names in order of preference; CIPC adds 'Primary Co-operative Limited'.", "aiHint": "Up to four names. No special characters." },
-    { "label": "Details of the co-operative's primary objectives and activities", "type": "text", "isRequired": true, "helpText": "What the co-op will do (e.g. agricultural, housing, worker, financial services, consumer) and its main objectives." },
-    { "label": "Physical address for the registered office of the co-operative", "type": "text", "isRequired": true },
-    { "label": "Proof of address for the registered office", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": false, "aiHint": "Utility bill, lease or letter from the property owner for the registered office address, dated within 3 months." },
-    { "label": "Names of the first board of directors and office bearers (chairperson, secretary, treasurer)", "type": "text", "isRequired": true }
+    {
+      "id": "req_1nvlpdr2",
+      "label": "Certified ID Copies for All Founding Members (Min. 5 Natural Persons for a Primary Co-op)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport + valid permit (foreign nationals only)"
+      ],
+      "isRequired": true,
+      "helpText": "Primary Co-operatives require at least 5 natural persons. SA citizens must provide certified SA ID copies (Smart ID front & back) dated within 3 months.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days. Count the members — a primary co-operative requires at least five (5) natural persons."
+    },
+    {
+      "id": "req_zn4nhrby",
+      "label": "Proof of Residential Address for All Founding Members (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "alternatives": [
+        "Signed lease agreement",
+        "Bank statement showing address",
+        "Traditional council / ward councillor proof of address"
+      ],
+      "isRequired": true,
+      "helpText": "Utility bill, municipal account, bank statement, lease, or official proof of address dated within 3 months for each founding member.",
+      "aiHint": "Proof of residential address dated within 3 months per founding member."
+    },
+    {
+      "id": "req_evj8bohs",
+      "label": "Proof of Physical Address for the Co-operative’s Registered Office (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "mustBeCertified": false,
+      "isRequired": true,
+      "helpText": "Utility bill, lease agreement, or property owner consent letter dated within 3 months for the Co-operative’s registered office.",
+      "aiHint": "Utility bill, lease or letter from the property owner for the registered office address, dated within 3 months."
+    },
+    {
+      "id": "req_c3izy5l0",
+      "label": "Four (4) Proposed Co-operative Names in Order of Preference",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Up to four names in order of preference (no special characters). CIPC appends 'Primary Co-operative Limited'.",
+      "aiHint": "Up to four proposed co-operative names without special characters."
+    },
+    {
+      "id": "req_72rdid6t",
+      "label": "Co-operative Type, Sector & Primary Objectives / Business Activities",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify type (Primary / Secondary), sector (e.g. Agricultural, Worker, Housing, Consumer, Arts & Crafts, Transport), and main objectives.",
+      "aiHint": "Co-operative type, sector, and detailed primary objectives and business activities."
+    },
+    {
+      "id": "req_rijffiv5",
+      "label": "Registered Office Physical & Postal Address, Email & Contact Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Full South African street address, postal address, official email, and telephone number for the Co-operative.",
+      "aiHint": "Physical street address, postal address, email, and phone number for the co-operative."
+    },
+    {
+      "id": "req_kqlpz4ut",
+      "label": "First Board of Directors & Office Bearers (Chairperson, Secretary, Treasurer) + Member Contact Details",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List the full names, ID numbers, email addresses, cellphone numbers, and residential addresses of all founding members, and specify who serves as Chairperson, Secretary, and Treasurer.",
+      "aiHint": "Full names, ID numbers, emails, cell numbers, and addresses for all founding members, plus designated Chairperson, Secretary, and Treasurer on the first board."
+    },
+    {
+      "id": "req_coop_gov_terms",
+      "label": "Financial Year-End, Entrance Fee & Membership Share Value",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify: (1) Financial Year-End month (default February), (2) Once-off Entrance/Joining Fee (if any, e.g. R100), and (3) Nominal Value & Minimum Number of Membership Shares per member (for the Constitution).",
+      "aiHint": "Financial year-end month, entrance fee amount, and membership share nominal value / minimum subscription for the co-operative constitution."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -55,7 +132,10 @@
       "title": "Draft founding documents handoff sheet and founding resolution",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "director_resolution"],
+      "templateIds": [
+        "handoff_sheet",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet with every CR form field (members, board, office bearers, office address, name, type, sector) and founding meeting resolution drafted",
       "aiInstructions": "⚠ verify the current CIPC co-operative forms (CR1 application, CR5 director/member particulars, CR8 name reservation and their e-Services equivalents). The founding meeting resolution records adoption of the constitution and election of the first board, signed by all founding members."
@@ -86,7 +166,10 @@
       "title": "Wait for CIPC registration",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [7, 10],
+      "followUpAfterDays": [
+        7,
+        10
+      ],
       "estimatedDays": 10,
       "doneCriteria": "Registration certificate issued or CIPC query received",
       "aiInstructions": "Check tracking status on e-Services before following up. Queries usually concern the constitution wording or member count — route to Kevin verbatim."
@@ -96,7 +179,10 @@
       "title": "Deliver registration certificate and constitution",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["coop_registration_certificate", "constitution"],
+      "deliverArtefacts": [
+        "coop_registration_certificate",
+        "constitution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Certificate, registered constitution and member register posted to Communication History",
       "aiInstructions": "Briefly explain ongoing duties: annual general meeting, annual financial statements / audit as the Act requires, annual return to CIPC, SARS income tax registration and possible exemption. Offer the bank account and SARS registration services."

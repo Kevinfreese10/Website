@@ -14,6 +14,7 @@ import {
   Blocks
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
@@ -21,7 +22,7 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
         title: 'Zoho Books Accountant South Africa | My Accountant',
-        description: 'Automate your bookkeeping with certified Zoho Books accountants in South Africa. Complete integration with Zoho CRM, inventory, and expense tracking.',
+        description: 'Automate your bookkeeping with certified Zoho Books accountants in South Africa. Complete integration with Zoho CRM, inventory, and SARS VAT compliance.',
     };
     return getStaticPageMetadata('zoho-accountant-south-africa', defaults);
 }
@@ -65,8 +66,26 @@ export default function ZohoAccountantSouthAfricaPage() {
     }
   ];
 
+  const zohoSchema = generateServicePillarSchema({
+    title: 'Zoho Books Accountant South Africa',
+    description: 'Automate your bookkeeping with certified Zoho Books accountants in South Africa. Complete integration with Zoho CRM, inventory, and SARS VAT compliance.',
+    slug: '/zoho-accountant-south-africa',
+    serviceType: 'AccountingService',
+    priceRange: 'From R1,850/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Accounting', url: '/monthly-accounting' },
+      { name: 'Zoho Books Accountant South Africa', url: '/zoho-accountant-south-africa' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(zohoSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         {/* Aurora background blobs */}

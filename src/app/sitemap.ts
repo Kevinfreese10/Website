@@ -1,15 +1,66 @@
+import fs from 'fs';
+import path from 'path';
 import { BlogPost, Service } from '@/lib/types';
 import { MetadataRoute } from 'next';
 import { getAdminDb, serializeDbData } from '@/lib/firebase-admin';
 import { CATEGORIES_LIST } from '@/lib/categories';
+import { industries } from '@/lib/industries';
 
 const BASE_URL = 'https://www.myacc.co.za';
+const FALLBACK_LAST_MODIFIED = new Date('2026-10-07T00:00:00.000Z');
+
+function getRouteLastModified(route: string): Date {
+  try {
+    const cleanRoute = route === '/' ? '' : route.replace(/^\//, '');
+    const candidates = [
+      path.join(process.cwd(), 'src', 'app', cleanRoute, 'page.tsx'),
+      route.startsWith('/industries/')
+        ? path.join(process.cwd(), 'src', 'lib', 'industries.ts')
+        : '',
+      route.startsWith('/products/category/')
+        ? path.join(process.cwd(), 'src', 'lib', 'categories.ts')
+        : '',
+      route.startsWith('/accountant-')
+        ? path.join(process.cwd(), 'src', 'lib', 'cities.ts')
+        : '',
+    ].filter(Boolean);
+
+    for (const filePath of candidates) {
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+        if (stat.mtime && !Number.isNaN(stat.mtime.getTime())) {
+          return stat.mtime;
+        }
+      }
+    }
+  } catch {
+    // Fallback to deterministic release date when filesystem stats are unavailable
+  }
+  return FALLBACK_LAST_MODIFIED;
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const industryRoutes = Object.keys(industries)
+    .filter((k) => k !== 'ecommerce' && k !== 'restaurants')
+    .map((slug) => `/industries/${slug}`);
 
-  const staticRoutes = [
+  const staticBlogRoutes = [
+    '/blog/sole-proprietor-vs-pty-ltd',
+    '/blog/two-pot-retirement-tax-rules-2026',
+    '/blog/accountant-vs-bookkeeper-guide',
+    '/blog/cc-vs-pty-ltd-conversion',
+    '/blog/cgt-annual-exclusion-increase-2026',
+    '/blog/crypto-asset-tax-reporting-sars-2026',
+    '/blog/turnover-tax-vs-company-tax',
+    '/blog/vat-registration-threshold-sme-2026',
+  ];
+
+  const staticRoutePaths = [
     '/',
+    '/about',
     '/blog',
+    '/calculators',
+    '/industries',
     '/compliance',
     '/contact',
     '/popia',
@@ -23,7 +74,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/sars-disputes',
     '/remission-of-fines',
     '/liquidations',
-    '/tax-consultant',
     '/bookkeeping-services-johannesburg',
     '/xero-accountant-south-africa',
     '/sage-accountant-south-africa',
@@ -41,8 +91,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/calculators/cidb-fee-and-grade',
     '/calculators/payroll-cost',
     '/sars-tax-refund',
-    '/industries/sme',
-    '/industries/construction',
     '/monthly-accounting',
     '/annual-financial-statements',
     '/management-accounts',
@@ -52,7 +100,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/payroll-administration',
     '/accounting-services-south-africa',
     '/tax-services-south-africa',
-    '/small-business-accounting-south-africa',
     '/accountant-johannesburg',
     '/accountant-pretoria',
     '/accountant-cape-town',
@@ -63,11 +110,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/tax-returns',
     '/individual-tax-returns',
     '/tax-planning',
-    '/tax-disputes',
     '/provisional-tax',
     '/payroll-services',
     '/bookkeeping',
-    '/financial-statements',
     '/financial-advisory',
     '/company-registration',
     '/company-secretarial-services-south-africa',
@@ -83,7 +128,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/sars-turnover-tax-registration',
     '/sars-tax-number-query',
     '/sars-tax-compliance-status-pin',
-    '/sars-verify-tax-compliance-status',
     '/sars-notice-of-registration-it150',
     '/sars-statement-of-account-request',
     '/sars-auto-assessment-status-check',
@@ -122,11 +166,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/calculators/uif-coida-calculator',
     '/calculators/bee-scorecard-estimator',
     '/calculators/turnover-tax-calculator',
-    // Industry Guides
-    '/industries/ecommerce-online-sellers',
-    '/industries/healthcare-medical-practices',
-    '/industries/hospitality',
-    '/industries/professional-services',
+    // Industry Guides (dynamic from @/lib/industries)
+    ...industryRoutes,
+    // Static Canonical Blog Posts
+    ...staticBlogRoutes,
     // Local SEO Pages
     '/accountant-sandton',
     '/accountant-fourways',
@@ -137,27 +180,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/accountant-east-london',
     '/accountant-nelspruit',
     '/accountant-stellenbosch',
-  ].map((route) => ({
+  ];
+
+  const staticRoutes: MetadataRoute.Sitemap = staticRoutePaths.map((route) => ({
     url: `${BASE_URL}${route}`,
-    lastModified: new Date(),
-    changeFrequency: (route === '/' || route === '/products' || route === '/blog' ? 'daily' : 'weekly') as any,
-    priority: route === '/' ? 1.0 : route.startsWith('/calculators') || route.startsWith('/accountant') ? 0.9 : 0.8,
+    lastModified: getRouteLastModified(route),
+    changeFrequency: (route === '/' || route === '/products' || route === '/blog' ? 'daily' : route.startsWith('/blog/') ? 'monthly' : 'weekly') as any,
+    priority:
+      route === '/'
+        ? 1.0
+        : route.startsWith('/calculators') || route.startsWith('/accountant')
+        ? 0.9
+        : route.startsWith('/blog/')
+        ? 0.75
+        : 0.8,
   }));
-  
+
   let serviceRoutes: MetadataRoute.Sitemap = [];
   try {
     const db = getAdminDb();
-    const servicesSnapshot = await db.collection("services").orderBy("title").get();
-    const services = servicesSnapshot.docs.map(doc => serializeDbData(doc.data()) as Service);
+    const servicesSnapshot = await db.collection('services').orderBy('title').get();
+    const services = servicesSnapshot.docs.map((doc) => serializeDbData(doc.data()) as Service);
     serviceRoutes = services.map((service: any) => {
-      let lastModifiedDate = undefined;
+      let lastModifiedDate: Date = FALLBACK_LAST_MODIFIED;
       const dateField = service.updatedAt || service.createdAt;
       if (dateField) {
-        lastModifiedDate = typeof dateField === 'object' && 'toDate' in dateField ? dateField.toDate() : new Date(dateField);
-      } else {
-        lastModifiedDate = new Date();
+        const parsed =
+          typeof dateField === 'object' && 'toDate' in dateField
+            ? dateField.toDate()
+            : new Date(dateField);
+        if (!Number.isNaN(parsed.getTime())) {
+          lastModifiedDate = parsed;
+        }
       }
-      // Normalize double-hyphens in slugs if any
       const cleanSlug = (service.slug || '').replace(/--+/g, '-');
       return {
         url: `${BASE_URL}/products/${cleanSlug}`,
@@ -167,15 +222,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     });
   } catch (error) {
-    console.error("Error fetching services for sitemap:", error);
+    console.error('Error fetching services for sitemap:', error);
   }
 
   let blogPostRoutes: MetadataRoute.Sitemap = [];
   try {
     const db = getAdminDb();
-    const blogPostsSnapshot = await db.collection("blogPosts").orderBy("date", "desc").get();
-    const blogPosts = blogPostsSnapshot.docs.map(doc => serializeDbData(doc.data()) as BlogPost);
-    
+    const blogPostsSnapshot = await db.collection('blogPosts').orderBy('date', 'desc').get();
+    const blogPosts = blogPostsSnapshot.docs.map((doc) => serializeDbData(doc.data()) as BlogPost);
+
     const retiredSlugs = new Set([
       // Legacy doorway pages
       'my-accoutant-sa-best-accountants-your-financial-partner',
@@ -201,45 +256,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       'remission-of-sars-interest--penalties-your-guide',
       'remission-of-sars-interest-penalties-your-guide',
       'ai--future-of-bookkeeping-a-south-african-view',
-      'ai-future-of-bookkeeping-a-south-african-view'
+      'ai-future-of-bookkeeping-a-south-african-view',
+      // Consolidated / redirected blog posts
+      'ncr-registration-your-essential-guide-in-south-africa',
+      'new-vat-registration-thresholds-south-africa-2026',
     ]);
 
     blogPostRoutes = blogPosts
       .filter((post) => {
-        const slug = post.slug || '';
-        return !retiredSlugs.has(slug) && !slug.includes('my-accoutant-sa-best-accountants');
+        const slug = (post.slug || '').replace(/--+/g, '-');
+        return (
+          !retiredSlugs.has(post.slug || '') &&
+          !retiredSlugs.has(slug) &&
+          !slug.includes('my-accoutant-sa-best-accountants')
+        );
       })
       .map((post) => {
-        let lastModifiedDate;
+        let lastModifiedDate: Date = FALLBACK_LAST_MODIFIED;
         if (post.date && typeof post.date === 'object' && 'toDate' in post.date) {
-            lastModifiedDate = (post.date as any).toDate();
+          lastModifiedDate = (post.date as any).toDate();
         } else if (typeof post.date === 'string') {
-            lastModifiedDate = new Date(post.date);
-        } else {
-            lastModifiedDate = new Date();
+          const parsed = new Date(post.date);
+          if (!Number.isNaN(parsed.getTime())) {
+            lastModifiedDate = parsed;
+          }
         }
-        
+
         const cleanSlug = (post.slug || '').replace(/--+/g, '-');
         return {
-            url: `${BASE_URL}/blog/${cleanSlug}`,
-            lastModified: lastModifiedDate,
-            changeFrequency: 'monthly' as any,
-            priority: 0.7,
-        }
+          url: `${BASE_URL}/blog/${cleanSlug}`,
+          lastModified: lastModifiedDate,
+          changeFrequency: 'monthly' as any,
+          priority: 0.7,
+        };
       });
   } catch (error) {
-    console.error("Error fetching blog posts for sitemap:", error);
+    console.error('Error fetching blog posts for sitemap:', error);
   }
 
+  const categoryLastMod = getRouteLastModified('/products/category/tax');
   const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES_LIST.map((cat) => ({
     url: `${BASE_URL}/products/category/${cat.slug}`,
-    lastModified: new Date(),
+    lastModified: categoryLastMod,
     changeFrequency: 'weekly' as any,
     priority: 0.85,
   }));
 
   // Combine all routes and deduplicate by URL
   const allRoutes = [...staticRoutes, ...categoryRoutes, ...serviceRoutes, ...blogPostRoutes];
-  const uniqueRoutes = Array.from(new Map(allRoutes.map(r => [r.url, r])).values());
+  const uniqueRoutes = Array.from(new Map(allRoutes.map((r) => [r.url, r])).values());
   return uniqueRoutes;
 }

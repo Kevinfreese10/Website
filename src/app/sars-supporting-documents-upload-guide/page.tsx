@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import { Upload, FileCheck, HelpCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { Upload, FileCheck, HelpCircle, ShieldCheck, CheckCircle2, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import PageHero from '@/components/shared/PageHero';
@@ -26,33 +27,80 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Open the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and choose 'Submit Supporting Documents'." },
-  { step: "Step 2", title: "Enter Case Number or Tax Reference", detail: "Input the specific SARS Case Number provided on your verification letter, or your 10-digit tax reference number." },
-  { step: "Step 3", title: "Select Document Category", detail: "Choose the document type: IRP5 certificate, medical tax certificate, logbook, bank statements, or invoices." },
-  { step: "Step 4", title: "Upload PDF / Image Files", detail: "Ensure files are unencrypted PDF/JPEG formats under 5MB per file." },
-  { step: "Step 5", title: "Submit and Obtain Upload Receipt", detail: "Confirm upload and save your unique SARS case reference number for tracking." },
+  { step: "Step 1", title: "Locate Your Exact SARS Case Number", detail: "Open your SARS Verification or Audit Notification letter to extract the specific Case Number (or open SARS eFiling → Returns → Returns History → Supporting Documents)." },
+  { step: "Step 2", title: "Access the SOQS Supporting Documents Portal", detail: "Navigate to tools.sars.gov.za/sarsonlinequery/suppdocs when uploading files in response to a case letter without logging into eFiling." },
+  { step: "Step 3", title: "Prepare Unencrypted, Indexed PDF Schedules", detail: "Consolidate related vouchers (e.g., Section 18A certificates, medical out-of-pocket receipts, SARS travel logbook, or VAT201 top-5 tax invoices) into clear PDFs under 5MB per file." },
+  { step: "Step 4", title: "Upload & Verify Every File Status", detail: "Attach each PDF and verify that its status changes to 'Uploaded' before clicking the final 'Submit to SARS' button. Leaving files in 'Saved' state does not close the verification request." },
+  { step: "Step 5", title: "Retain the Official Upload Acknowledgement", detail: "Download the SARS confirmation receipt showing the exact date and timestamp of submission—this proves compliance with the 21-business-day deadline under Section 46 of the Tax Administration Act." },
+];
+
+const rejectionCases = [
+  {
+    title: "Uploading Password-Protected Bank Statements or IRP5s",
+    detail: "SARS document scanners cannot open encrypted PDFs. Uploading a password-protected bank statement results in an automatic 'Invalid Document' rejection and an upward additional assessment."
+  },
+  {
+    title: "Submitting Accounting Ledgers Without Underlying Tax Invoices",
+    detail: "For VAT201 and ITR14 verifications, uploading a Xero or Sage general ledger dump without the corresponding Section 20 valid tax invoices (showing both supplier and recipient VAT numbers) leads to immediate input VAT disallowance."
+  },
+  {
+    title: "Clicking 'Upload' Without Clicking 'Submit to SARS'",
+    detail: "On both eFiling and SOQS, uploading files into the document group only stages them. If you do not click the final 'Submit to SARS' button, the audit timer expires after 21 business days as a non-response."
+  }
 ];
 
 const faqs = [
-  { question: "What file formats does SARS accept for document upload?", answer: "SARS accepts PDF, PNG, JPG, JPEG, DOC, and DOCX files. Files must not be password protected." },
-  { question: "What happens if I submit incomplete audit documents?", answer: "Submitting incomplete documents may result in SARS disallowing claimed deductions, issuing an additional assessment, or levying understatement penalties." },
-  { question: "Can My Accountant compile and upload audit packs for me?", answer: "Yes! Our tax team reviews and compiles complete audit evidence packs before uploading to ensure 100% acceptance by SARS audit officers." },
+  { question: "What file formats and size limits apply to SARS document uploads?", answer: "SARS accepts PDF, PNG, JPG, JPEG, DOC, and DOCX files up to 5MB per individual file and a maximum of 20 files per submission group. All files must be unencrypted." },
+  { question: "How many days do I have to upload supporting documents after a SARS verification letter?", answer: "You have 21 business days from the date of the SARS verification demand letter to upload all requested supporting documents, failing which SARS will issue a revised assessment disallowing your claims." },
+  { question: "What happens if my supporting documents link on eFiling has expired or closed?", answer: "If the 21-business-day window expires and SARS issues an Additional Assessment (ITA34/VAT217), you can no longer use the standard supporting documents link—you must lodge a formal Request for Correction (RFC) or Notice of Objection (NOO1)." },
+  { question: "What specific documents are required for a SARS VAT201 refund verification?", answer: "SARS typically requires the VAT201 computation schedule, the 5 largest tax invoices for Output Tax and Input Tax meeting Section 20 requirements, 3 months of bank statements, and a signed confirmation of business activity." },
+  { question: "Can My Accountant compile and upload SARS audit packs for me?", answer: "Yes. Our tax practitioners pre-audit every invoice, travel logbook, and reconciliation schedule for strict statutory compliance before uploading to ensure first-time acceptance by SARS auditors." },
 ];
 
 export default function SarsSupportingDocumentsUploadGuidePage() {
-  const faqSchema = {
+  const schema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map((f) => ({
-      '@type': 'Question',
-      name: f.question,
-      acceptedAnswer: { '@type': 'Answer', text: f.answer },
-    })),
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'SARS Online Query Guide', item: `${SITE_URL}/sars-online-query-system-guide` },
+          { '@type': 'ListItem', position: 3, name: 'Upload Supporting Documents via SOQS', item: `${SITE_URL}/sars-supporting-documents-upload-guide` },
+        ],
+      },
+      {
+        '@type': 'HowTo',
+        name: 'How to Upload Audit Supporting Documents to SARS via SOQS',
+        description: 'Step-by-step instructions to prepare and submit verification and audit files to SARS online.',
+        step: diySteps.map((s, i) => ({
+          '@type': 'HowToStep',
+          position: i + 1,
+          name: s.title,
+          text: s.detail,
+        })),
+      },
+      {
+        '@type': 'Service',
+        name: 'SARS Verification & Audit Pack Compilation',
+        provider: { '@type': 'Organization', name: 'My Accountant', url: SITE_URL },
+        areaServed: 'ZA',
+        serviceType: 'Tax Audit Representation',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
+      },
+    ],
   };
 
   return (
     <div className="space-y-12 pb-16 bg-background">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
 
       <PageHero
         badgeText="SARS Audit & Verification"
@@ -103,6 +151,41 @@ export default function SarsSupportingDocumentsUploadGuidePage() {
         </div>
       </section>
 
+      <section className="container mx-auto px-4 max-w-4xl space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                SARS Audit Review Turnaround Times
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-3">
+              <p><strong>Taxpayer Submission Window:</strong> 21 business days from the date of the SARS verification letter.</p>
+              <p><strong>SARS Verification Completion:</strong> 21 business days from the date all complete supporting documents are submitted.</p>
+              <p><strong>In-Depth Field/Desk Audit:</strong> Up to 90 business days (with mandatory progress reports every 90 days under Section 42).</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                Common Document Rejection Triggers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-3">
+              {rejectionCases.map((rc, idx) => (
+                <div key={idx}>
+                  <p className="font-semibold text-foreground">{rc.title}</p>
+                  <p>{rc.detail}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       <section className="container mx-auto px-4 max-w-4xl space-y-6 pt-6">
         <h2 className="text-2xl font-bold text-foreground text-center">Frequently Asked Questions</h2>
         <div className="grid grid-cols-1 gap-4">
@@ -119,6 +202,28 @@ export default function SarsSupportingDocumentsUploadGuidePage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 max-w-4xl space-y-4">
+        <h2 className="text-xl font-bold text-foreground">Related SARS Verification &amp; Dispute Guides</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <Link href="/sars-tax-return-status-dashboard" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Track SARS Return &amp; Verification Status</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
+          <Link href="/sars-tax-refund" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Unblock Delayed SARS Tax Refunds</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
+          <Link href="/products/sars-objection-and-appeal" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Lodge a Formal SARS Objection (NOO1)</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
+          <Link href="/sars-online-query-system-guide" className="p-3 rounded-lg border hover:border-primary flex items-center justify-between">
+            <span>Complete SARS SOQS Directory</span>
+            <ArrowRight className="h-4 w-4 text-primary" />
+          </Link>
         </div>
       </section>
 

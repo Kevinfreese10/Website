@@ -17,6 +17,7 @@ import Link from 'next/link';
 
 import { toPlainObject } from '@/lib/serialize-firestore';
 import { buildFallbackRedirectUrl } from '@/lib/slug-matcher';
+import { getCategorySlugByName } from '@/lib/categories';
 
 export const revalidate = 900;
 
@@ -126,7 +127,7 @@ export async function generateMetadata(
   if (SHORT_TITLE_EXPANSIONS[slug]) {
     baseTitle = SHORT_TITLE_EXPANSIONS[slug];
   } else if (baseTitle.length < 20) {
-    baseTitle = `${baseTitle} Compliance Service`;
+    baseTitle = `${baseTitle} South Africa | Fixed Fee`;
   }
 
   const fullTitle = `${baseTitle} | My Accountant`;
@@ -279,6 +280,8 @@ export default async function ProductDetailPage({ params }: Props) {
     }))
   };
 
+  const categorySlug = getCategorySlugByName(service.category || '');
+
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -299,7 +302,7 @@ export default async function ProductDetailPage({ params }: Props) {
         "@type": "ListItem",
         "position": 3,
         "name": service.category,
-        "item": `${SITE_URL}/products#${service.category.toLowerCase().replace(/ /g, '-')}`
+        "item": `${SITE_URL}/products/category/${categorySlug}`
       },
       {
         "@type": "ListItem",
@@ -354,7 +357,7 @@ export default async function ProductDetailPage({ params }: Props) {
           <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
           <li><Link href="/products" className="hover:text-primary transition-colors">Products</Link></li>
           <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
-          <li><Link href={`/products#${service.category.toLowerCase().replace(/ /g, '-')}`} className="hover:text-primary transition-colors">{service.category}</Link></li>
+          <li><Link href={`/products/category/${categorySlug}`} className="hover:text-primary transition-colors">{service.category}</Link></li>
           <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
           <li className="text-slate-700 font-bold truncate max-w-[180px]">{service.title}</li>
         </ol>

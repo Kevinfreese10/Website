@@ -39,10 +39,11 @@ const navGroups = [
     items: [
         { label: 'Monthly Accounting & CFO', href: '/monthly-accounting' },
         { label: 'Annual Financial Statements', href: '/annual-financial-statements' },
-        { label: 'Bookkeeping Services', href: '/bookkeeping-services' },
+        { label: 'Bookkeeping Services', href: '/bookkeeping' },
         { label: 'Fractional CFO Services', href: '/fractional-cfo-services-south-africa' },
         { label: 'SME Accounting', href: '/sme-accounting' },
         { label: 'Financial Advisory', href: '/financial-advisory' },
+        { label: 'Industries We Serve', href: '/industries' },
         { label: 'Xero Accountant', href: '/xero-accountant-south-africa' },
         { label: 'Sage Accountant', href: '/sage-accountant-south-africa' },
         { label: 'Zoho Accountant', href: '/zoho-accountant-south-africa' },
@@ -104,12 +105,14 @@ const navGroups = [
   },
   {
     label: 'Calculators',
-    href: '/calculators/salary-tax',
+    href: '/calculators',
     items: [
+        { label: 'All Calculators', href: '/calculators' },
         { label: 'Salary Tax Calculator', href: '/calculators/salary-tax' },
         { label: 'CIPC Annual Return Fee', href: '/calculators/cipc-annual-return-fee' },
         { label: 'SBC Tax Estimator', href: '/calculators/sbc-tax-estimator' },
         { label: 'Cost to Employer (TCOE)', href: '/calculators/total-cost-to-employer' },
+        { label: 'Payroll Cost Calculator', href: '/calculators/payroll-cost' },
         { label: 'NCR Registration Fee', href: '/calculators/ncr-registration-fee' },
         { label: 'CIDB Fee & Grade', href: '/calculators/cidb-fee-and-grade' },
         { label: 'VAT Calculator', href: '/calculators/vat-calculator' },
@@ -122,9 +125,9 @@ const navGroups = [
   },
   {
     label: 'Company',
-    href: '/#about',
+    href: '/about',
     items: [
-      { label: 'About Us', href: '/#about' },
+      { label: 'About Us', href: '/about' },
       { label: 'Client Reviews', href: '/reviews' },
       { label: 'Tax Tip Blog', href: '/blog' },
       { label: 'Partner Program', href: '/become-a-partner' },
@@ -325,6 +328,26 @@ const Header = () => {
           </div>
         </div>
       </div>
+      {!isAuthPage && (
+        <nav aria-label="Full Site Navigation" className="sr-only">
+          <ul>
+            {navGroups.map((group) => (
+              <li key={group.label}>
+                <Link href={group.href}>{group.label}</Link>
+                {group.items && group.items.length > 0 && (
+                  <ul>
+                    {group.items.map((item) => (
+                      <li key={item.href + item.label}>
+                        <Link href={item.href}>{item.label}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </header>
   );
 };

@@ -20,56 +20,130 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company registration documents (CIPC Certificate COR14.3 / Disclosure)",
+      "id": "req_wumchh91",
+      "label": "Company Registration Documents (CIPC Certificate CoR 14.3 / Disclosure)",
+      "type": "pdf",
+      "isRequired": true,
       "documentKind": "cor14_3",
       "inNameOf": "entity",
-      "isRequired": true,
+      "alternatives": [],
+      "helpText": "Upload the company CoR 14.3 registration certificate and latest disclosure certificate.",
       "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) and latest Disclosure Certificate showing the legal entity name, enterprise registration number, registered office address, and all active directors. Must match the entity the order is placed for."
     },
     {
-      "label": "Valid bank confirmation letter (in the business name, not older than 3 months)",
-      "documentKind": "bank_confirmation",
-      "inNameOf": "entity",
+      "id": "req_gy9sheal",
+      "label": "Certified SA ID Copies of All Directors (Certified Within 3 Months)",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "sa_id",
+      "inNameOf": "director",
       "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified & apostilled foreign passport (foreign directors only)"
+      ],
+      "helpText": "Upload high-resolution colour copies of SA Smart ID Cards (both sides) or ID Books for all active directors, certified within the last 3 months.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_ncr_dir_poa",
+      "label": "Proof of Residential Address for All Directors & Proof of Physical Business Address (Not Older Than 3 Months)",
+      "type": "pdf",
       "isRequired": true,
-      "aiHint": "Official bank account confirmation letter from a registered South African bank in the COMPANY's registered legal name, dated within 3 months. Must include an official bank date stamp or digital verification QR code / hash. A regular bank statement is NOT accepted by the NCR."
-    },
-    {
-      "label": "Tax Clearance Status Certificate / TCS PIN",
-      "documentKind": "tcs_pin",
-      "inNameOf": "entity",
-      "isRequired": true,
-      "aiHint": "SARS Tax Compliance Status (TCS) PIN letter for the applicant entity confirming 'Good Standing / Compliant' tax status. The PIN is verified on SARS eFiling prior to statutory pack lodgement."
-    },
-    {
-      "label": "Auditor / Accounting Officer appointment letter",
-      "documentKind": "letterhead",
-      "inNameOf": "entity",
-      "isRequired": false,
-      "aiHint": "Statutory letter appointing a registered Accounting Officer. If the client has no existing appointment, the agent automatically drafts the My Accountant appointment & acceptance letters signed by Kevin Freese (CIBA #3561 / PR-0098553)."
-    },
-    {
-      "label": "Proof of payment of the NCR non-refundable application fee (R550 / R1,800)",
-      "documentKind": "receipt",
+      "documentKind": "proof_of_address",
       "inNameOf": "either",
-      "isRequired": true,
-      "aiHint": "Official bank proof of payment for the NCR statutory application fee paid to the National Credit Regulator's bank account. Must clearly show the company's CIPC Registration Number as the payment reference."
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Municipal utility bill",
+        "Signed lease agreement",
+        "Bank statement showing residential/business street address"
+      ],
+      "helpText": "Upload proof of residential address (< 3 months) for each active director AND proof of the company physical business premises (< 3 months).",
+      "aiHint": "Utility bill, municipal rates account, signed lease agreement, or bank statement dated within 90 days confirming physical street address."
     },
     {
-      "label": "Criminal clearance certificates (not older than 6 months) for all directors",
+      "id": "req_7as5v1f5",
+      "label": "Criminal Clearance Certificates (Not Older Than 6 Months) for All Active Directors",
+      "type": "pdf",
+      "isRequired": true,
       "documentKind": "criminal_clearance",
       "inNameOf": "director",
       "maxAgeDays": 180,
-      "isRequired": true,
+      "alternatives": [
+        "Accredited AFIS biometric criminal record check (< 6 months)"
+      ],
+      "helpText": "Every director on the CoR 14.3 must provide a SAPS Police Clearance Certificate or accredited biometric AFIS criminal clearance issued within the last 6 months.",
       "aiHint": "SAPS Police Clearance Certificate or accredited biometric AFIS criminal record check per active director, issued within 6 months. Every director listed on the CIPC CoR14.3 must have a valid clearance certificate."
     },
     {
-      "label": "Certified ID copies of all directors (certified within 3 months)",
-      "documentKind": "director_id",
-      "inNameOf": "director",
-      "maxAgeDays": 90,
+      "id": "req_3cmv89tz",
+      "label": "Valid Bank Confirmation Letter (In the Registered Company Name, Not Older Than 3 Months)",
+      "type": "pdf",
       "isRequired": true,
-      "aiHint": "High-resolution color copies of South African Smart ID Cards (both sides), Green Barcoded ID Books, or Foreign Passports for all active directors, certified by a Commissioner of Oaths within the last 3 months."
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [],
+      "helpText": "Upload an official stamped or QR-verified bank confirmation letter in the company legal name (< 3 months).",
+      "aiHint": "Official bank account confirmation letter from a registered South African bank in the COMPANY registered legal name, dated within 3 months. Must include an official bank date stamp or digital verification QR code / hash. A regular bank statement is NOT accepted by the NCR."
+    },
+    {
+      "id": "req_m382cypc",
+      "label": "SARS Tax Clearance Status Certificate / TCS PIN Letter",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "alternatives": [],
+      "helpText": "Upload the unexpired SARS Tax Compliance Status (TCS) PIN letter for the company.",
+      "aiHint": "SARS Tax Compliance Status (TCS) PIN letter for the applicant entity confirming Good Standing / Compliant tax status. The PIN is verified on SARS eFiling prior to statutory pack lodgement."
+    },
+    {
+      "id": "req_ncr_shareholding",
+      "label": "Shareholding & Ownership Breakdown — Full Names, ID Numbers, B-BBEE Demographics & Exact % Shareholding (Form NCR 2 Section 3)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List every shareholder/owner with their full name, ID/registration number, race/gender demographics (for NCR statistical reporting), and exact shareholding percentage (must total 100%)."
+    },
+    {
+      "id": "req_ncr_form2_questionnaire",
+      "label": "Form NCR 2 Operational Questionnaire — Credit Types, Estimated Annual Credit Book, Number of Branches, Provinces, Languages & Financial Year-End",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Types of credit to be granted (e.g. Short-Term / Micro-loans, Unsecured, Developmental, Secured), (2) Estimated annual total credit book in Rands & number of branches (used to calculate the NCR Fee Annexure), (3) Provinces/regions served, (4) Official SA languages used in credit agreements, and (5) Company Financial Year-End, Telephone & Email."
+    },
+    {
+      "id": "req_j1bhk019",
+      "label": "Auditor / Accounting Officer Appointment Letter (Optional — We Draft & Sign This Using Our Practice Details if Needed)",
+      "type": "pdf",
+      "isRequired": false,
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "alternatives": [],
+      "helpText": "Optional: If you already have an external Auditor/Accounting Officer letter, upload it here; otherwise My Accountant automatically drafts and signs your Accounting Officer appointment & acceptance letters.",
+      "aiHint": "Statutory letter appointing a registered Accounting Officer. If the client has no existing appointment, the agent automatically drafts the My Accountant appointment & acceptance letters signed by Kevin Freese (CIBA #3561 / PR-0098553)."
+    },
+    {
+      "id": "req_fa5bv3xc",
+      "label": "Proof of Payment of the NCR Statutory Application & Registration Fees (Reference: Company CIPC Registration Number)",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "receipt",
+      "inNameOf": "either",
+      "alternatives": [],
+      "helpText": "Upload the official bank proof of payment for the NCR statutory fees paid into the National Credit Regulator bank account (using the company CIPC Registration Number as payment reference).",
+      "aiHint": "Official bank proof of payment for the NCR statutory application fee paid to the National Credit Regulator bank account. Must clearly show the company CIPC Registration Number as the payment reference."
+    },
+    {
+      "id": "req_ncr_signed_pack",
+      "label": "Signed & Initialled Form NCR 2, Section 8 Disqualification Declaration, Board Resolution & Power of Attorney",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "power_of_attorney",
+      "inNameOf": "entity",
+      "alternatives": [],
+      "helpText": "Once we generate your Form NCR 2 statutory pack, have the directors initial every page of Form NCR 2, sign the Section 8 Declaration, Board Resolution, and Power of Attorney, and upload the single scanned PDF pack here.",
+      "aiHint": "Signed and initialled Form NCR 2 (initialled on every page with Section 8 signed), signed Board Resolution, and signed Special Power of Attorney."
     }
   ],
   "fulfillmentChecklist": [

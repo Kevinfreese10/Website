@@ -15,8 +15,53 @@ export const metadata: Metadata = {
 };
 
 export default function CcVsPtyLtdConversion() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${SITE_URL}/blog/cc-vs-pty-ltd-conversion#article`,
+        headline: 'CC vs Pty Ltd: Why You Should Convert to a Pty Ltd',
+        description:
+          'Learn why converting your Close Corporation (CC) to a Private Company (Pty Ltd) in South Africa is highly recommended and how to do it.',
+        datePublished: '2026-01-25T08:00:00+02:00',
+        dateModified: '2026-03-01T08:00:00+02:00',
+        author: {
+          '@id': `${SITE_URL}/#kevin-freese`,
+          '@type': 'Person',
+          name: 'Kevin Freese',
+          url: `${SITE_URL}/about`,
+        },
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/blog/cc-vs-pty-ltd-conversion`,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'CC vs Pty Ltd Conversion',
+            item: `${SITE_URL}/blog/cc-vs-pty-ltd-conversion`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <article className="prose prose-lg lg:prose-xl prose-blue mx-auto">
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-8">
           CC vs Pty Ltd: Why It's Time to Convert

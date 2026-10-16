@@ -14,17 +14,65 @@
     "Resignation date given is before the director's appointment date on the register"
   ],
   "informationToProvide": [
-    { "label": "Company registration number or COR14.3 certificate", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and the current directors, including the one being removed." },
-    { "label": "Number of directors resigning or being removed", "type": "text", "isRequired": true, "helpText": "Select how many directors are resigning or being removed (1 to 5+)." },
-    { "label": "Director 1: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the first resigning director." },
-    { "label": "Director 2: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is a second director resigning or being removed?", "helpText": "Full legal name and surname of the second resigning director." },
-    { "label": "Director 3: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is a third director resigning or being removed?", "helpText": "Full legal name and surname of the third resigning director." },
-    { "label": "Director 4: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is a fourth director resigning or being removed?", "helpText": "Full legal name and surname of the fourth resigning director." },
-    { "label": "Director 5: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is a fifth director resigning or being removed?", "helpText": "Full legal name and surname of the fifth resigning director." },
-    { "label": "Certified ID copy of the resigning/removed director(s)", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy", "Clear uncertified copy plus a shareholder resolution where the director will not cooperate — flag for Kevin"], "isRequired": true, "aiHint": "Certified SA ID or passport of the director(s) LEAVING, Commissioner of Oaths / SAPS stamp dated within 3 months. Name and ID number must match the director record on the CoR14.3." },
-    { "label": "Certified ID copy of an active director/shareholder", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "aiHint": "Certified ID of a director who REMAINS, who signs the resolution and authorises the filing." },
-    { "label": "Contact details of the resigning director(s)", "type": "text", "isRequired": true, "helpText": "Email address and cell phone number so CIPC can notify the director(s) of the CoR39 change." },
-    { "label": "Resolution for director removal (if applicable)", "type": "pdf", "documentKind": "resolution", "inNameOf": "entity", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is the director being removed by the shareholders rather than resigning voluntarily?", "alternatives": ["Signed resignation letter from the director"], "aiHint": "Signed shareholders' resolution removing the director under s71 of the Companies Act, OR a signed resignation letter. If neither exists the agent drafts the appropriate one." }
+    {
+      "id": "req_rmd_cor143",
+      "label": "Company Registration Certificate (CoR 14.3 / Disclosure Certificate)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 or Disclosure Certificate showing enterprise registration number and current active directors."
+    },
+    {
+      "id": "req_rmd_removed_director_details",
+      "label": "Director Being Removed — Full Name, ID Number, Last Known Email & Cellphone, Effective Removal Date, and Reason for Removal",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the details of the director being removed, the effective removal date, and the statutory reason for removal under Section 71 (e.g., s71(1) shareholder removal, s71(3) board removal for ineligibility/incapacity/neglect)."
+    },
+    {
+      "id": "req_rmd_remaining_ids",
+      "label": "Certified SA ID Copies of All Remaining Directors & Voting Shareholders (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director only)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified ID copies (< 3 months) for all remaining directors and the shareholders signing the Section 71 removal resolution.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_rmd_remaining_contacts",
+      "label": "Remaining Active Directors — Full Names, Email Addresses & Cellphone Numbers (for CIPC OTPs)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the direct email address and cellphone number for each remaining active director."
+    },
+    {
+      "id": "req_rmd_s71_notice_and_proof",
+      "label": "Signed Section 71 Notice of Meeting, Statement of Reasons & Proof of Delivery to the Director Being Removed",
+      "type": "pdf",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "CIPC strictly requires proof that the director was given formal notice of the proposed removal and an opportunity to make representations before the vote (email delivery receipt, sheriff return, or courier proof).",
+      "aiHint": "Notice of shareholders/board meeting under Section 71 of the Companies Act stating the reasons for proposed removal, accompanied by proof of service/delivery (email timestamp, registered post, or courier receipt) to the affected director."
+    },
+    {
+      "id": "req_rmd_s71_resolution",
+      "label": "Signed Section 71 Shareholders / Board Resolution & Meeting Minutes Removing the Director",
+      "type": "pdf",
+      "documentKind": "resolution",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the signed ordinary resolution of shareholders (s71(1)) or board resolution (s71(3)) and meeting minutes confirming the removal vote.",
+      "aiHint": "Signed ordinary resolution of shareholders or board resolution and attendance/minutes under Section 71 of the Companies Act resolving to remove the named director, signed by the requisite majority."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -50,7 +98,11 @@
       "title": "Draft resignation letter / removal resolution and CoR39 handoff sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["resignation_letter", "director_resolution", "handoff_sheet"],
+      "templateIds": [
+        "resignation_letter",
+        "director_resolution",
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Resignation letter (voluntary) or shareholder resolution (removal), board resolution noting the change, and handoff sheet drafted",
       "aiInstructions": "Resignation letter: addressed to the board, states the director resigns with effect from the confirmed date, signed by the leaving director. Removal: shareholders' resolution under s71 recording the ordinary resolution and that notice was given. Handoff sheet: company, director, ID number, status change to Resigned, effective date, reason code, contact details for notification."
@@ -81,7 +133,10 @@
       "title": "Wait for CIPC to process the change",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 3],
+      "followUpAfterDays": [
+        2,
+        3
+      ],
       "estimatedDays": 2,
       "doneCriteria": "CoR39 confirmation received and the director no longer shows as active",
       "aiInstructions": "Check tracking status before following up. On rejection quote the reason to Kevin."
@@ -91,7 +146,10 @@
       "title": "Deliver CoR39 confirmation and updated CoR14.3",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cor39", "cor14_3"],
+      "deliverArtefacts": [
+        "cor39",
+        "cor14_3"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Confirmation and re-downloaded CoR14.3 posted to Communication History",
       "aiInstructions": "Remind the client that shares held by the leaving director are not affected by this filing — offer the Share Certificate / Share Register and Beneficial Ownership services if ownership also changes. Also update the bank mandate and SARS representative if the leaving director held those roles."

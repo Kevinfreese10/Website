@@ -19,8 +19,52 @@ export default function CryptoTaxPage() {
   const title = "Crypto Asset Tax Reporting to SARS in 2026";
   const excerpt = "As SARS intensifies its scrutiny on digital assets, understanding how to accurately report your crypto trades and holdings is more crucial than ever.";
 
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${SITE_URL}/blog/crypto-asset-tax-reporting-sars-2026#article`,
+        headline: title,
+        description: excerpt,
+        datePublished: '2026-02-18T08:00:00+02:00',
+        dateModified: '2026-03-01T08:00:00+02:00',
+        author: {
+          '@id': `${SITE_URL}/#kevin-freese`,
+          '@type': 'Person',
+          name: 'Kevin Freese',
+          url: `${SITE_URL}/about`,
+        },
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/blog/crypto-asset-tax-reporting-sars-2026`,
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: title,
+            item: `${SITE_URL}/blog/crypto-asset-tax-reporting-sars-2026`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <section className="relative w-full bg-white border-b pt-20 pb-24 animate-in fade-in">
         <div className="absolute inset-0 bg-grid-slate-100/[0.04] bg-[size:20px_20px]" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/80" />

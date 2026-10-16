@@ -9,7 +9,7 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
   const defaults: Metadata = {
     title: { absolute: 'Online Accountants South Africa: Tax, VAT & CIPC' },
-    description: 'Fixed-price online accounting for SA businesses: tax returns, VAT registration, CIPC and payroll. Rated 4.9 on Google with 100+ reviews. Get started today.',
+    description: 'Fixed-price online accounting for SA businesses: tax returns, VAT, CIPC & payroll. Rated 4.9 on Google with 220+ verified client reviews. Get started today.',
   };
   const metadata = await getStaticPageMetadata('home', defaults);
   // Ensure any cached or overridden title does not contain the star symbol
@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   // Ensure meta description is calibrated between 140-158 chars with core keywords
   if (!metadata.description || metadata.description.length < 140 || metadata.description.length > 158) {
-    metadata.description = 'Fixed-price online accounting for SA businesses: tax returns, VAT registration, CIPC and payroll. Rated 4.9 on Google with 100+ reviews. Get started today.';
+    metadata.description = 'Fixed-price online accounting for SA businesses: tax returns, VAT, CIPC & payroll. Rated 4.9 on Google with 220+ verified client reviews. Get started today.';
   }
 
   return metadata;

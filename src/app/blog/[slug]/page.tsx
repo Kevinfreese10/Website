@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Clock, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
+import { SITE_URL, GLOBAL_OG_IMAGE, LOGO_URL } from '@/lib/constants';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 import { CURATED_BLOG_FAQS } from '@/lib/blog-faqs';
@@ -270,8 +270,8 @@ export default async function BlogPostPage({ params }: Props) {
       "logo": {
         "@type": "ImageObject",
         "@id": `${SITE_URL}/#logo`,
-        "url": `${SITE_URL}/logo.png`,
-        "contentUrl": `${SITE_URL}/logo.png`
+        "url": LOGO_URL,
+        "contentUrl": LOGO_URL
       }
     }
   };

@@ -15,6 +15,7 @@ import {
   Laptop
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
@@ -22,7 +23,7 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
         title: 'Certified Xero Accountant South Africa | My Accountant',
-        description: 'Scale your business with our certified Xero accounting services. Automated bank feeds, real-time reports, and professional monthly bookkeeping.',
+        description: 'Scale your business with our certified Xero accounting services in South Africa. Automated bank feeds, real-time management reports, and monthly bookkeeping.',
     };
     return getStaticPageMetadata('xero-accountant-south-africa', defaults);
 }
@@ -66,8 +67,26 @@ export default function XeroAccountantSouthAfricaPage() {
     }
   ];
 
+  const xeroSchema = generateServicePillarSchema({
+    title: 'Certified Xero Accountant South Africa',
+    description: 'Scale your business with our certified Xero accounting services in South Africa. Automated bank feeds, real-time management reports, and monthly bookkeeping.',
+    slug: '/xero-accountant-south-africa',
+    serviceType: 'AccountingService',
+    priceRange: 'From R1,850/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Accounting', url: '/monthly-accounting' },
+      { name: 'Xero Accountant South Africa', url: '/xero-accountant-south-africa' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(xeroSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         {/* Aurora background blobs */}

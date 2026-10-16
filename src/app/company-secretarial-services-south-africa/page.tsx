@@ -23,8 +23,8 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const defaults: Metadata = {
-    title: 'Company Secretarial Services South Africa | CIPC Compliance & Governance',
-    description: 'Outsourced corporate secretarial services for South African companies. CIPC annual returns, director amendments (CoR39), beneficial ownership registers, share registers & governance compliance.',
+    title: 'Company Secretarial Services South Africa | CIPC Compliance',
+    description: 'Outsourced corporate secretarial services in South Africa. CIPC annual returns, CoR39 director amendments, beneficial ownership & share registers.',
   };
   return getStaticPageMetadata('company-secretarial-services-south-africa', defaults);
 }

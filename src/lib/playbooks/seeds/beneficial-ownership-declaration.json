@@ -14,11 +14,76 @@
     "Company has no securities register at all, so there is nothing to upload"
   ],
   "informationToProvide": [
-    { "label": "Company registration certificate (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors." },
-    { "label": "Certified ID / passport copies of all shareholders/owners", "type": "pdf", "documentKind": "sa_id", "inNameOf": "either", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for foreign owners"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back, or Green Book) or passport per natural person who directly or indirectly holds 5% or more, with a Commissioner of Oaths / SAPS stamp dated within 3 months. Count the owners named in the shareholding answer and flag any owner without an ID." },
-    { "label": "Personal Income Tax Number for Director(s)", "type": "text", "isRequired": false, "helpText": "SARS income tax reference number of each director / beneficial owner, if known." },
-    { "label": "Please indicate the percentage of shares held by the shareholder", "type": "text", "isRequired": true, "helpText": "List each shareholder with full name, ID number and percentage held. Percentages must total 100%.", "aiHint": "Free-text shareholding table. Must total 100%. Where a shareholder is a company or trust, the client must name the natural persons behind it and their effective percentage." },
-    { "label": "Share register or share certificates", "type": "pdf", "documentKind": "share_certificate", "inNameOf": "entity", "isRequired": false, "alternatives": ["Securities register", "Signed shareholders agreement"], "aiHint": "Share certificates or a securities register showing company name, shareholder names and share allocation. If none exists, the agent drafts one from the shareholding answer (template securities_register)." }
+    {
+      "label": "Company registration certificate (COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors.",
+      "id": "req_px92p0sc"
+    },
+    {
+      "label": "Certified ID / passport copies of all shareholders/owners",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy for foreign owners"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_zuufgcsv"
+    },
+    {
+      "label": "Personal Income Tax Number for Director(s)",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "SARS income tax reference number of each director / beneficial owner, if known.",
+      "id": "req_niy7l5t1"
+    },
+    {
+      "label": "Please indicate the percentage of shares held by the shareholder",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List each shareholder with full name, ID number and percentage held. Percentages must total 100%.",
+      "aiHint": "Free-text shareholding table. Must total 100%. Where a shareholder is a company or trust, the client must name the natural persons behind it and their effective percentage.",
+      "id": "req_e5d7ej8p"
+    },
+    {
+      "label": "Share register or share certificates",
+      "type": "pdf",
+      "documentKind": "share_certificate",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "alternatives": [
+        "Securities register",
+        "Signed shareholders agreement"
+      ],
+      "aiHint": "Share certificates or a securities register showing company name, shareholder names and share allocation. If none exists, the agent drafts one from the shareholding answer (template securities_register).",
+      "id": "req_gii7jr9l"
+    },
+    {
+      "id": "req_bo_ubo_breakdown",
+      "label": "Ultimate Beneficial Owners (UBO) Schedule — Full Names, ID Numbers, Residential Address, Email, Cellphone & Exact % Ownership/Control",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List every natural person who ultimately owns or controls 5% or more of the company, including their residential street address, email address, cellphone number, and exact percentage of shares/voting rights (must total 100%)."
+    },
+    {
+      "id": "req_bo_complex_structure_docs",
+      "label": "Trust Deed & Letters of Authority OR Group Ownership Organogram (If Any Shareholder is a Trust or Company)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Are any shares in the company held by a Trust, Holding Company, or another juristic entity?",
+      "helpText": "CIPC requires disclosure of the natural persons behind any juristic shareholder or trust. Upload the Trust Deed, Letters of Authority, and/or certified group organogram.",
+      "aiHint": "Trust Deed, Master of the High Court Letters of Authority, or signed corporate group organogram showing the chain of ownership up to the ultimate natural person beneficial owners."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -44,7 +109,11 @@
       "title": "Draft beneficial ownership register, securities register and mandate",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["securities_register", "power_of_attorney", "handoff_sheet"],
+      "templateIds": [
+        "securities_register",
+        "power_of_attorney",
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "BO register, securities register (if the company had none) and mandate drafted; handoff sheet lists each BO with ID number, nationality, address, % held and nature of interest",
       "aiInstructions": "CIPC requires the securities register and the beneficial interest register as uploads, plus a mandate/POA where a third party files. Populate each BO row: full names, ID/passport number, date of birth, nationality, residential address, email, % of shares, % of voting rights, nature of control (direct shareholding / via trust / via company). Never invent percentages. The mandate is signed by a current director on the CoR14.3."
@@ -75,7 +144,10 @@
       "title": "Wait for CIPC confirmation",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 5],
+      "followUpAfterDays": [
+        2,
+        5
+      ],
       "estimatedDays": 2,
       "doneCriteria": "Filing shows as processed on CIPC",
       "aiInstructions": "Most BO filings process same day. If a rejection arrives, quote the reason to Kevin and identify which owner or upload it concerns."
@@ -85,7 +157,10 @@
       "title": "Deliver filing confirmation and registers",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["bo_filing_confirmation", "securities_register"],
+      "deliverArtefacts": [
+        "bo_filing_confirmation",
+        "securities_register"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Confirmation, BO register and securities register posted to Communication History",
       "aiInstructions": "Tell the client the BO register must be updated with CIPC whenever ownership changes and re-confirmed with each annual return. Offer the Annual Returns service if it is due."

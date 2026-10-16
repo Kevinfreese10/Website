@@ -14,12 +14,77 @@
     "The employer is already registered under an old 99-number, so a new application is rejected as a duplicate"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. The employer being registered is the company, not the ordering contact." },
-    { "label": "Director(s) / Owner (s) Certified ID document(s)   - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified copy of the green ID book or smart-card ID (both sides) for every director on the CoR14.3. Certification stamp, signature and date must be visible and dated within the last 3 months." },
-    { "label": "Proof of business address  - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account", "Bank statement showing the business address"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease showing the physical business address, dated within 3 months. The address must be a street address the Compensation Fund can inspect, not only a PO Box." },
-    { "label": "Proof of banking details  - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months. Accept a bank stamp OR a digital verification reference / QR code. A transaction statement is NOT acceptable." },
-    { "label": "Estimated annual payroll figures", "type": "text", "isRequired": true, "aiHint": "Total estimated gross earnings for ALL employees (including working directors) for the current assessment year (1 March to 28/29 February), plus the number of employees. If the client gives a monthly figure, multiply by 12 and confirm with them before use." },
-    { "label": "Tax Clearance Certificate", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company. Also use it to read the company's income tax reference number, which the W.As.2 form asks for." }
+    {
+      "label": "Company registration documents (CIPC COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. The employer being registered is the company, not the ordering contact.",
+      "id": "req_7rcecmvh"
+    },
+    {
+      "label": "Director(s) / Owner (s) Certified ID document(s)   - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy for a foreign director"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_lmg9xq9u"
+    },
+    {
+      "label": "Proof of business address  - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates account",
+        "Bank statement showing the business address"
+      ],
+      "isRequired": true,
+      "aiHint": "Utility bill, municipal account or lease showing the physical business address, dated within 3 months. The address must be a street address the Compensation Fund can inspect, not only a PO Box.",
+      "id": "req_0x2svrjq"
+    },
+    {
+      "label": "Proof of banking details  - not older than 3 months",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months. Accept a bank stamp OR a digital verification reference / QR code. A transaction statement is NOT acceptable.",
+      "id": "req_050snysh"
+    },
+    {
+      "label": "Estimated annual payroll figures",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Total estimated gross earnings for ALL employees (including working directors) for the current assessment year (1 March to 28/29 February), plus the number of employees. If the client gives a monthly figure, multiply by 12 and confirm with them before use.",
+      "id": "req_lyf7i4kl"
+    },
+    {
+      "label": "Tax Clearance Certificate",
+      "type": "pdf",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status PIN letter for the company. Also use it to read the company's income tax reference number, which the W.As.2 form asks for.",
+      "id": "req_cdqypu7l"
+    },
+    {
+      "id": "req_coida_nature_and_dates",
+      "label": "Detailed Nature of Business Operations, Equipment Used, Date Business Commenced & Date First Employee Was Appointed (Form W.As.2)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe in detail what the business does, what machinery/vehicles/equipment staff use (this determines your Compensation Fund subclass and tariff rate), the date the business started trading, the date your first employee started, and total number of employees."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -45,7 +110,9 @@
       "title": "Prepare W.As.2 registration values hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every W.As.2 field value posted for Kevin",
       "aiInstructions": "Lay out every field the Compensation Fund employer registration (form W.As.2 — ⚠ verify the current online form still mirrors W.As.2) asks for: employer legal name and trading name, CIPC number, income tax number, physical/postal addresses, contact person, bank details, date business commenced / first employee date, number of employees, estimated annual earnings, and a suggested nature-of-business description with a proposed subclass. Mark the subclass as a suggestion only — Kevin decides. Never invent a commencement date; leave blank and flag."
@@ -67,7 +134,11 @@
       "title": "Wait for the Compensation Fund to issue the registration number",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 5, 10],
+      "followUpAfterDays": [
+        2,
+        5,
+        10
+      ],
       "estimatedDays": 5,
       "doneCriteria": "COIDA registration number (99-series) received or a query raised by the Fund",
       "aiInstructions": "Some registrations return a number immediately on the portal; others go to a queue. If nothing arrives by the follow-up point, draft a status query to the Compensation Fund quoting the submission reference and the company's CIPC number. If the Fund queries the nature of business or asks for photos, create a proposal for Kevin with the query text."
@@ -77,7 +148,9 @@
       "title": "Deliver COIDA registration number and next-steps note to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["coida_registration"],
+      "deliverArtefacts": [
+        "coida_registration"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Registration confirmation and 99-number posted to Communication History",
       "aiInstructions": "Post the registration confirmation and the number. Explain in plain English that the annual Return of Earnings must be submitted every year (⚠ verify current deadline, normally 31 March, often extended) and that a Letter of Good Standing is only issued once the assessment is paid. Offer the COIDA Renewal service and the Letter of Good Standing on request. Do not promise the Letter of Good Standing as part of this order."

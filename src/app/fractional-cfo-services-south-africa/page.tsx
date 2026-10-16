@@ -16,14 +16,15 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Fractional CFO Services South Africa | Outsourced CFO | My Accountant',
-        description: 'Access executive financial leadership at a fraction of the cost. Our outsourced CFO services in South Africa cover strategy, cash flow management, and board reports.',
+        title: 'Fractional CFO Services South Africa | Outsourced CFO',
+        description: 'Access executive financial leadership at a fraction of the cost. Outsourced CFO services in South Africa covering strategy, cash flow, and board packs.',
     };
     return getStaticPageMetadata('fractional-cfo-services-south-africa', defaults);
 }
@@ -70,8 +71,26 @@ export default function FractionalCfoServicesSouthAfricaPage() {
     }
   ];
 
+  const cfoSchema = generateServicePillarSchema({
+    title: 'Fractional CFO Services South Africa | Outsourced CFO',
+    description: 'Access executive financial leadership at a fraction of the cost. Outsourced CFO services in South Africa covering strategy, cash flow, and board packs.',
+    slug: '/fractional-cfo-services-south-africa',
+    serviceType: 'FinancialService',
+    priceRange: 'From R7,500/month',
+    breadcrumbs: [
+      { name: 'Home', url: '/' },
+      { name: 'Accounting', url: '/monthly-accounting' },
+      { name: 'Fractional CFO Services South Africa', url: '/fractional-cfo-services-south-africa' },
+    ],
+    faqs,
+  });
+
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(cfoSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         {/* Aurora background blobs */}

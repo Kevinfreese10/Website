@@ -14,14 +14,109 @@
     "Proof of business address older than 3 months or for a different address from the operating site in the photos"
   ],
   "informationToProvide": [
-    { "label": "Annual Financial Statements", "documentKind": "afs", "inNameOf": "entity", "isRequired": true, "aiHint": "Latest signed Annual Financial Statements for the company. The Fund uses the revenue description and salaries to test the requested classification, so the principal activity note must be consistent with the change requested. Unsigned drafts are not acceptable." },
-    { "label": "Signed Instruction Letter on your company letterhead to instruct COIDA to change the nature of your business", "documentKind": "letterhead", "inNameOf": "entity", "isRequired": true, "aiHint": "Letter on the employer's letterhead, signed by a director, instructing the Compensation Fund to change the nature of business and authorising My Accountant to act. If the client cannot draft it, the agent drafts it (template: instruction_letter) on the blank letterhead supplied and sends it for signature." },
-    { "label": "Company registration document (COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 showing the registered name, enterprise number and active directors. The CIPC number goes into the digit boxes of CF-1B Section A." },
-    { "label": "Pictures of business  - Please furnish us with at least 8 pictures of the business including the business operation site inside and out", "documentKind": "photo", "type": "image", "inNameOf": "entity", "isRequired": true, "aiHint": "At least 8 clear photographs: exterior with signage, interior working areas, equipment / stock, and staff at work. They must visibly support the new business activity (e.g. a retail shop floor for a retail subclass). Count the images and reject blurry or duplicate shots." },
-    { "label": "Proof of address for the business – not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease for the physical operating site, dated within 3 months. The address must match the site shown in the photographs and the address entered on CF-1B Section A." },
-    { "label": "Blank Letterhead of the employer", "documentKind": "letterhead", "inNameOf": "entity", "isRequired": true, "aiHint": "Blank company letterhead (PDF, Word or high-resolution image) showing name, registration number, address and contact details. Used to generate the instruction letter if the client has not supplied a signed one." },
-    { "label": "Existing COIDA registration number", "type": "text", "isRequired": true, "aiHint": "The employer's Compensation Fund 99-series reference number. Goes into the CF Reg No digit boxes on CF-1B Section A. Cross-check against the Letter of Good Standing if one is uploaded." },
-    { "label": "Latest Letter of Good Standing (if available)", "documentKind": "letter_of_good_standing", "inNameOf": "entity", "isRequired": false, "aiHint": "Most recent Compensation Fund Letter of Good Standing. Confirms the 99-number, the employer name as the Fund records it and the current classification / subclass." }
+    {
+      "label": "Annual Financial Statements",
+      "type": "pdf",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Latest signed Annual Financial Statements for the company. The Fund uses the revenue description and salaries to test the requested classification, so the principal activity note must be consistent with the change requested. Unsigned drafts are not acceptable.",
+      "id": "req_woneyhog"
+    },
+    {
+      "label": "Signed Instruction Letter on your company letterhead to instruct COIDA to change the nature of your business",
+      "type": "pdf",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Letter on the employer's letterhead, signed by a director, instructing the Compensation Fund to change the nature of business and authorising My Accountant to act. If the client cannot draft it, the agent drafts it (template: instruction_letter) on the blank letterhead supplied and sends it for signature.",
+      "id": "req_66v58ib2"
+    },
+    {
+      "label": "Company registration document (COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3 showing the registered name, enterprise number and active directors. The CIPC number goes into the digit boxes of CF-1B Section A.",
+      "id": "req_m9nh2g6e"
+    },
+    {
+      "label": "Pictures of business  - Please furnish us with at least 8 pictures of the business including the business operation site inside and out",
+      "type": "image",
+      "documentKind": "photo",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "At least 8 clear photographs: exterior with signage, interior working areas, equipment / stock, and staff at work. They must visibly support the new business activity (e.g. a retail shop floor for a retail subclass). Count the images and reject blurry or duplicate shots.",
+      "id": "req_66p81q2l"
+    },
+    {
+      "label": "Proof of address for the business – not older than 3 months",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates account"
+      ],
+      "isRequired": true,
+      "aiHint": "Utility bill, municipal account or lease for the physical operating site, dated within 3 months. The address must match the site shown in the photographs and the address entered on CF-1B Section A.",
+      "id": "req_vw17dqa9"
+    },
+    {
+      "label": "Blank Letterhead of the employer",
+      "type": "pdf",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Blank company letterhead (PDF, Word or high-resolution image) showing name, registration number, address and contact details. Used to generate the instruction letter if the client has not supplied a signed one.",
+      "id": "req_u1qmmqzy"
+    },
+    {
+      "label": "Existing COIDA registration number",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The employer's Compensation Fund 99-series reference number. Goes into the CF Reg No digit boxes on CF-1B Section A. Cross-check against the Letter of Good Standing if one is uploaded.",
+      "id": "req_ywuq51u8"
+    },
+    {
+      "label": "Latest Letter of Good Standing (if available)",
+      "documentKind": "letter_of_good_standing",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Most recent Compensation Fund Letter of Good Standing. Confirms the 99-number, the employer name as the Fund records it and the current classification / subclass.",
+      "id": "req_xmt8gqts"
+    },
+    {
+      "id": "req_cf1b_director_id",
+      "label": "Certified SA ID Copy of Signatory Director (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director only)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a certified SA ID copy (< 3 months) of the director signing Form CF-1B and the Special Power of Attorney.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_cf1b_section_b_details",
+      "label": "Form CF-1B Section B — Current Business Operations, Previous Operations, Reason for Change & Effective Date of Change",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Detailed description of current operations, (2) What the business did when originally registered, (3) Why the nature of business changed, and (4) The effective date of the change."
+    },
+    {
+      "id": "req_cf1b_page2_clients_activities",
+      "label": "Form CF-1B Page 2 — Five (5) Representative Trade Clients (Name, Contact Number & Goods/Services Supplied) AND Five (5) Key Daily Operational Activities",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Mandatory on Form CF-1B Page 2: List 5 trade clients/customers (with their contact telephone numbers and what you supply to them) and 5 main daily activities performed by your staff."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -47,7 +142,11 @@
       "title": "Draft Form CF-1B, Special POA and instruction letter",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["coida_cf1b", "power_of_attorney", "instruction_letter"],
+      "templateIds": [
+        "coida_cf1b",
+        "power_of_attorney",
+        "instruction_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "3-page CF-1B, Special POA and instruction letter generated and posted for Kevin's review",
       "aiInstructions": "Form CF-1B (official 3-page template, 'CF-1B Form Application for Change of Nature of Business_ORIGINAL_BACKUP.pdf'). Section A: employer name, CF Reg No (digit boxes), CIPC Reg No (digit boxes), Tax No (digit boxes), address, city, province, postal code, phone numbers, email. Section B: detailed description of the business operations, current classification, target subclass (e.g. 'Subclass 0710'), reason for change, effective date. Page 2: 5 representative trade clients with contact numbers and goods/services supplied, 5 key activities, tick the photographs checkbox. Page 3: tick supporting documents (AFS, proof of address, photos); employer signature block left for the director; consultant signature block for Kevin Freese, CIBA #3561 — signature applied only at approval. Special Power of Attorney on My Accountant executive letterhead appointing Kevin Freese (CIBA #3561, ID 8606205046085) to represent the employer, submit Form CF-1B and liaise with the Compensation Commissioner. Instruction letter on the client's blank letterhead (only if no signed one was supplied). Target subclass is a suggestion for Kevin — never finalise a subclass without his confirmation. Use ASCII only in pdf-lib text (no smart quotes or unicode bullets). Never invent trade clients, dates or figures — leave blank and flag."
@@ -78,7 +177,11 @@
       "title": "Wait for Compensation Fund reclassification and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [21, 40, 60],
+      "followUpAfterDays": [
+        21,
+        40,
+        60
+      ],
       "estimatedDays": 60,
       "doneCriteria": "Written confirmation of the new subclass, or a query / inspection request from the Fund",
       "aiInstructions": "Draft a polite status-request email at each follow-up point quoting the Fund's reference and the 99-number. The Fund may request a site inspection or additional photographs — if so, create a proposal for Kevin with the request text and prepare a client message. Do not tell the client the change is approved until the Fund's written confirmation is in hand."
@@ -88,7 +191,9 @@
       "title": "Deliver reclassification confirmation to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["coida_reclassification_confirmation"],
+      "deliverArtefacts": [
+        "coida_reclassification_confirmation"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Confirmation posted to Communication History with the new subclass noted",
       "aiInstructions": "Post the Fund's confirmation and explain that the new subclass applies to the next Return of Earnings and assessment rate. Suggest requesting an updated Letter of Good Standing and offer the COIDA Renewal service."

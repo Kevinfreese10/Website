@@ -1,48 +1,50 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
+import { SITE_URL } from '@/lib/constants';
 import { Separator } from '@/components/ui/separator';
-import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
+import { Button } from '@/components/ui/button';
+import BeeScorecardCalculatorClient from './CalculatorClient';
 
 export default function BeeScorecardEstimatorPage() {
-  const [ownership, setOwnership] = useState<string>('0');
-  const [management, setManagement] = useState<string>('0');
-  const [skills, setSkills] = useState<string>('0');
-  const [enterprise, setEnterprise] = useState<string>('0');
-  const [socioEconomic, setSocioEconomic] = useState<string>('0');
-
-  const calculateScore = () => {
-    const o = parseFloat(ownership) || 0;
-    const m = parseFloat(management) || 0;
-    const s = parseFloat(skills) || 0;
-    const e = parseFloat(enterprise) || 0;
-    const se = parseFloat(socioEconomic) || 0;
-
-    const totalPoints = o + m + s + e + se;
-    
-    let level = 'Non-Compliant';
-    if (totalPoints >= 100) level = 'Level 1';
-    else if (totalPoints >= 95) level = 'Level 2';
-    else if (totalPoints >= 90) level = 'Level 3';
-    else if (totalPoints >= 80) level = 'Level 4';
-    else if (totalPoints >= 75) level = 'Level 5';
-    else if (totalPoints >= 70) level = 'Level 6';
-    else if (totalPoints >= 55) level = 'Level 7';
-    else if (totalPoints >= 40) level = 'Level 8';
-
-    return { totalPoints, level };
+  const schema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        '@id': `${SITE_URL}/calculators/bee-scorecard-estimator#app`,
+        name: 'B-BBEE Scorecard & Recognition Level Estimator South Africa',
+        url: `${SITE_URL}/calculators/bee-scorecard-estimator`,
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'All',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'ZAR',
+        },
+        provider: { '@id': `${SITE_URL}/#organization` },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Calculators', item: `${SITE_URL}/calculators` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'B-BBEE Scorecard Estimator',
+            item: `${SITE_URL}/calculators/bee-scorecard-estimator`,
+          },
+        ],
+      },
+    ],
   };
-
-  const results = calculateScore();
 
   return (
     <div className="space-y-16 pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
       <section className="bg-slate-50 text-slate-900 py-16 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center max-w-3xl space-y-4">
           <div className="h-14 w-14 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
@@ -57,102 +59,29 @@ export default function BeeScorecardEstimatorPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 max-w-5xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          <div className="lg:col-span-6 space-y-6">
-            <Card className="border border-border bg-card shadow-sm">
-              <CardContent className="p-6 space-y-4">
-                
-                <div className="space-y-2">
-                  <Label htmlFor="ownership" className="font-bold text-slate-800 text-sm">Ownership Points (out of 25)</Label>
-                  <Input
-                    id="ownership"
-                    type="number"
-                    max="25"
-                    value={ownership}
-                    onChange={(e) => setOwnership(e.target.value)}
-                    className="h-11 border-border font-semibold text-slate-800"
-                  />
-                </div>
+      <BeeScorecardCalculatorClient />
 
-                <div className="space-y-2">
-                  <Label htmlFor="management" className="font-bold text-slate-800 text-sm">Management Control Points (out of 19)</Label>
-                  <Input
-                    id="management"
-                    type="number"
-                    max="19"
-                    value={management}
-                    onChange={(e) => setManagement(e.target.value)}
-                    className="h-11 border-border font-semibold text-slate-800"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="skills" className="font-bold text-slate-800 text-sm">Skills Development Points (out of 20)</Label>
-                  <Input
-                    id="skills"
-                    type="number"
-                    max="20"
-                    value={skills}
-                    onChange={(e) => setSkills(e.target.value)}
-                    className="h-11 border-border font-semibold text-slate-800"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="enterprise" className="font-bold text-slate-800 text-sm">Enterprise & Supplier Dev Points (out of 42)</Label>
-                  <Input
-                    id="enterprise"
-                    type="number"
-                    max="42"
-                    value={enterprise}
-                    onChange={(e) => setEnterprise(e.target.value)}
-                    className="h-11 border-border font-semibold text-slate-800"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="socioEconomic" className="font-bold text-slate-800 text-sm">Socio-Economic Dev Points (out of 5)</Label>
-                  <Input
-                    id="socioEconomic"
-                    type="number"
-                    max="5"
-                    value={socioEconomic}
-                    onChange={(e) => setSocioEconomic(e.target.value)}
-                    className="h-11 border-border font-semibold text-slate-800"
-                  />
-                </div>
-
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-6">
-            <Card className="border-2 border-primary/20 bg-card shadow-md overflow-hidden">
-              <div className="bg-primary text-white p-5 text-center">
-                <h3 className="font-bold text-lg">Calculation Summary</h3>
-              </div>
-              <CardContent className="p-6 space-y-6 bg-white">
-                
-                <div className="bg-slate-50 border border-border rounded-xl p-5 text-center space-y-1">
-                  <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">Estimated B-BBEE Level</span>
-                  <div className="text-3xl font-black text-slate-900">{results.level}</div>
-                </div>
-
-                <div className="space-y-4 pt-2">
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Total Score:</span>
-                    <span className="font-semibold text-slate-800">{results.totalPoints.toFixed(2)} Points</span>
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-          </div>
-
+      <section className="container mx-auto px-4 max-w-4xl space-y-6">
+        <h2 className="text-2xl font-bold text-slate-900">
+          How B-BBEE EME, QSE &amp; Generic Scorecards Work in South Africa
+        </h2>
+        <Separator className="w-12 border-b-2 border-primary/20" />
+        <p className="text-slate-600 text-sm leading-relaxed">
+          Under the Amended B-BBEE Codes of Good Practice, Exempted Micro Enterprises (EMEs) with annual turnover under R10 million qualify for an automatic B-BBEE sworn affidavit (Level 1 at 100% black ownership, Level 2 at 51%+ black ownership, or Level 4 otherwise). Qualifying Small Enterprises (QSEs) with turnover between R10 million and R50 million with 51%+ black ownership also qualify for an affidavit, while other QSEs and Generic enterprises (turnover above R50 million) are measured across Ownership (25 points), Management Control (19 points), Skills Development (20 points), Enterprise &amp; Supplier Development (42 points), and Socio-Economic Development (5 points).
+        </p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/calculators">
+              All Calculators <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/annual-financial-statements">Annual Financial Statements</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/company-secretarial-services-south-africa">Company Secretarial Services</Link>
+          </Button>
         </div>
-        <CalculatorDisclaimer note="This does not apply priority-element sub-minimums (which cause discounting) or the simplified EME/QSE regimes. A formal verification may produce a materially different level." />
       </section>
     </div>
   );
