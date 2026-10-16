@@ -12,10 +12,14 @@ runConfig:
 # Environment variables and secrets
 env:
   - variable: TELEGRAM_BOT_TOKEN
-    secret: TELEGRAM_BOT_TOKEN
+    value: "8832420807:AAHyCKyDupESCemmorEsU1ibh53jaRJ5CVw"
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: TELEGRAM_CHAT_ID
     value: "7774285240"
     availability:
+      - BUILD
       - RUNTIME
   - variable: STORAGE_BUCKET
     value: studio-2604127518-57889.firebasestorage.app
@@ -66,24 +70,29 @@ env:
   - variable: FIREBASE_SERVICE_ACCOUNT
     secret: FIREBASE_SERVICE_ACCOUNT
 
-  # Cloud quote agent (owner of info@myacc.co.za). Create each secret BEFORE deploying:
-  #   firebase apphosting:secrets:set INFO_MAIL_PASS
-  #   firebase apphosting:secrets:set TELEGRAM_BOT_TOKEN
-  #   firebase apphosting:secrets:set TELEGRAM_WEBHOOK_SECRET
-  #   firebase apphosting:secrets:set CRON_SECRET
+  # Cloud quote agent (owner of info@myacc.co.za).
   - variable: INFO_MAIL_USER
     value: "info@myacc.co.za"
     availability:
+      - BUILD
       - RUNTIME
   - variable: INFO_MAIL_HOST
     value: "mail.myacc.co.za"
     availability:
+      - BUILD
       - RUNTIME
   - variable: INFO_MAIL_PASS
-    secret: INFO_MAIL_PASS
+    value: "!yh;0x%[Reve-Y~^"
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: TELEGRAM_WEBHOOK_SECRET
-    secret: TELEGRAM_WEBHOOK_SECRET
-  # Also protects the existing /api/cron/* routes, which were running without it.
+    value: "7ef6aef092d9032cc7cae94be33fe4c2f1ac0862f0e5096c"
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: CRON_SECRET
-    secret: CRON_SECRET
-
+    value: "254fc85240e15c21b3810994ef59889f6be8ce0bd3ea0bdd"
+    availability:
+      - BUILD
+      - RUNTIME
