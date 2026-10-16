@@ -109,8 +109,8 @@ export async function fetchNewEmails(opts: { sinceDays: number; isKnown: (key: s
       if (fresh.length >= opts.limit) break;
     }
     if (!fresh.length) return [];
-
-    const full = await conn.search([['UID', fresh.join(',')]], { bodies: [''], markSeen: false });
+    const fullArrays = await Promise.all(fresh.map(uid => conn.search([['UID', uid]], { bodies: [''], markSeen: false })));
+    const full = fullArrays.flat();
     const out: InboundEmail[] = [];
     for (const m of full) {
       const body = m.parts.find(p => p.which === '')?.body;
