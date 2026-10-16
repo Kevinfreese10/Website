@@ -1,0 +1,119 @@
+{
+  "slug": "csos-scheme-support-annual-return",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Completed CSOS Annual Return (Form CS1 / CS2) & Statutory CSOS Levy Reconciliation Schedule",
+    "CSOS Connect Filing Confirmation & Compliance Receipt"
+  ],
+  "playbookCommonFailures": [
+    "Audited Annual Financial Statements for the scheme are not yet signed off by the scheme auditor and trustees at the AGM",
+    "CSOS quarterly levies match total administrative + reserve levies instead of applying the statutory formula per individual unit"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_scheme_name",
+      "label": "Scheme Name, Scheme Number & Physical Address",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "E.g., SS Sunset Villas (SS 123/2015) or Sunset Valley Homeowners Association.",
+      "alternatives": []
+    },
+    {
+      "id": "req_scheme_afs",
+      "label": "Latest Audited Annual Financial Statements (AFS) / Annual Budget",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Signed AFS or AGM approved budget showing total annual levies.",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_trustee_details",
+      "label": "Current Trustees / Directors Contact Details",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "List of trustees with ID numbers and email addresses.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_csos_levy_schedule",
+      "label": "Unit Count & Monthly Administrative Levy Schedule per Unit (Excel or PDF)",
+      "type": "excel",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "PDF levy roll from managing agent"
+      ],
+      "isRequired": true,
+      "helpText": "Upload the scheme unit levy roll showing each unit monthly levy so we can reconcile the statutory CSOS levy calculation (2% of monthly levy above R500, capped at R40/unit).",
+      "aiHint": "Community scheme levy roll or schedule listing all units and their monthly administrative levies."
+    },
+    {
+      "id": "req_csos_portal_user",
+      "label": "CSOS Connect Portal Login Email / Username (If Already Registered on CSOS Connect)",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Provide the CSOS Connect login email if the scheme is already linked on CSOS Connect."
+    },
+    {
+      "id": "req_csos_portal_pass",
+      "label": "CSOS Connect Portal Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": false,
+      "helpText": "Your CSOS Connect password (stored encrypted)."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "csos_collect",
+      "title": "Collect scheme financials, trustee details, and levy budget",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Scheme number, AFS, and unit count confirmed"
+    },
+    {
+      "id": "csos_draft",
+      "title": "Compile CSOS Form CS1 / CS2 and levy reconciliation",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "CSOS submission forms and levy schedules compiled",
+      "templateIds": [
+        "csos_form_cs1",
+        "csos_levy_schedule",
+        "handoff_sheet"
+      ]
+    },
+    {
+      "id": "csos_file",
+      "title": "Submit return to CSOS regional office / portal",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "other",
+      "estimatedDays": 1,
+      "doneCriteria": "Lodged with CSOS and tracking reference generated",
+      "submitMode": "stage"
+    },
+    {
+      "id": "csos_deliver",
+      "title": "Deliver filing confirmation and levy receipt to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Submission receipt and next year diary date delivered to trustees"
+    },
+    {
+      "id": "csos_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

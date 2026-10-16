@@ -1,0 +1,216 @@
+{
+  "slug": "cidb-3-year-renewal",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Renewed 3-Year CIDB Register of Contractors Certificate",
+    "Triennial Grading Re-Assessment Working Schedule (for Grades 2–9)",
+    "CRS Renewal Confirmation & New 36-Month Expiry Date"
+  ],
+  "playbookCommonFailures": [
+    "Director certified IDs or bank confirmation letter older than 3 months at submission",
+    "Graded contractor (Grades 2–9) fails to supply signed AFS or completion certificates within the 5-year look-back window, resulting in a downgrade to Grade 1",
+    "Company directors on CIPC CoR 14.3 do not match the directors listed on the CIDB CRS / CSD profile",
+    "SARS TCS PIN is non-compliant or CIDB statutory renewal fees remain unpaid by the contractor"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_cidb3_crs_details",
+      "label": "Current CIDB CRS Number, Class(es) of Works & Current Grade(s) Being Renewed",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your CIDB CRS number and the class(es) of works and grade(s) you are renewing for the next 3-year cycle."
+    },
+    {
+      "id": "req_cidb3_crs_username",
+      "label": "CIDB CRS Portal Login Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true,
+      "helpText": "Your CIDB CRS online login username."
+    },
+    {
+      "id": "req_cidb3_crs_password",
+      "label": "CIDB CRS Portal Login Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true,
+      "helpText": "Your CIDB CRS online login password (stored encrypted)."
+    },
+    {
+      "id": "req_cidb3_current_cert",
+      "label": "Current / Expiring CIDB Registration Certificate",
+      "type": "pdf",
+      "documentKind": "cidb_certificate",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your current or expiring CIDB certificate.",
+      "aiHint": "Current CIDB Register of Contractors certificate showing the CRS number, current grade(s), class(es) of works, and 3-year expiry date."
+    },
+    {
+      "id": "req_mv1e9f4a",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your CIPC CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 showing the registered enterprise name, registration number, and current active directors."
+    },
+    {
+      "id": "req_kudfrkvi",
+      "label": "Certified SA ID Copies of All Active Directors (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director only)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) for all active directors on the CoR 14.3.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_2xvz2v4m",
+      "label": "Proof of Physical Business Address (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates & taxes account"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a utility bill, municipal account, or lease agreement (< 3 months) in the company name.",
+      "aiHint": "Proof of physical business address dated within 90 days in the registered company name."
+    },
+    {
+      "id": "req_cidb3_bank_conf",
+      "label": "Business Bank Confirmation Letter (In the Company Name, Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload a stamped or QR-verified bank confirmation letter (< 3 months) in the company name.",
+      "aiHint": "Official bank confirmation letter from a registered SA bank in the company legal name, dated within 90 days."
+    },
+    {
+      "id": "req_rdj786d8",
+      "label": "SARS Tax Compliance Status (TCS) PIN Letter",
+      "type": "pdf",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the unexpired SARS Tax Compliance Status (TCS) PIN letter for the company.",
+      "aiHint": "SARS Tax Compliance Status (TCS) PIN letter for the company showing Compliant status."
+    },
+    {
+      "id": "req_vzthf7t1",
+      "label": "Latest 2 Years Signed Annual Financial Statements (Required for Grades 2–9)",
+      "type": "pdf",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Are you renewing a CIDB grading of Grade 2 or higher?",
+      "helpText": "For Grades 2–9, upload your signed Annual Financial Statements for the past 2 financial years so CIDB can re-verify turnover and available capital.",
+      "aiHint": "Signed Annual Financial Statements for the past two financial years used by CIDB to test best annual turnover and net asset value / available capital."
+    },
+    {
+      "id": "req_845vynkm",
+      "label": "Completed Project Completion Certificates, Letters of Award & Payment Proof (Required for Grades 2–9)",
+      "type": "pdf",
+      "documentKind": "completion_certificate",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Letters of Award + Final Payment Certificates"
+      ],
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Are you renewing a CIDB grading of Grade 2 or higher?",
+      "helpText": "For Grades 2–9, upload signed Practical/Final Completion Certificates and Letters of Award within the 5-year look-back window.",
+      "aiHint": "Signed project completion certificates and letters of award in the company name showing contract value, scope/class of works, and completion date."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cidb3_collect",
+      "title": "Collect 3-year CIDB renewal documents, CRS credentials, and Grade 2–9 financials/track record",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Current CIDB certificate, CRS login, CoR 14.3, certified IDs, proof of address, bank letter, TCS PIN, and (for Grades 2–9) AFS & project certificates received",
+      "aiInstructions": "Every 36 months the CIDB conducts a full re-registration / re-assessment of the contractor. Confirm whether the client is renewing Grade 1 (documents only) or Grades 2–9 (requires full financial capability & works capability re-assessment). Remind that CIDB statutory fees are payable directly to the CIDB."
+    },
+    {
+      "id": "cidb3_verify",
+      "title": "Verify KYC documents, TCS PIN, CSD sync, and Grade 2–9 financial/project track record",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "All uploads verified < 90 days; TCS PIN compliant; Grade 2–9 turnover, available capital, and largest contract verified against CIDB thresholds",
+      "aiInstructions": "Check CoR14.3 directors against certified IDs and CRS/CSD profile. For Grades 2–9, verify that the two years signed AFS and completion certificates support the renewal grade."
+    },
+    {
+      "id": "cidb3_handoff",
+      "title": "Prepare 3-year CIDB renewal hand-off sheet and grading schedule for Kevin",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Triennial renewal hand-off sheet and grade verification schedule drafted for review",
+      "aiInstructions": "Compile all CRS renewal fields, director particulars, TCS PIN, bank details, and (for Grades 2–9) turnover, net asset value, and largest completed contract schedule."
+    },
+    {
+      "id": "cidb3_file",
+      "title": "Stage 3-year CIDB renewal on the CIDB CRS portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cidb",
+      "portalProcedure": "cidb.submitThreeYearRenewal",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "3-year renewal staged and submitted on CIDB CRS with all supporting documents; CIDB fee invoice sent to client",
+      "aiInstructions": "Log into CIDB CRS using the client credentials, capture the 36-month renewal and any director/address updates, upload all verified supporting documents, and send the CIDB statutory fee payment reference to the client."
+    },
+    {
+      "id": "cidb3_wait",
+      "title": "Monitor CIDB assessment and follow up until the renewed 3-year certificate is issued",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        7,
+        14,
+        21
+      ],
+      "estimatedDays": 20,
+      "doneCriteria": "Renewed 3-year CIDB certificate issued on CRS",
+      "aiInstructions": "Check CRS status at Days 7, 14, and 21. If CIDB assessors raise a verification query on financials or project references, escalate to Kevin with the exact query."
+    },
+    {
+      "id": "cidb3_deliver",
+      "title": "Deliver renewed 3-year CIDB certificate to the client portal",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "cidb_certificate"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Renewed 3-year CIDB certificate posted to Communication History with annual confirmation dates noted",
+      "aiInstructions": "Deliver the renewed CIDB certificate and remind the client that annual confirmations are still required in Years 1 and 2 between 3-year renewals."
+    },
+    {
+      "id": "cidb3_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

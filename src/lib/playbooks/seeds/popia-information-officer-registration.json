@@ -1,0 +1,93 @@
+{
+  "slug": "popia-information-officer-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Official Information Regulator of South Africa Information Officer Registration Certificate",
+    "Signed Information Officer Designation Letter / Mandate"
+  ],
+  "playbookCommonFailures": [
+    "Information Regulator eServices portal rejects registration if the company CIPC registration number is already linked to a forgotten user account",
+    "Information Officer email address cannot receive the Information Regulator verification OTP link"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_io_details",
+      "label": "Information Officer Full Name, Email, Phone & Directorship Role",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The head of the private body (CEO, MD, partner, or sole proprietor) or their formally designated deputy.",
+      "alternatives": []
+    },
+    {
+      "id": "req_cipc_cert",
+      "label": "CIPC Company Registration Certificate",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Company registration document showing registration number and registered office.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_io_certified_id",
+      "label": "Certified SA ID Copy of the Designated Information Officer (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign national)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a certified SA ID copy (< 3 months) of the appointed Information Officer (and Deputy IO, if applicable).",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_io_designation_letter",
+      "label": "Signed Information Officer Designation Letter / Board Resolution (We Draft This for Signature if Needed)",
+      "type": "pdf",
+      "documentKind": "resolution",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the signed Information Officer authorisation/designation letter on company letterhead.",
+      "aiHint": "Signed designation letter or board resolution appointing the Information Officer (and any Deputy Information Officer) under POPIA."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "io_collect",
+      "title": "Collect Information Officer and company details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Officer details and CIPC data confirmed"
+    },
+    {
+      "id": "io_file",
+      "title": "Submit registration on Information Regulator portal",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "other",
+      "estimatedDays": 1,
+      "doneCriteria": "Officer registered and official registration certificate generated",
+      "submitMode": "stage"
+    },
+    {
+      "id": "io_deliver",
+      "title": "Deliver official Information Officer Certificate to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate and compliance guidelines posted to Communication History"
+    },
+    {
+      "id": "io_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

@@ -14,13 +14,104 @@
     "CIDB registration fee unpaid (our fee excludes it), so the application sits unprocessed"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The CIDB registers the company; directors are captured from this document." },
-    { "label": "Certified copies of director(s) IDs", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified ID copy for every director on the CoR14.3, certified within the last 3 months with legible stamp, signature and date." },
-    { "label": "Proof of construction experience or completed projects", "documentKind": "completion_certificate", "inNameOf": "entity", "alternatives": ["Letters of award", "Signed contracts with values", "Client reference letters with project value and dates"], "isRequired": false, "aiHint": "Completion certificates or letters of award in the company's name showing project description, class of works, value (excl. VAT) and completion date, signed by the client / principal agent. Not required for Grade 1; needed for Grade 2 and above to prove track record." },
-    { "label": "Latest audited financial statements or management accounts", "documentKind": "afs", "inNameOf": "entity", "alternatives": ["Signed management accounts", "Bank statements showing available capital (for Grade 2–3)"], "isRequired": false, "aiHint": "Signed AFS or management accounts for the latest financial year. Not required for Grade 1; for higher grades the CIDB uses turnover and available capital from these. ⚠ verify the current grade thresholds on the CIDB site." },
-    { "label": "Proof of business address (e.g., utility bill)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease in the company's name dated within 3 months." },
-    { "label": "Tax Compliance Status (TCS) PIN", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company. The CIDB verifies the PIN with SARS; note the PIN and expiry date." },
-    { "label": "Class of works to register for (one included)", "type": "text", "isRequired": true, "aiHint": "The single CIDB class of works the client wants (e.g. GB General Building, CE Civil Engineering, EB Electrical Building, SB Specialist). Extra classes are charged separately. If the client is unsure, capture what work they actually do so Kevin can choose." }
+    {
+      "label": "Company registration documents (e.g., CIPC COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The CIDB registers the company; directors are captured from this document.",
+      "id": "req_ggz73ea9"
+    },
+    {
+      "label": "Certified copies of director(s) IDs",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy for a foreign director"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_seis1rx4"
+    },
+    {
+      "label": "Proof of construction experience or completed projects",
+      "type": "pdf",
+      "documentKind": "completion_certificate",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Letters of award",
+        "Signed contracts with values",
+        "Client reference letters with project value and dates"
+      ],
+      "isRequired": false,
+      "aiHint": "Completion certificates or letters of award in the company's name showing project description, class of works, value (excl. VAT) and completion date, signed by the client / principal agent. Not required for Grade 1; needed for Grade 2 and above to prove track record.",
+      "id": "req_257nucfk"
+    },
+    {
+      "label": "Latest audited financial statements or management accounts",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Signed management accounts",
+        "Bank statements showing available capital (for Grade 2–3)"
+      ],
+      "isRequired": false,
+      "aiHint": "Signed AFS or management accounts for the latest financial year. Not required for Grade 1; for higher grades the CIDB uses turnover and available capital from these. ⚠ verify the current grade thresholds on the CIDB site.",
+      "id": "req_hyifhm7o",
+      "type": "pdf"
+    },
+    {
+      "label": "Proof of business address (e.g., utility bill)",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates account"
+      ],
+      "isRequired": true,
+      "aiHint": "Utility bill, municipal account or lease in the company's name dated within 3 months.",
+      "id": "req_4ojzg1lt",
+      "type": "pdf"
+    },
+    {
+      "label": "Tax Compliance Status (TCS) PIN",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status PIN letter for the company. The CIDB verifies the PIN with SARS; note the PIN and expiry date.",
+      "id": "req_r9bgy1k9",
+      "type": "pdf"
+    },
+    {
+      "label": "Class of works to register for (one included)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The single CIDB class of works the client wants (e.g. GB General Building, CE Civil Engineering, EB Electrical Building, SB Specialist). Extra classes are charged separately. If the client is unsure, capture what work they actually do so Kevin can choose.",
+      "id": "req_3fygdwak"
+    },
+    {
+      "id": "req_cidb_bank_conf",
+      "label": "Business Bank Confirmation Letter (In the Company Name, Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload an official stamped or QR-verified bank confirmation letter in the company legal name (< 3 months).",
+      "aiHint": "Official bank account confirmation letter from a registered SA bank in the company legal name, dated within 90 days."
+    },
+    {
+      "id": "req_cidb_csd_and_target_grade",
+      "label": "CSD Supplier Number (MAAA...), Target CIDB Grade (Grade 1 vs Grades 2–9) & Primary Contact Details (Email & Cellphone)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your CSD MAAA supplier number, target CIDB grade (e.g., Grade 1 GB/CE), and the contact email and cellphone number for your CIDB CRS profile."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -46,7 +137,9 @@
       "title": "Prepare CRS application hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every CRS application field and the recommended grade posted for Kevin",
       "aiInstructions": "Mirror the CIDB CRS online application: enterprise details, directors / shareholders with ID numbers, contact details, class of works, requested grade, TCS PIN, and — for grades above 1 — largest completed contract value, turnover and available capital with document references. Recommend a grade with reasoning but mark it as Kevin's call. ⚠ verify current grade thresholds and fees on the CIDB site before quoting either."
@@ -68,7 +161,11 @@
       "title": "Wait for CIDB approval and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [5, 10, 20],
+      "followUpAfterDays": [
+        5,
+        10,
+        20
+      ],
       "estimatedDays": 15,
       "doneCriteria": "CIDB certificate available on CRS or a query raised",
       "aiInstructions": "Check the CRS status at each follow-up point and draft a status query to the CIDB quoting the CRS number if it has not moved. If the CIDB requests further proof (common for grades above 1), create a proposal for Kevin with the exact request."
@@ -78,7 +175,9 @@
       "title": "Deliver CIDB certificate and CRS number to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cidb_certificate"],
+      "deliverArtefacts": [
+        "cidb_certificate"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Certificate and CRS number posted to Communication History",
       "aiInstructions": "Post the certificate, CRS number, grade and class. Explain that the registration is renewed annually and that grade upgrades need AFS and project proof; offer the CIDB Annual Renewal and CIDB Upgrade services."

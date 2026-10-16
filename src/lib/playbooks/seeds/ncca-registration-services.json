@@ -14,13 +14,123 @@
     "Nature-of-business description does not match the activity the body registers"
   ],
   "informationToProvide": [
-    { "label": "Certified copies of all directors'/members' ID documents - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified ID copy for every director on the CoR14.3 (or member on the CK document), certified within the last 3 months with legible stamp, signature and date." },
-    { "label": "Company registration documents (e.g., CIPC CoR14.3, CoR39)", "documentKind": "cor14_3", "inNameOf": "entity", "alternatives": ["CoR39 showing current directors", "CK1 / CK2 for a close corporation"], "isRequired": true, "aiHint": "CIPC CoR14.3 and, where directors have changed, the latest CoR39. Registered name, enterprise number and directors must match the IDs supplied." },
-    { "label": "Proof of business address (utility bill or lease agreement)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or signed lease in the company's name showing the physical business address, dated within 3 months." },
-    { "label": "Details regarding the nature of your business activities requiring NCCA registration", "type": "text", "isRequired": true, "aiHint": "Plain description of what the business does, for whom, and why NCCA registration is required (e.g. a tender, a client contract, a licence condition). Also ask which body the client understands 'NCCA' to be — this tells Kevin where the application goes." },
-    { "label": "Completed NCCA-specific information forms (if applicable, provided by us)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "The body's own application form completed and signed by a director, if we have supplied one. Check every mandatory field is filled and the signature is present." },
-    { "label": "Letter of good standing from the Department of Labour for Compensation for Occupational Injuries and Diseases Act (COIDA)", "documentKind": "letter_of_good_standing", "inNameOf": "entity", "isRequired": true, "aiHint": "Current Compensation Fund Letter of Good Standing in the company's name; check the expiry date printed on it is in the future. If none exists, offer COIDA Registration / Renewal first." },
-    { "label": "Proof of registration with SARS (income tax number / TCS PIN)", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": false, "aiHint": "SARS Notice of Registration or Tax Compliance Status PIN letter for the company. The catalogue prerequisite is truncated at 'Proof' — ⚠ confirm with Kevin what proof is intended." }
+    {
+      "label": "Certified copies of all directors'/members' ID documents - not older than 3 months",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy for a foreign director"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_lzyapw1s",
+      "type": "pdf"
+    },
+    {
+      "label": "Company registration documents (e.g., CIPC CoR14.3, CoR39)",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": [
+        "CoR39 showing current directors",
+        "CK1 / CK2 for a close corporation"
+      ],
+      "isRequired": true,
+      "aiHint": "CIPC CoR14.3 and, where directors have changed, the latest CoR39. Registered name, enterprise number and directors must match the IDs supplied.",
+      "id": "req_7t6bvlge",
+      "type": "pdf"
+    },
+    {
+      "label": "Proof of business address (utility bill or lease agreement)",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates account"
+      ],
+      "isRequired": true,
+      "aiHint": "Utility bill, municipal account or signed lease in the company's name showing the physical business address, dated within 3 months.",
+      "id": "req_obju0u36",
+      "type": "pdf"
+    },
+    {
+      "label": "Details regarding the nature of your business activities requiring NCCA registration",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Plain description of what the business does, for whom, and why NCCA registration is required (e.g. a tender, a client contract, a licence condition). Also ask which body the client understands 'NCCA' to be — this tells Kevin where the application goes.",
+      "id": "req_f9bcqrqu"
+    },
+    {
+      "label": "Completed NCCA-specific information forms (if applicable, provided by us)",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "The body's own application form completed and signed by a director, if we have supplied one. Check every mandatory field is filled and the signature is present.",
+      "id": "req_ffbignd1",
+      "type": "pdf"
+    },
+    {
+      "label": "Letter of good standing from the Department of Labour for Compensation for Occupational Injuries and Diseases Act (COIDA)",
+      "documentKind": "letter_of_good_standing",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Current Compensation Fund Letter of Good Standing in the company's name; check the expiry date printed on it is in the future. If none exists, offer COIDA Registration / Renewal first.",
+      "id": "req_ezlbf5yi",
+      "type": "pdf"
+    },
+    {
+      "label": "Valid SARS Tax Compliance Status (TCS) PIN Letter",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Notice of Registration or Tax Compliance Status PIN letter for the company. The catalogue prerequisite is truncated at 'Proof' — ⚠ confirm with Kevin what proof is intended.",
+      "id": "req_68p4a40v",
+      "type": "pdf"
+    },
+    {
+      "id": "req_ncca_bank_conf",
+      "label": "Business Bank Confirmation Letter (In the Company Name, Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload an official bank confirmation letter (< 3 months) in the company name.",
+      "aiHint": "Official bank account confirmation letter from a registered SA bank in the company name, dated within 90 days."
+    },
+    {
+      "id": "req_ncca_public_liability",
+      "label": "Proof of Public Liability Insurance Policy (Minimum R1,000,000 Cover, Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "NCCA membership requires proof of active Public Liability Insurance with a minimum cover of R1 million.",
+      "aiHint": "Public Liability Insurance policy schedule or broker confirmation in the company name showing active cover of at least R1,000,000."
+    },
+    {
+      "id": "req_ncca_nbc_certificate",
+      "label": "Valid NBC Provident Fund Certificate / Bargaining Council Letter of Good Standing",
+      "type": "pdf",
+      "documentKind": "letter_of_good_standing",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your valid NBC Contract Cleaning National Provident Fund / BCCCI compliance certificate.",
+      "aiHint": "Valid compliance certificate or Letter of Good Standing from NBC Holdings / Contract Cleaning Provident Fund or Bargaining Council in the company name."
+    },
+    {
+      "id": "req_ncca_bee_and_ohs",
+      "label": "Valid B-BBEE Certificate / Sworn Affidavit & Occupational Health and Safety (OHS) Appointment Letter",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your valid B-BBEE Sworn Affidavit / Certificate and your internal OHS Section 16(2) / Safety Representative appointment letter.",
+      "aiHint": "Valid B-BBEE Certificate or Sworn Affidavit in the company name alongside the Occupational Health and Safety appointment letter."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -30,7 +140,7 @@
       "owner": "agent",
       "estimatedDays": 5,
       "doneCriteria": "Every required document uploaded, nature-of-business answered, COIDA Letter of Good Standing valid",
-      "aiInstructions": "⚠ ASK KEVIN BEFORE ANYTHING ELSE: the catalogue calls this 'NCCA Registration' but does not say which body that is (plan §4.4 flags it as ambiguous). Do not chase documents that assume a particular body until Kevin confirms the regulator, its form and its channel. Once confirmed: chase only what is missing, name each document and why the body needs it, and remind that certified IDs and proof of address must be within 3 months. Do not promise a shorter turnaround than 21–45 working days."
+      "aiInstructions": "This service registers a cleaning company with the National Contract Cleaners Association (NCCA — www.ncca.co.za). Chase any missing NCCA statutory requirements: CoR 14.3, certified director IDs (< 3 months), proof of business address, bank confirmation letter, SARS TCS PIN, COIDA Letter of Good Standing, NBC Provident Fund Certificate, Public Liability Insurance (min R1m), B-BBEE Certificate, and OHS appointment letter."
     },
     {
       "id": "ncca_verify",
@@ -46,7 +156,11 @@
       "title": "Draft application pack: cover letter, POA and hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["cover_letter", "power_of_attorney", "handoff_sheet"],
+      "templateIds": [
+        "cover_letter",
+        "power_of_attorney",
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Cover letter, POA and application field hand-off sheet posted for Kevin's review",
       "aiInstructions": "Cover letter on My Accountant letterhead addressed to the body Kevin confirms, listing the enclosed documents. Special POA authorising Kevin Freese (CIBA #3561) to lodge and follow up the application. Hand-off sheet mirroring the body's application form fields (⚠ verify the form once the body is known) filled from extracted facts; never invent a membership category, fee or activity code — leave blank and flag."
@@ -65,19 +179,23 @@
       "title": "Email application pack to the registering body",
       "type": "email_submission",
       "owner": "agent",
-      "emailTo": "registrations@ncca-body.invalid",
+      "emailTo": "info@ncca.co.za",
       "emailSubjectTemplate": "Application for registration — {entityName} ({registrationNumber})",
       "expectedReply": "Acknowledgement with an application reference and any fee invoice",
       "estimatedDays": 1,
       "doneCriteria": "Pack sent and acknowledgement received",
-      "aiInstructions": "⚠ CONFIRM ADDRESS WITH KEVIN — the address above is a placeholder and MUST be replaced; which body 'NCCA' refers to is unknown and plan §4.4 marks the channel ⚠. Attach: signed application form, cover letter, POA, CoR14.3 / CoR39, certified director IDs, proof of address, COIDA Letter of Good Standing, SARS proof. If the body issues a fee invoice, draft a client message with the amount and reference — our fee excludes the body's fees."
+      "aiInstructions": "Submit the complete NCCA membership application dossier (signed NCCA application form, cover letter, POA, CoR 14.3, certified director IDs, proof of address, bank confirmation, SARS TCS PIN, COIDA Letter of Good Standing, NBC Provident Fund certificate, Public Liability Insurance >= R1m, B-BBEE certificate, and OHS letter) to the NCCA regional branch (info@ncca.co.za). Remind client that NCCA membership/inspection fees are payable directly to the NCCA."
     },
     {
       "id": "ncca_wait",
       "title": "Wait for the body's decision and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [15, 30, 45],
+      "followUpAfterDays": [
+        15,
+        30,
+        45
+      ],
       "estimatedDays": 45,
       "doneCriteria": "Registration certificate / number received, or a query from the body",
       "aiInstructions": "Draft a polite status-request email quoting the reference at each follow-up point. If the body raises a query, create a proposal for Kevin with the query text and the documents it concerns."
@@ -87,7 +205,9 @@
       "title": "Deliver NCCA certificate and number to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["ncca_certificate"],
+      "deliverArtefacts": [
+        "ncca_certificate"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Certificate and registration number posted to Communication History",
       "aiInstructions": "Post the certificate, note any renewal date printed on it and the need to keep the COIDA Letter of Good Standing current."

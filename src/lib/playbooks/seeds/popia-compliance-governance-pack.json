@@ -1,0 +1,89 @@
+{
+  "slug": "popia-compliance-governance-pack",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Customized POPIA Compliance Policy Manual",
+    "Customized Section 51 PAIA Manual (Private Body)",
+    "Website Privacy Policy, Cookie Notice & Operator Data Processing Agreement (DPA) Templates",
+    "Data Breach Incident Response Plan & Employee POPIA Consent Clauses"
+  ],
+  "playbookCommonFailures": [
+    "Missing Information Officer contact details or physical address required by statutory Section 51 PAIA Manual regulations",
+    "Incomplete description of third-party data operators / cloud processors"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_biz_profile",
+      "label": "Business Name, Registration Number, and Website URL",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Details to embed into the manual, privacy policy, and client agreements.",
+      "alternatives": []
+    },
+    {
+      "id": "req_data_types",
+      "label": "Types of Personal Information Collected (Customers, Staff, Suppliers)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "E.g., names, IDs, financial details, contact numbers, CCTV footage.",
+      "alternatives": []
+    },
+    {
+      "id": "req_pcp_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 showing the legal entity name, registration number, and registered address."
+    },
+    {
+      "id": "req_pcp_io_and_address",
+      "label": "Designated Information Officer & Deputy Information Officer Full Names, Email, Telephone & Physical/Postal Business Address",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the full name, title, email, and telephone number of your Information Officer (and any Deputy Information Officer), plus your physical and postal business addresses for your Section 51 PAIA Manual."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "pcp_collect",
+      "title": "Review business processing activities and data flows",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Data categories, website details, and operator relationships confirmed"
+    },
+    {
+      "id": "pcp_draft",
+      "title": "Customize full 11-document policy and manual bundle",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Section 51 manual, operator DPA, and consent notices customized",
+      "templateIds": [
+        "popia_policy_manual",
+        "paia_s51_manual",
+        "website_privacy_policy",
+        "operator_dpa"
+      ]
+    },
+    {
+      "id": "pcp_deliver",
+      "title": "Deliver editable Word and branded PDF pack to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Complete pack and implementation guide delivered to client"
+    },
+    {
+      "id": "pcp_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

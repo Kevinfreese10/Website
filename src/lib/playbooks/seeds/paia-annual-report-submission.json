@@ -1,0 +1,88 @@
+{
+  "slug": "paia-annual-report-submission",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Submitted Section 32 / Section 83 PAIA Annual Report on the Information Regulator Portal",
+    "Official Information Regulator PAIA Annual Report Submission Receipt"
+  ],
+  "playbookCommonFailures": [
+    "Entity has not yet registered its Information Officer on the Information Regulator eServices portal (prerequisite before PAIA Annual Report tab unlocks)",
+    "Information Regulator eServices login credentials unknown or OTP sent to an inactive email address"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_paia_company_and_io",
+      "label": "Company Name, CIPC Registration Number & Registered Information Officer Full Name and Email",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the registered company name, CIPC registration number, and the name and email address of your registered Information Officer."
+    },
+    {
+      "id": "req_requests_count",
+      "label": "Number of PAIA requests received during the financial year",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Enter 0 if no formal access to information requests were lodged with your business.",
+      "alternatives": []
+    },
+    {
+      "id": "req_io_reg_num",
+      "label": "Information Officer Registration Reference (if available)",
+      "type": "text",
+      "isRequired": false,
+      "aiHint": "The reference number received when the Information Officer was registered.",
+      "alternatives": []
+    },
+    {
+      "id": "req_paia_portal_user",
+      "label": "Information Regulator eServices Portal Username / Email",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Login email used on eservices.inforegulator.org.za."
+    },
+    {
+      "id": "req_paia_portal_pass",
+      "label": "Information Regulator eServices Portal Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true,
+      "helpText": "Your Information Regulator eServices portal password (stored encrypted)."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "paia_collect",
+      "title": "Collect PAIA request statistics and entity details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Request count and entity details confirmed"
+    },
+    {
+      "id": "paia_file",
+      "title": "Prepare and lodge report on Information Regulator eServices",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "other",
+      "estimatedDays": 1,
+      "doneCriteria": "Submitted and official receipt generated",
+      "submitMode": "stage"
+    },
+    {
+      "id": "paia_deliver",
+      "title": "Deliver submission acknowledgement to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Proof of filing delivered to client portal"
+    },
+    {
+      "id": "paia_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

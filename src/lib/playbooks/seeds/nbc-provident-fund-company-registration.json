@@ -14,12 +14,105 @@
     "Employer already registered with the council under a previous owner or trading name"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The employer registered with the council is the company." },
-    { "label": "Certified ID copies of all employees to be registered - not older than 3 months", "documentKind": "sa_id", "inNameOf": "either", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport and work permit for a foreign employee"], "isRequired": true, "aiHint": "One certified ID copy per employee to be registered, certified within the last 3 months. Count the IDs against the employee list and flag any employee without one." },
-    { "label": "Employee details (full names, ID numbers, contact info)", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Payroll register", "Typed list in the questionnaire"], "isRequired": true, "aiHint": "List of employees with full names, ID numbers, cell number / email, occupation or job grade, date of engagement and basic wage. Job grade and wage matter because council contribution rates are set per grade." },
-    { "label": "Proof of business address (Municipal bill, rates and Taxes -  not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Utility bill"], "isRequired": true, "aiHint": "Municipal rates / taxes account or utility bill in the company's name dated within 3 months, showing the physical address where the employees work (the council's scope is regional)." },
-    { "label": "Contact information for all directors (email and contact)", "type": "text", "isRequired": true, "aiHint": "Email address and cell number for each director on the CoR14.3; the council writes to the directors when confirming the registration." },
-    { "label": "Which bargaining council / provident fund the business falls under", "type": "text", "isRequired": true, "aiHint": "Ask the client which council they have been told to register with (e.g. a national bargaining council for their industry) and which region. If they do not know, capture the industry and province so Kevin can determine scope." }
+    {
+      "id": "req_nl5tjhjx",
+      "label": "Company registration documents (e.g., CIPC COR14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The employer registered with the council is the company.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_tbyyxnd0",
+      "label": "Certified ID copies of all employees to be registered - not older than 3 months",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport and work permit for a foreign employee"
+      ]
+    },
+    {
+      "id": "req_x5a46awm",
+      "label": "Proof of business address (Municipal bill, rates and Taxes -  not older than 3 months",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Municipal rates / taxes account or utility bill in the company's name dated within 3 months, showing the physical address where the employees work (the council's scope is regional).",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Utility bill"
+      ]
+    },
+    {
+      "id": "req_ij5zk6bi",
+      "label": "Contact Person ",
+      "type": "text",
+      "isRequired": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_hm60zw9x",
+      "label": "Contact number",
+      "type": "text",
+      "isRequired": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_rlh3u4eo",
+      "label": "Email address",
+      "type": "text",
+      "isRequired": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_rju6hs9f",
+      "label": "Employee details (full names, ID numbers, contact info)",
+      "type": "excel",
+      "isRequired": true,
+      "aiHint": "List of employees with full names, ID numbers, cell number / email, occupation or job grade, date of engagement and basic wage. Job grade and wage matter because council contribution rates are set per grade.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Payroll register",
+        "Typed list in the questionnaire"
+      ]
+    },
+    {
+      "id": "req_39pd9jqp",
+      "label": "Contact information for all directors (email and contact)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Email address and cell number for each director on the CoR14.3; the council writes to the directors when confirming the registration.",
+      "alternatives": []
+    },
+    {
+      "id": "req_ybmozc4u",
+      "label": "Which bargaining council / provident fund the business falls under",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Ask the client which council they have been told to register with (e.g. a national bargaining council for their industry) and which region. If they do not know, capture the industry and province so Kevin can determine scope.",
+      "alternatives": []
+    },
+    {
+      "id": "req_nbc_bank_conf",
+      "label": "Business Bank Confirmation Letter (In the Company Name, Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload an official bank confirmation letter (< 3 months) in the company name for NBC Provident Fund contribution debit/EFT setup.",
+      "aiHint": "Official bank account confirmation letter from a registered SA bank in the company legal name, dated within 90 days."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -29,7 +122,7 @@
       "owner": "agent",
       "estimatedDays": 3,
       "doneCriteria": "CoR14.3, proof of address, director contacts, complete employee list and a certified ID for every employee received; council identified",
-      "aiInstructions": "⚠ ASK KEVIN: the catalogue says 'NBC Provident Fund' but does not name the bargaining council (there are several national bargaining councils each with its own provident fund). Confirm which council and its registration form before drafting. Chase only what is missing and explain that the council needs a certified ID per employee and a wage / grade per employee to set contributions. Do not promise a shorter turnaround than 3–5 working days for submission; the council's own confirmation may take longer."
+      "aiInstructions": "This service registers a Contract Cleaning employer and its employees with the Contract Cleaning National Provident Fund (administered by NBC Holdings under Sectoral Determination 6 / BCCCI). Chase any missing documents: CoR 14.3, certified IDs (< 3 months) for directors and every employee, proof of business address, bank confirmation letter, and the employee wage/grade schedule."
     },
     {
       "id": "nbc_verify",
@@ -45,7 +138,10 @@
       "title": "Draft council employer registration form values and POA",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "power_of_attorney"],
+      "templateIds": [
+        "handoff_sheet",
+        "power_of_attorney"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with the council's employer application fields and employee schedule, plus POA, posted for Kevin",
       "aiInstructions": "Prepare a hand-off sheet mirroring the council's employer registration form (employer name, trading name, CIPC number, PAYE / UIF / COIDA numbers if known, physical address, sector, number of employees, commencement date) and an employee schedule (name, ID, occupation / grade, wage, start date). ⚠ verify the actual council form name once Kevin confirms the council. Draft a Special POA on My Accountant letterhead authorising Kevin Freese (CIBA #3561) to register the employer and employees. Never invent a wage or grade — leave blank and flag."
@@ -64,19 +160,23 @@
       "title": "Email registration pack to the bargaining council",
       "type": "email_submission",
       "owner": "agent",
-      "emailTo": "registrations@bargainingcouncil.invalid",
+      "emailTo": "cleaning@nbcholdings.co.za",
       "emailSubjectTemplate": "New employer and employee registration — {entityName} ({registrationNumber})",
       "expectedReply": "Council acknowledgement with an employer number and member confirmation",
       "estimatedDays": 1,
       "doneCriteria": "Pack sent and acknowledgement received",
-      "aiInstructions": "Attach: signed employer application, employee schedule, certified employee IDs, CoR14.3, proof of address, POA. ⚠ CONFIRM ADDRESS WITH KEVIN — the address above is a placeholder; plan §4.3 marks this channel ⚠ and the council has not been identified. Replace with the council's registration mailbox or portal upload once Kevin confirms."
+      "aiInstructions": "Submit the signed NBC Contract Cleaning National Provident Fund employer & member registration forms, employee schedule, certified IDs, CoR 14.3, proof of address, bank confirmation letter, and POA to NBC Holdings (confirm regional NBC email/portal with Kevin prior to dispatch)."
     },
     {
       "id": "nbc_wait",
       "title": "Wait for council confirmation and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [5, 10, 15],
+      "followUpAfterDays": [
+        5,
+        10,
+        15
+      ],
       "estimatedDays": 10,
       "doneCriteria": "Employer number and employee membership confirmation received",
       "aiInstructions": "Follow up quoting the acknowledgement reference. If the council queries scope (industry / region) or an employee's grade, create a proposal for Kevin with the query text."
@@ -86,7 +186,9 @@
       "title": "Deliver council registration confirmation to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["council_registration_confirmation"],
+      "deliverArtefacts": [
+        "council_registration_confirmation"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Employer number and member confirmation posted to Communication History",
       "aiInstructions": "Post the confirmation and explain in plain English that monthly council returns and provident fund contributions are now due for the registered employees. Offer the monthly payroll service."

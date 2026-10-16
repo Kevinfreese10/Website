@@ -14,17 +14,125 @@
     "Tax status non-compliant at SARS on the day of submission"
   ],
   "informationToProvide": [
-    { "label": "CRS Number ", "type": "text", "isRequired": true, "aiHint": "The company's CIDB CRS number as printed on the current certificate. Confirm it and read the current grade and class from the certificate." },
-    { "label": "CIBD Login Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "CIBD Login Password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "Which category do you want to upgrade", "type": "text", "isRequired": true, "aiHint": "The class of works (e.g. GB, CE, EB) and the target grade (2–9) the client wants. If they name only a grade, ask which class; a contractor can hold different grades per class." },
-    { "label": "Relevant shareholder and director information", "type": "text", "isRequired": true, "aiHint": "Full names, ID numbers and shareholding percentages of all shareholders and directors as at today. The CRS profile must match the CoR14.3 and share register before the upgrade is processed." },
-    { "label": "Proof of completed projects (signed completion certificates, scope of work, values)", "documentKind": "completion_certificate", "inNameOf": "entity", "isRequired": true, "aiHint": "Completion certificates in the company's name, signed by the client / principal agent, showing project description, class of works, contract value (excl. VAT) and completion date within the CIDB's look-back window (⚠ verify: normally the last 5 years). The single largest contract determines works capability, so identify it clearly." },
-    { "label": "Bank Confirmation Letter in the name of the business", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable." },
-    { "label": "Company registration document (COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 showing the registered name, enterprise number and current directors. Must match the CRS profile and the shareholder / director information supplied." },
-    { "label": "Tax Clearance Certificate (TCC)", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company, unexpired and showing 'Compliant'. The CIDB verifies it with SARS." },
-    { "label": "Audited or management financial statements for the past two years", "documentKind": "afs", "inNameOf": "entity", "alternatives": ["Independently reviewed AFS", "Signed management accounts (lower grades only, ⚠ verify)"], "isRequired": true, "aiHint": "Signed AFS for the last two financial years. Used for turnover (best annual turnover in the look-back window) and available capital (net asset value adjusted per CIDB rules). Higher grades require audited or reviewed AFS rather than management accounts — ⚠ verify the grade cut-off." },
-    { "label": "Letters of Award", "documentKind": "letter_of_award", "inNameOf": "entity", "isRequired": false, "aiHint": "Letters of award or signed contracts for the projects claimed, supporting the contract values on the completion certificates. Useful where a completion certificate omits the value." }
+    {
+      "label": "CRS Number ",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The company's CIDB CRS number as printed on the current certificate. Confirm it and read the current grade and class from the certificate.",
+      "id": "req_i6p0geb5"
+    },
+    {
+      "label": "CIDB CRS Login Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true,
+      "id": "req_gie5tqv0"
+    },
+    {
+      "label": "CIDB CRS Login Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true,
+      "id": "req_n33uijjc"
+    },
+    {
+      "label": "Which category do you want to upgrade",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The class of works (e.g. GB, CE, EB) and the target grade (2–9) the client wants. If they name only a grade, ask which class; a contractor can hold different grades per class.",
+      "id": "req_ip773oq8"
+    },
+    {
+      "label": "Relevant shareholder and director information",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Full names, ID numbers and shareholding percentages of all shareholders and directors as at today. The CRS profile must match the CoR14.3 and share register before the upgrade is processed.",
+      "id": "req_zweg449l"
+    },
+    {
+      "label": "Proof of completed projects (signed completion certificates, scope of work, values)",
+      "type": "pdf",
+      "documentKind": "completion_certificate",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Completion certificates in the company's name, signed by the client / principal agent, showing project description, class of works, contract value (excl. VAT) and completion date within the CIDB's look-back window (⚠ verify: normally the last 5 years). The single largest contract determines works capability, so identify it clearly.",
+      "id": "req_hxgk39sn"
+    },
+    {
+      "label": "Bank Confirmation Letter in the name of the business",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable.",
+      "id": "req_a93yw91r"
+    },
+    {
+      "label": "Company registration document (COR14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "CIPC CoR14.3 showing the registered name, enterprise number and current directors. Must match the CRS profile and the shareholder / director information supplied.",
+      "id": "req_aj9oaajx"
+    },
+    {
+      "label": "Tax Clearance Certificate (TCC)",
+      "type": "pdf",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status PIN letter for the company, unexpired and showing 'Compliant'. The CIDB verifies it with SARS.",
+      "id": "req_d3vbmbvl"
+    },
+    {
+      "label": "Audited or management financial statements for the past two years",
+      "type": "pdf",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Independently reviewed AFS",
+        "Signed management accounts (lower grades only, ⚠ verify)"
+      ],
+      "isRequired": true,
+      "aiHint": "Signed AFS for the last two financial years. Used for turnover (best annual turnover in the look-back window) and available capital (net asset value adjusted per CIDB rules). Higher grades require audited or reviewed AFS rather than management accounts — ⚠ verify the grade cut-off.",
+      "id": "req_v7unbn0l"
+    },
+    {
+      "label": "Letters of Award",
+      "type": "pdf",
+      "documentKind": "letter_of_award",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Letters of award or signed contracts for the projects claimed, supporting the contract values on the completion certificates. Useful where a completion certificate omits the value.",
+      "id": "req_j2xaawrq"
+    },
+    {
+      "id": "req_cidbu_director_ids",
+      "label": "Certified SA ID Copies of All Active Directors (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy (foreign director only)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) for all active directors.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_cidbu_payment_bank_stmts",
+      "label": "Company Bank Statements Reflecting Contract Payments Received for Claimed Projects",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "CIDB assessors verify that payments for the completed contracts claimed on your Completion Certificates were received into the company bank account. Upload the bank statements showing those receipts.",
+      "aiHint": "Business bank statements in the company name highlighting payments received from the project employer/principal matching the completion certificates and payment certificates."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -59,7 +167,9 @@
       "title": "Prepare upgrade application hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every CRS upgrade field, the grade schedule and the project list posted for Kevin",
       "aiInstructions": "Mirror the CRS upgrade application: class and target grade, turnover figure and year, available capital with adjustments, project schedule (each project with value, date, principal and document reference), shareholder / director table, TCS PIN, bank details. Attach the grade designation schedule. Note plainly if the achievable grade is below target so Kevin can align expectations with the client before filing."
@@ -90,7 +200,11 @@
       "title": "Wait for CIDB assessment and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [10, 20, 30],
+      "followUpAfterDays": [
+        10,
+        20,
+        30
+      ],
       "estimatedDays": 30,
       "doneCriteria": "Upgraded certificate available on CRS, or a query / lower-grade decision received",
       "aiInstructions": "Check CRS status at each follow-up point; draft a status query to the CIDB quoting the CRS number and application reference. If the CIDB requests further proof or awards a lower grade, create a proposal for Kevin quoting the CIDB's reason and identifying which test it relates to."
@@ -100,7 +214,10 @@
       "title": "Deliver upgraded CIDB certificate to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["cidb_certificate", "grade_designation_schedule"],
+      "deliverArtefacts": [
+        "cidb_certificate",
+        "grade_designation_schedule"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Upgraded certificate, new grade and the grade schedule posted to Communication History",
       "aiInstructions": "Post the certificate and the schedule used. Explain that the grade is re-tested at renewal against current AFS, so they should keep completion certificates and AFS current; offer the CIDB Annual Renewal service."

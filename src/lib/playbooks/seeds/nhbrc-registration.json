@@ -14,12 +14,76 @@
     "Technical / construction competence questions unanswered — the NHBRC asks about the person responsible for construction and their experience"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The NHBRC registers the company as the home builder." },
-    { "label": "Certified ID copies of all directors/members - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified ID copy for every director on the CoR14.3, certified within the last 3 months with legible stamp, signature and date." },
-    { "label": "Proof of business address", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease in the company's name showing the physical business address, dated within 3 months." },
-    { "label": "Valid Tax Clearance Certificate from SARS", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company showing 'Compliant' and unexpired. The NHBRC verifies the PIN." },
-    { "label": "Business bank account details - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable." },
-    { "label": "Details of the person responsible for construction (name, qualification, years of experience)", "type": "text", "isRequired": true, "aiHint": "The NHBRC application asks who will manage construction and about their technical experience. Capture name, ID number, qualification / trade and years in home building. ⚠ verify whether the NHBRC currently requires a technical competence assessment or proof of previous projects for new registrations." }
+    {
+      "label": "Company registration documents (e.g., CIPC COR14.3)",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The NHBRC registers the company as the home builder.",
+      "id": "req_1cl2fdw0",
+      "type": "pdf"
+    },
+    {
+      "label": "Certified ID copies of all directors/members - not older than 3 months",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy for a foreign director"
+      ],
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "id": "req_zjtlbpbz",
+      "type": "pdf"
+    },
+    {
+      "label": "Proof of business address",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal rates account"
+      ],
+      "isRequired": true,
+      "aiHint": "Utility bill, municipal account or lease in the company's name showing the physical business address, dated within 3 months.",
+      "id": "req_749sr8bl",
+      "type": "pdf"
+    },
+    {
+      "label": "Valid Tax Clearance Certificate from SARS",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status PIN letter for the company showing 'Compliant' and unexpired. The NHBRC verifies the PIN.",
+      "id": "req_j9mcc9j6",
+      "type": "pdf"
+    },
+    {
+      "label": "Business bank account details - not older than 3 months",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable.",
+      "id": "req_wjaqsjb4",
+      "type": "pdf"
+    },
+    {
+      "label": "Details of the person responsible for construction (name, qualification, years of experience)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The NHBRC application asks who will manage construction and about their technical experience. Capture name, ID number, qualification / trade and years in home building. ⚠ verify whether the NHBRC currently requires a technical competence assessment or proof of previous projects for new registrations.",
+      "id": "req_mzlow1yr"
+    },
+    {
+      "id": "req_nhbrc_contact_and_csd",
+      "label": "Company Contact Email, Telephone & CSD Supplier Number (MAAA... if registered)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the company primary email address, cellphone number (for NHBRC portal notifications and technical test booking), and CSD MAAA number if registered."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -45,7 +109,10 @@
       "title": "Prepare NHBRC application hand-off sheet and POA",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "power_of_attorney"],
+      "templateIds": [
+        "handoff_sheet",
+        "power_of_attorney"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every NHBRC application field and a POA posted for Kevin's review",
       "aiInstructions": "Mirror the NHBRC home builder registration application (⚠ verify the current form / online portal fields): enterprise details, directors and shareholding, physical / postal address, contact person, bank details, TCS PIN, type of building activity, person responsible for construction and experience, previous NHBRC registrations if any. Special POA on My Accountant letterhead authorising Kevin Freese (CIBA #3561) to lodge and follow up the application. Never invent experience or qualification details — leave blank and flag."
@@ -76,7 +143,11 @@
       "title": "Wait for NHBRC approval and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [5, 10, 15],
+      "followUpAfterDays": [
+        5,
+        10,
+        15
+      ],
       "estimatedDays": 15,
       "doneCriteria": "NHBRC certificate and registration number received, or a query raised",
       "aiInstructions": "Draft a status query quoting the application reference at each follow-up point. If the NHBRC requests a technical assessment or further proof, create a proposal for Kevin with the request text and prepare a client message."
@@ -86,7 +157,9 @@
       "title": "Deliver NHBRC certificate and number to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["nhbrc_certificate"],
+      "deliverArtefacts": [
+        "nhbrc_certificate"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Certificate and registration number posted to Communication History",
       "aiInstructions": "Post the certificate and number. Explain in plain English that registration is renewed annually (⚠ verify) and that every new home must be enrolled with the NHBRC before construction starts, with the enrolment fee paid per home."
