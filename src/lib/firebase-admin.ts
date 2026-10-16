@@ -95,8 +95,14 @@ export function cleanFirestoreData<T>(data: T): T {
     return data.map(item => cleanFirestoreData(item)) as any;
   }
   if (typeof data === 'object' && !(data instanceof Date)) {
-    // Check if it's a Firestore Timestamp or other special class with toMillis/toDate
-    if (typeof (data as any)?.toDate === 'function') {
+    // Check if it's a Firestore Timestamp, FieldValue (arrayUnion, serverTimestamp, etc.), or other sentinel
+    if (
+      typeof (data as any)?.toDate === 'function' ||
+      typeof (data as any)?.isEqual === 'function' ||
+      (data as any)?._methodName !== undefined ||
+      (data as any)?.constructor?.name === 'FieldValue' ||
+      (data as any)?._elements !== undefined
+    ) {
       return data;
     }
     const cleaned: any = {};

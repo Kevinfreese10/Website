@@ -140,7 +140,10 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     if (!user) return;
     const isStaff = ['admin', 'staff', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'ai_accountant', 'cap_staff', 'cap_supervisor'].includes(user.role);
-    if (!isStaff) return;
+    if (!isStaff) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
 
     const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent']));
@@ -152,31 +155,56 @@ export default function AdminOrdersPage() {
         console.error("Error fetching staff:", error);
     });
 
-    /*
-     * Bounded live listener.
-     *
-     * This previously opened an UNBOUNDED onSnapshot over the whole orders collection, ordered by
-     * date, with no limit — every order ever placed, in full, streamed live to every admin
-     * browser, on every visit, and then filtered in memory. It was the dominant Firestore cost
-     * line and grew linearly with lifetime order count.
-     *
-     * The default view is now scoped server-side to orders that are still being worked. Selecting
-     * "All Statuses", "Completed" or "Cancelled" issues a separate, explicitly-requested query —
-     * so history is still reachable, it just isn't loaded on every page view.
-     */
+    const safeExtractArray = (field: any) => {
+      if (Array.isArray(field)) return field;
+      if (field && typeof field === 'object' && Array.isArray(field.elements)) return field.elements;
+      return [];
+    };
+
+    const safeToIsoString = (val: any) => {
+      if (!val) return new Date().toISOString();
+      if (typeof val?.toDate === 'function') {
+        try {
+          return val.toDate().toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      }
+      try {
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      } catch {
+        return new Date().toISOString();
+      }
+    };
+
     const ordersRef = collection(db, 'orders');
     const ordersQuery = query(ordersRef, orderBy('date', 'desc'));
 
     const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
+      try {
         const fetchedOrders = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                id: doc.id,
-                date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
-                notes: (data.notes || []).map((note: any) => ({...note, date: note.date?.toDate ? note.date.toDate().toISOString() : new Date().toISOString()})),
-                itnHistory: (data.itnHistory || []).map((log: any) => ({ ...log, receivedAt: log.receivedAt?.toDate ? log.receivedAt.toDate().toISOString() : new Date().toISOString() })),
-            } as Order;
+            try {
+                const data = doc.data();
+                const notesList = safeExtractArray(data.notes);
+                const itnList = safeExtractArray(data.itnHistory);
+                return {
+                    ...data,
+                    id: doc.id,
+                    date: safeToIsoString(data.date),
+                    notes: notesList.map((note: any) => ({
+                        ...note,
+                        date: safeToIsoString(note?.date)
+                    })),
+                    itnHistory: itnList.map((log: any) => ({
+                        ...log,
+                        receivedAt: safeToIsoString(log?.receivedAt)
+                    })),
+                } as Order;
+            } catch (docErr) {
+                console.warn(`Error mapping order document ${doc.id}:`, docErr);
+                return { id: doc.id, ...doc.data() } as Order;
+            }
         });
 
         const ordersWithClientDetails = await Promise.all(fetchedOrders.map(async (order) => {
@@ -217,7 +245,12 @@ export default function AdminOrdersPage() {
             : visibleOrders;
 
         setOrders(staffScopedOrders);
+      } catch (snapshotErr) {
+        console.error("Error processing orders snapshot:", snapshotErr);
+        toast({ title: "Error", description: "Could not process order data.", variant: "destructive" });
+      } finally {
         setIsLoading(false);
+      }
     }, (error) => {
         console.error("Error fetching orders in real-time:", error);
         toast({ title: "Error", description: "Could not fetch real-time order data.", variant: "destructive" });

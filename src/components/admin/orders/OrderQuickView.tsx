@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import type { Order, User } from '@/lib/types';
+import type { Order, User, OrderNote } from '@/lib/types';
 import { getStatusVariant } from '@/lib/order-status';
 import { formatPrice } from '@/lib/utils';
 import {
@@ -64,11 +64,15 @@ export function OrderQuickView({
   canEdit?: boolean;
 }) {
   const timeline: TimelineItem[] = React.useMemo(() => {
-    if (!order?.notes) return [];
-    return order.notes
+    if (!order) return [];
+    const notesList: OrderNote[] = Array.isArray(order.notes) 
+      ? order.notes 
+      : (order.notes && typeof order.notes === 'object' && Array.isArray((order.notes as any).elements) ? (order.notes as any).elements : []);
+    if (notesList.length === 0) return [];
+    return notesList
       .slice(-6)
       .reverse()
-      .map((note, i) => {
+      .map((note: OrderNote, i: number) => {
         const author = staff.find((s) => s.id === note.authorId);
         return {
           id: `${order.id}-note-${i}`,

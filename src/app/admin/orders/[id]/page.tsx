@@ -215,12 +215,27 @@ export default function AdminOrderDetailsPage() {
         
         if (docSnap.exists()) {
           const data = docSnap.data();
+          const safeNotesList = Array.isArray(data.notes)
+            ? data.notes
+            : (data.notes && typeof data.notes === 'object' && Array.isArray((data.notes as any).elements) ? (data.notes as any).elements : []);
+          const safeUploadsList = Array.isArray(data.documentUploads)
+            ? data.documentUploads
+            : (data.documentUploads && typeof data.documentUploads === 'object' && Array.isArray((data.documentUploads as any).elements) ? (data.documentUploads as any).elements : []);
+
           let fetchedOrder: Order = {
             ...data,
             id: docSnap.id,
-            date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
-            notes: (data.notes || []).map((note: any) => ({...note, date: note.date?.toDate ? note.date.toDate() : new Date(note.date), subject: note.subject || null, attachments: note.attachments || null})),
-            documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())})),
+            date: data.date?.toDate ? data.date.toDate().toISOString() : (data.date ? new Date(data.date).toISOString() : new Date().toISOString()),
+            notes: safeNotesList.map((note: any) => ({
+              ...note, 
+              date: note?.date?.toDate ? note.date.toDate() : (note?.date ? new Date(note.date) : new Date()), 
+              subject: note?.subject || null, 
+              attachments: note?.attachments || null
+            })),
+            documentUploads: safeUploadsList.map((doc: any) => ({
+              ...doc, 
+              uploadedAt: doc?.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc?.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())
+            })),
           } as Order;
           
           if (fetchedOrder.originalOrderId) {
