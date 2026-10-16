@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!--
+  My Accountant 30-Second Executive Quote — Outlook-safe template.
+  Rules: tables only (no flex/grid), inline styles only, no web fonts, no background images.
+  Replace every double-brace placeholder. send_quote_reply.ts refuses to send if any remain (including inside the Outlook VML block).
+  Repeat the marked <tr> blocks for extra recommendations / steps / fee lines / requirements; delete unused ones.
+  Prices: copy EXACTLY from lookup_price.ts output. Never type a price from memory.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>{{SUBJECT}}</title>
+<!--[if mso]><style>table,td,p,a,span{font-family:Arial,Helvetica,sans-serif !important;}</style><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f8fafc;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc;">
+<tr><td align="center" style="padding:24px 12px;">
+
+<!--[if mso]><table role="presentation" width="660" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:660px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:10px;">
+
+  <!-- 1. HEADER -->
+  <tr><td style="padding:28px 36px 20px 36px;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <p style="margin:0;font-size:18px;font-weight:700;letter-spacing:1px;color:#0f172a;">MY ACCOUNTANT</p>
+    <p style="margin:4px 0 0 0;font-size:12px;color:#64748b;">Corporate Formation &bull; Accounting &bull; Regulatory Compliance</p>
+    <p style="margin:12px 0 0 0;font-size:12px;color:#64748b;">Quote Ref: <strong style="color:#0f172a;">{{QUOTE_REF}}</strong> &nbsp;|&nbsp; Date: {{QUOTE_DATE}} &nbsp;|&nbsp; Valid until: {{VALID_UNTIL}}</p>
+  </td></tr>
+
+  <!-- 2. GREETING & CONTEXT (max 2–3 sentences) -->
+  <tr><td style="padding:28px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#334155;">
+    <p style="margin:0 0 12px 0;">Hi {{CLIENT_FIRST_NAME}},</p>
+    <p style="margin:0;">{{CONTEXT_SENTENCES}}</p>
+  </td></tr>
+
+  <!-- 3. OUR RECOMMENDATION -->
+  <tr><td style="padding:24px 36px 0 36px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td width="4" style="width:4px;background-color:#16a34a;font-size:0;line-height:0;">&nbsp;</td>
+        <td style="background-color:#f0fdf4;padding:16px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;">
+          <p style="margin:0 0 8px 0;font-size:16px;font-weight:700;color:#0f172a;">Our Recommendation</p>
+          <!-- repeat per recommendation -->
+          <p style="margin:0 0 8px 0;">&bull; <strong>{{RECOMMENDATION_SERVICE}}</strong>: {{RECOMMENDATION_PURPOSE}}</p>
+          <!-- /repeat -->
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- 4. WHAT WE WILL DO -->
+  <tr><td style="padding:24px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#334155;">
+    <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;color:#0f172a;">What We Will Do</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <!-- repeat per step -->
+      <tr>
+        <td width="36" valign="top" style="width:36px;padding:0 0 10px 0;font-size:14px;font-weight:700;color:#1D70E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{STEP_NO}}</td>
+        <td valign="top" style="padding:0 0 10px 0;font-size:15px;line-height:1.6;color:#334155;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><strong>{{STEP_NAME}}</strong> &mdash; {{STEP_SUMMARY}}</td>
+      </tr>
+      <!-- /repeat -->
+    </table>
+  </td></tr>
+
+  <!-- 5. FEE SCHEDULE -->
+  <tr><td style="padding:24px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <p style="margin:0 0 10px 0;font-size:16px;font-weight:700;color:#0f172a;">Fee Schedule</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e2e8f0;border-collapse:collapse;">
+      <tr style="background-color:#f8fafc;">
+        <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">SERVICE</td>
+        <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">TURNAROUND</td>
+        <td align="right" style="padding:10px 12px;font-size:12px;font-weight:700;color:#64748b;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">FEE (ZAR)</td>
+      </tr>
+      <!-- repeat per fee line -->
+      <tr>
+        <td style="padding:10px 12px;font-size:14px;color:#1e293b;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><a href="{{SERVICE_URL}}" style="color:#1D70E8;text-decoration:none;">{{SERVICE_TITLE}}</a></td>
+        <td style="padding:10px 12px;font-size:14px;color:#334155;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">{{SERVICE_TURNAROUND}}</td>
+        <td align="right" style="padding:10px 12px;font-size:14px;color:#1e293b;border-bottom:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">R {{SERVICE_PRICE}}</td>
+      </tr>
+      <!-- /repeat -->
+      <tr style="background-color:#f8fafc;">
+        <td colspan="2" style="padding:12px;font-size:15px;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Total Once-Off Investment</td>
+        <td align="right" style="padding:12px;font-size:16px;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">R {{TOTAL}}</td>
+      </tr>
+    </table>
+    <p style="margin:8px 0 0 0;font-size:12px;line-height:1.5;color:#64748b;">{{FEE_NOTES}}</p>
+  </td></tr>
+
+  <!-- 6. WHAT WE NEED FROM YOU (3–5 bullets, from lookup_price.ts --detail "Client must provide") -->
+  <tr><td style="padding:24px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#334155;">
+    <p style="margin:0 0 8px 0;font-size:16px;font-weight:700;color:#0f172a;">What We Need From You</p>
+    <!-- repeat per requirement -->
+    <p style="margin:0 0 6px 0;">&bull; {{REQUIREMENT}}</p>
+    <!-- /repeat -->
+  </td></tr>
+
+  <!-- 7. NEXT STEP & CTA (bulletproof button: renders in Outlook via VML) -->
+  <tr><td style="padding:28px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#334155;">
+    <p style="margin:0 0 14px 0;">Simply reply <strong>&ldquo;PROCEED&rdquo;</strong> to this email, or call our office at <strong>010 109 1625</strong>, and we will send through your digital engagement letter and begin immediately.</p>
+    <!--[if mso]>
+    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="mailto:kev@thinkestry.co.za?subject=PROCEED%20-%20{{QUOTE_REF_URLENCODED}}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="14%" stroke="f" fillcolor="#1D70E8">
+      <w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">REPLY TO PROCEED</center>
+    </v:roundrect>
+    <![endif]-->
+    <!--[if !mso]><!-->
+    <a href="mailto:kev@thinkestry.co.za?subject=PROCEED%20-%20{{QUOTE_REF_URLENCODED}}" style="display:inline-block;background-color:#1D70E8;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:6px;">REPLY TO PROCEED</a>
+    <!--<![endif]-->
+  </td></tr>
+
+  <!-- 8. IMPORTANT NOTES -->
+  <tr><td style="padding:28px 36px 0 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#64748b;">
+    <p style="margin:0 0 6px 0;font-weight:700;">Important Notes</p>
+    <p style="margin:0 0 6px 0;">{{STATUTORY_NOTES}}</p>
+    <p style="margin:0 0 6px 0;">Payment: My Accountant (Pty) Ltd &bull; FNB &bull; Acc 63084378223 &bull; Branch 250655 &bull; Ref: {{PAYMENT_REF}}</p>
+    <p style="margin:0;">My Accountant will never notify you of changes to banking details via standalone email or telephone. Always verify payment instructions against our official domain www.myacc.co.za before transferring funds.</p>
+  </td></tr>
+
+  <!-- 9. SIGNATURE -->
+  <tr><td style="padding:28px 36px 32px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#334155;">
+    <p style="margin:0;font-weight:700;color:#0f172a;">Kevin Freese</p>
+    <p style="margin:0;">Director | CBAP (SA) #3561</p>
+    <p style="margin:0;">My Accountant (Pty) Ltd &bull; Practice No: PR-0098553</p>
+    <p style="margin:0;">Landline: +27 10 109 1625 | Web: <a href="https://www.myacc.co.za" style="color:#1D70E8;text-decoration:none;">www.myacc.co.za</a></p>
+  </td></tr>
+
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+
+</td></tr>
+</table>
+</body>
+</html>

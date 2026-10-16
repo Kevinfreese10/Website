@@ -1,4 +1,5 @@
 import { getAdminDb } from '../../../../src/lib/firebase-admin';
+import { serviceWarnings } from '../../../../src/lib/quote-agent/catalog';
 
 export interface ServiceRecord {
   id: string;
@@ -11,6 +12,32 @@ export interface ServiceRecord {
   description?: string;
   matchedBy?: 'exact' | 'title' | 'alias' | 'description' | 'category';
   suggestedAddons?: string[];
+  url: string;
+  isPriceTbc: boolean;
+  available: boolean;
+  priceValidUntil?: string;
+  whatsIncluded: string[];
+  clientRequirements: string[];
+  prerequisites: string[];
+  requiredServices: Array<{ title: string; price: number; slug: string }>;
+  warnings: string[];
+}
+
+function toTextList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(v => (typeof v === 'string' ? v : v && typeof v === 'object' ? (v as any).label || (v as any).text || (v as any).title || '' : ''))
+    .map(s => String(s).trim())
+    .filter(Boolean);
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Whole-word/phrase match so short aliases ('vat', 'pty', 'pin', 'import') don't fire inside 'private', 'empty', 'shipping', 'important'.
+export function aliasMatches(query: string, aliasKey: string): boolean {
+  return new RegExp(`(^|[^a-z0-9])${escapeRegExp(aliasKey)}($|[^a-z0-9])`).test(query);
 }
 
 // Master Synonym & Alias Dictionary for South African Accounting, Tax, & Compliance
@@ -42,8 +69,16 @@ export const SERVICE_ALIASES: Record<string, string[]> = {
   'vat return': ['vat201-for-trading-companies', 'vat201-return-submission-nil'],
 
   // SARS Profile & Tax Representative
-  'tax rep': ['tax-representative-appointment', 'sars-login-assistance-troubleshooting'],
-  'efiling': ['tax-representative-appointment', 'sars-login-assistance-troubleshooting'],
+  'tax rep': ['tax-representative-appointment'],
+  'efiling': ['tax-representative-appointment', 'retrieve-existing-sars-tax-number'],
+
+  // Income Tax Returns
+  'itr14': ['itr14-company-income-tax-return-trading-entities', 'company-income-tax-return-itr14-nil'],
+  'company tax return': ['itr14-company-income-tax-return-trading-entities', 'company-income-tax-return-itr14-nil'],
+  'itr12': ['individual-income-tax-return-itr12-simple', 'complex-individual-income-tax-return-itr12', 'sole-proprietor-income-tax-return-itr12'],
+  'personal tax': ['individual-income-tax-return-itr12-simple', 'complex-individual-income-tax-return-itr12'],
+  'irp6': ['provisional-tax-return-irp6-trading', 'provisional-tax-return-irp6-nil'],
+  'provisional tax': ['provisional-tax-return-irp6-trading', 'provisional-tax-return-irp6-nil', 'provisional-tax-calculation'],
   'registered representative': ['tax-representative-appointment'],
 
   // Customs / Import / Export
@@ -116,12 +151,14 @@ export async function searchServices(query: string, options: { category?: string
   // Check alias hits
   const aliasMatchedSlugs = new Set<string>();
   for (const [aliasKey, targetSlugs] of Object.entries(SERVICE_ALIASES)) {
-    if (cleanQuery === aliasKey || terms.includes(aliasKey) || cleanQuery.includes(aliasKey)) {
+    if (aliasMatches(cleanQuery, aliasKey)) {
       targetSlugs.forEach(s => aliasMatchedSlugs.add(s));
     }
   }
 
-  const results: ServiceRecord[] = [];
+  const byId = new Map(snap.docs.map(d => [d.id, d.data()]));
+  const results: Array<ServiceRecord & { score: number }> = [];
+  const today = new Date().toISOString().slice(0, 10);
 
   snap.docs.forEach(doc => {
     const data = doc.data();
@@ -140,48 +177,67 @@ export async function searchServices(query: string, options: { category?: string
     const catLower = category.toLowerCase();
     const haystack = `${titleLower} ${slugLower} ${catLower} ${descLower}`;
 
+    // Score: exact (5) > every term in title (4) > alias (3) > every term anywhere (2) > some term in title (1)
     let matchType: ServiceRecord['matchedBy'] | null = null;
+    let score = 0;
+
+    // Terms must start a word ('vat' must not match 'private')
+    const hasWord = (text: string, t: string) => new RegExp(`(^|[^a-z0-9])${escapeRegExp(t)}`).test(text);
 
     if (titleLower === cleanQuery || slugLower === cleanQuery) {
-      matchType = 'exact';
+      matchType = 'exact'; score = 5;
+    } else if (terms.every(t => hasWord(titleLower, t))) {
+      matchType = 'title'; score = 4;
     } else if (aliasMatchedSlugs.has(slug) || aliasMatchedSlugs.has(doc.id)) {
-      matchType = 'alias';
-    } else if (terms.every(t => titleLower.includes(t))) {
-      matchType = 'title';
-    } else if (terms.every(t => haystack.includes(t))) {
-      matchType = 'description';
-    } else if (terms.some(t => titleLower.includes(t))) {
-      matchType = 'title';
+      matchType = 'alias'; score = 3;
+    } else if (terms.every(t => hasWord(haystack, t))) {
+      matchType = 'description'; score = 2;
+    } else if (terms.some(t => t.length > 2 && hasWord(titleLower, t))) {
+      matchType = 'title'; score = 1;
     }
 
-    if (matchType) {
-      results.push({
-        id: doc.id,
-        title,
-        price: Number(data.price) || 0,
-        slug,
-        category,
-        turnaroundTime: data.turnaroundTime || data.estimatedDays || 'N/A',
-        shortDescription: description.slice(0, 140),
-        matchedBy: matchType
-      });
-    }
+    if (!matchType) return;
+
+    const price = Number(data.price) || 0;
+    const isPriceTbc = data.isPriceTbc === true;
+    const available = !data.availability || data.availability === 'in_stock';
+    const priceValidUntil = data.priceValidUntilOverride ? String(data.priceValidUntilOverride) : undefined;
+    const requiredServices = (Array.isArray(data.requiredProductIds) ? data.requiredProductIds : [])
+      .map((id: string) => byId.get(id))
+      .filter(Boolean)
+      .map((r: any) => ({ title: String(r.title || r.name || ''), price: Number(r.price) || 0, slug: String(r.slug || '') }));
+
+    // Shared with the cloud quote agent so both refuse exactly the same prices.
+    const warnings: string[] = serviceWarnings(data, today);
+
+    results.push({
+      id: doc.id,
+      title,
+      price,
+      slug,
+      url: `https://www.myacc.co.za/products/${slug}`,
+      category,
+      turnaroundTime: data.turnaroundTime || data.estimatedDays || 'N/A',
+      shortDescription: description.slice(0, 140),
+      matchedBy: matchType,
+      isPriceTbc,
+      available,
+      priceValidUntil,
+      whatsIncluded: toTextList(data.whatsIncluded),
+      clientRequirements: toTextList(data.clientRequirements),
+      prerequisites: toTextList(data.prerequisites),
+      requiredServices,
+      warnings,
+      score
+    });
   });
 
-  // Sort priority: exact > alias > title > description
-  const rank: Record<string, number> = {
-    exact: 4,
-    alias: 3,
-    title: 2,
-    description: 1,
-    category: 1
-  };
-
-  return results.sort((a, b) => {
-    const rankDiff = (rank[b.matchedBy || 'description'] || 0) - (rank[a.matchedBy || 'description'] || 0);
-    if (rankDiff !== 0) return rankDiff;
-    return a.title.localeCompare(b.title);
-  });
+  // Weak partial-title hits are only useful when nothing better matched
+  const best = Math.max(0, ...results.map(r => r.score));
+  return results
+    .filter(r => best < 3 || r.score > 1)
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .map(({ score, ...r }) => r);
 }
 
 async function main() {
@@ -190,11 +246,12 @@ async function main() {
   const catIdx = args.indexOf('--category');
   const categoryFilter = catIdx !== -1 && catIdx + 1 < args.length ? args[catIdx + 1] : undefined;
 
-  const queryTerms = args.filter(a => a !== '--json' && a !== '--category' && a !== categoryFilter);
+  const queryTerms = args.filter((a, i) => a !== '--json' && a !== '--detail' && a !== '--category' && !(catIdx !== -1 && i === catIdx + 1));
+  const showDetail = args.includes('--detail');
   const query = queryTerms.join(' ').trim();
 
   if (!query) {
-    console.error('Usage: npx tsx scripts/lookup_price.ts <keyword> [--json] [--category <cat>]');
+    console.error('Usage: npx tsx scripts/lookup_price.ts <keyword> [--json] [--detail] [--category <cat>]');
     console.error('Examples:');
     console.error('  npx tsx scripts/lookup_price.ts cleaning');
     console.error('  npx tsx scripts/lookup_price.ts "letter of good standing"');
@@ -229,7 +286,7 @@ async function main() {
   console.log('-'.repeat(94));
 
   results.forEach(s => {
-    const formattedPrice = `R ${s.price.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`;
+    const formattedPrice = s.isPriceTbc ? 'TBC' : `R ${s.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const url = `/products/${s.slug}`;
     console.log(
       s.title.slice(0, 40).padEnd(42) +
@@ -238,10 +295,18 @@ async function main() {
       (s.matchedBy || '').padEnd(10) +
       url
     );
+    s.warnings.forEach(w => console.log(`    ⚠️  ${w}`));
+    if (showDetail) {
+      if (s.requiredServices.length) console.log(`    Requires: ${s.requiredServices.map(r => `${r.title} (R ${r.price})`).join('; ')}`);
+      if (s.prerequisites.length) console.log(`    Prerequisites: ${s.prerequisites.join('; ')}`);
+      if (s.whatsIncluded.length) console.log(`    Included: ${s.whatsIncluded.join('; ')}`);
+      if (s.clientRequirements.length) console.log(`    Client must provide: ${s.clientRequirements.join('; ')}`);
+    }
   });
 
   console.log('='.repeat(94));
-  console.log('\nMandatory Quoting Rule: Quote the EXACT title, price, and URL shown above.\n');
+  console.log('\nMandatory Quoting Rule: Quote the EXACT title, price, and URL shown above. Never quote a line with a ⚠️ warning.');
+  if (!showDetail) console.log('Re-run with --detail for required services, inclusions and client requirements.\n');
 }
 
 if (require.main === module || (process.argv[1] && process.argv[1].endsWith('lookup_price.ts'))) {

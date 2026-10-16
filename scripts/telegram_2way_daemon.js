@@ -4,6 +4,13 @@
  * Authorized Chat ID: 7774285240
  */
 
+// RETIRED (feat/cloud-quote-agent): Telegram is handled by the cloud webhook (src/app/api/telegram/webhook/route.ts).
+// Polling here would conflict with it. Set ALLOW_LOCAL_TELEGRAM_POLLING=1 only after removing the webhook.
+if (process.env.ALLOW_LOCAL_TELEGRAM_POLLING !== '1') {
+  console.error('telegram_2way_daemon.js is retired: Telegram is handled by the cloud webhook (/api/telegram/webhook).');
+  process.exit(1);
+}
+
 const https = require('https');
 const { exec } = require('child_process');
 const fs = require('fs');

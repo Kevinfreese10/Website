@@ -1,10 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import dns from 'dns';
 import imapSimple from 'imap-simple';
 import { simpleParser } from 'mailparser';
+import { getMailConfig, getStateFile, resolveHostWithFallback } from './mail_config';
 
-const STATE_FILE = 'C:/Users/kev/.gemini/antigravity/scratch/quote_ai_state.json';
+const STATE_FILE = getStateFile();
+
+// Only exact addresses are trusted as Kevin. Forwards are additionally checked for SPF/DKIM/DMARC (senderVerified).
+export const KEVIN_ADDRESSES = ['kev@thinkestry.co.za'];
+const KEVIN_DOMAIN = 'thinkestry.co.za';
 
 export interface EmailState {
   account: string;
@@ -85,25 +89,6 @@ export function markProcessed(
   saveState(state);
 }
 
-async function resolveHostWithFallback(hostname: string): Promise<string> {
-  try {
-    const res = await dns.promises.lookup(hostname);
-    if (res && res.address) return res.address;
-  } catch (_) {}
-
-  try {
-    const resolver = new dns.promises.Resolver();
-    resolver.setServers(['8.8.8.8', '1.1.1.1']);
-    const addresses = await resolver.resolve4(hostname);
-    if (addresses && addresses.length > 0) return addresses[0];
-  } catch (_) {}
-
-  if (hostname === 'mail.myacc.co.za') {
-    return '169.239.218.67';
-  }
-  return hostname;
-}
-
 export interface QuoteRequestEmail {
   uid: number;
   messageId: string;
@@ -121,6 +106,7 @@ export interface QuoteRequestEmail {
   references?: string[];
   originType: 'FORWARD_FROM_KEVIN' | 'WEBSITE_CONTACT_FORM' | 'DIRECT_INQUIRY' | 'SPAM_SOLICITATION';
   kevinInstructions?: string;
+  senderVerified?: boolean;
   parsedLead?: {
     name?: string;
     email?: string;
@@ -146,6 +132,17 @@ const SPAM_PATTERNS = [
 export function isSpam(fromAddress: string, subject: string, bodyText: string): boolean {
   const combined = `${fromAddress} ${subject} ${bodyText}`;
   return SPAM_PATTERNS.some(p => p.test(combined));
+}
+
+// True only when the receiving server recorded a passing SPF, DKIM or DMARC result aligned to the given domain.
+export function isSenderAuthenticated(authResults: string, domain: string): boolean {
+  const ar = authResults.toLowerCase();
+  const d = domain.toLowerCase().replace(/\./g, '\\.');
+  return (
+    new RegExp(`dmarc=pass[^;]*header\\.from=${d}`).test(ar) ||
+    new RegExp(`dkim=pass[^;]*header\\.d=${d}`).test(ar) ||
+    new RegExp(`spf=pass[^;]*smtp\\.mailfrom=[^;\\s]*@${d}`).test(ar)
+  );
 }
 
 export function parseLead(text: string) {
@@ -198,17 +195,18 @@ export function extractForwardedInfo(text: string): { kevinInstructions: string;
 export async function fetchQuoteEmails(options: { unreadOnly?: boolean; daysBack?: number } = {}): Promise<QuoteRequestEmail[]> {
   const { unreadOnly = false, daysBack = 7 } = options;
   const state = loadState();
-  const host = 'mail.myacc.co.za';
-  const resolvedHost = await resolveHostWithFallback(host);
+  const mail = getMailConfig();
+  const host = mail.host;
+  const resolvedHost = await resolveHostWithFallback(host, mail.fallbackIp);
 
   const config = {
     imap: {
-      user: 'ai@myacc.co.za',
-      password: 'Thinkestry10$',
+      user: mail.user,
+      password: mail.pass,
       host: resolvedHost,
       port: 993,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false, servername: host },
+      tlsOptions: { servername: host },
       authTimeout: 15000
     }
   };
@@ -280,13 +278,17 @@ export async function fetchQuoteEmails(options: { unreadOnly?: boolean; daysBack
         let originType: QuoteRequestEmail['originType'] = 'DIRECT_INQUIRY';
         let kevinInstructions = '';
         let parsedLead = undefined;
+        let senderVerified: boolean | undefined;
 
-        if (fromAddress.includes('kev@thinkesty.co.za')) {
+        if (KEVIN_ADDRESSES.includes(fromAddress)) {
           originType = 'FORWARD_FROM_KEVIN';
+          const authHeader = parsed.headers.get('authentication-results');
+          const authResults = Array.isArray(authHeader) ? authHeader.join('; ') : String(authHeader || '');
+          senderVerified = isSenderAuthenticated(authResults, KEVIN_DOMAIN);
           const extracted = extractForwardedInfo(bodyText);
           kevinInstructions = extracted.kevinInstructions;
           parsedLead = parseLead(extracted.remainingText) || undefined;
-        } else if (fromAddress.includes('no_reply@myacc.co.za')) {
+        } else if (fromAddress === 'no_reply@myacc.co.za') {
           originType = 'WEBSITE_CONTACT_FORM';
           parsedLead = parseLead(bodyText) || undefined;
         } else {
@@ -311,6 +313,7 @@ export async function fetchQuoteEmails(options: { unreadOnly?: boolean; daysBack
           references: Array.isArray(parsed.references) ? parsed.references : (parsed.references ? [parsed.references] : []),
           originType,
           kevinInstructions: kevinInstructions || undefined,
+          senderVerified,
           parsedLead
         });
       } catch (e: any) {

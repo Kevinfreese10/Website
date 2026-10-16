@@ -5,6 +5,15 @@
  * Handles real-time notifications, 1-tap email reply approvals, inbox audits, and tasks.
  */
 
+// RETIRED (feat/cloud-quote-agent): @Kevin10email_bot is now handled 24/7 by the cloud webhook
+// src/app/api/telegram/webhook/route.ts. A bot can use polling OR a webhook, not both, so running this
+// would steal button presses from the cloud agent. Set ALLOW_LOCAL_TELEGRAM_POLLING=1 only for emergencies,
+// after removing the webhook.
+if (process.env.ALLOW_LOCAL_TELEGRAM_POLLING !== '1') {
+  console.error('telegram_bot.js is retired: Telegram is handled by the cloud webhook (/api/telegram/webhook).');
+  process.exit(1);
+}
+
 const fs = require('fs');
 const path = require('path');
 

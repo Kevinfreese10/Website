@@ -304,6 +304,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ─── Cloud quote agent (info@myacc.co.za) ────────────────────────────────
+    // Server-only. The review page reads through staff-checked server actions; drafts hold full
+    // client emails, so no direct client SDK access at all.
+    match /quoteDrafts/{id} { allow read, write: if false; }
+    match /quoteAgentMessages/{id} { allow read, write: if false; }
+    match /quoteAgentRetries/{id} { allow read, write: if false; }
+    match /quotes/{quoteRef} { allow read, write: if false; }
+    match /agentConfig/{id} { allow read, write: if false; }
+    match /agentAudit/{id} { allow read, write: if false; }
+
     // ─── Orders ──────────────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (

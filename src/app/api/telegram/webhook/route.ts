@@ -1,15 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { getAdminDb } from '@/lib/firebase-admin';
 import Imap from 'imap';
 import { simpleParser } from 'mailparser';
+import { discardDraft, sendApprovedDraft } from '@/lib/quote-agent/drafts';
+import * as quoteStore from '@/lib/quote-agent/store';
+import { answerCallback } from '@/lib/quote-agent/telegram';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8832420807:AAFAV4N1vB2uaPwy3fXXbXKU3y6j5wCLi8M';
-const AUTHORIZED_CHAT_ID = '7774285240';
+/**
+ * The ONLY Telegram handler for @Kevin10email_bot (the local polling bot, scripts/telegram_bot.js, is retired:
+ * a bot can use either polling or a webhook, not both).
+ *
+ * Security:
+ *  - Telegram must send X-Telegram-Bot-Api-Secret-Token = TELEGRAM_WEBHOOK_SECRET (set via setWebhook secret_token).
+ *  - Only TELEGRAM_CHAT_ID (Kevin) may run commands or press buttons.
+ *  - No credentials in code: the bot token and mailbox password come from App Hosting secrets.
+ */
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const AUTHORIZED_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7774285240';
+
+function isFromTelegram(req: NextRequest): boolean {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (!secret) return process.env.NODE_ENV !== 'production';
+  const got = Buffer.from(req.headers.get('x-telegram-bot-api-secret-token') || '');
+  const expected = Buffer.from(secret);
+  return got.length === expected.length && timingSafeEqual(got, expected);
+}
 
 async function sendTelegramReply(chatId: string | number, text: string) {
+  if (!TELEGRAM_TOKEN) return;
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -27,13 +49,15 @@ async function sendTelegramReply(chatId: string | number, text: string) {
 
 function quickCheckMailbox(user: string, pass: string): Promise<string[]> {
   return new Promise((resolve) => {
+    const host = process.env.INFO_MAIL_HOST || 'mail.myacc.co.za';
     const imap = new Imap({
       user,
       password: pass,
-      host: '169.239.218.67',
+      host: process.env.INFO_MAIL_FALLBACK_IP || host,
       port: 993,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false, servername: 'mail.myacc.co.za' },
+      // Certificate is verified against the real hostname even when connecting by IP.
+      tlsOptions: { servername: host },
       connTimeout: 8000,
       authTimeout: 8000
     });
@@ -41,7 +65,7 @@ function quickCheckMailbox(user: string, pass: string): Promise<string[]> {
     const items: string[] = [];
 
     imap.once('ready', () => {
-      imap.openBox('INBOX', true, (err, box) => {
+      imap.openBox('INBOX', true, (err) => {
         if (err) {
           imap.end();
           return resolve([`⚠️ Error opening ${user}: ${err.message}`]);
@@ -77,14 +101,48 @@ function quickCheckMailbox(user: string, pass: string): Promise<string[]> {
       });
     });
 
-    imap.once('error', (e) => resolve([`⚠️ ${user} connection: ${e.message}`]));
+    imap.once('error', (e: Error) => resolve([`⚠️ ${user} connection: ${e.message}`]));
     imap.connect();
   });
 }
 
+/** [Send to client] / [Discard] buttons on quote-agent review alerts. */
+async function handleCallback(cb: any) {
+  const chatId = String(cb.message?.chat?.id ?? cb.from?.id ?? '');
+  if (chatId !== AUTHORIZED_CHAT_ID || String(cb.from?.id) !== AUTHORIZED_CHAT_ID) {
+    await answerCallback(cb.id, 'Not authorised.');
+    return;
+  }
+  const [ns, action, draftId] = String(cb.data || '').split(':');
+  if (ns !== 'qa' || !draftId) {
+    await answerCallback(cb.id, 'Unknown action.');
+    return;
+  }
+  const by = `telegram:${cb.from?.first_name || 'Kevin'}`;
+  if (action === 'send') {
+    await answerCallback(cb.id, 'Sending…');
+    const r = await sendApprovedDraft(draftId, by);
+    if (!r.ok) await sendTelegramReply(chatId, `⚠️ ${r.message}`);
+  } else if (action === 'discard') {
+    const r = await discardDraft(draftId, by);
+    await answerCallback(cb.id, r.message);
+  } else {
+    await answerCallback(cb.id, 'Unknown action.');
+  }
+}
+
 export async function POST(req: NextRequest) {
+  if (!isFromTelegram(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const update = await req.json();
+
+    if (update.callback_query) {
+      await handleCallback(update.callback_query);
+      return NextResponse.json({ ok: true });
+    }
+
     const msg = update.message || update.edited_message;
 
     if (!msg || !msg.chat) {
@@ -103,12 +161,32 @@ export async function POST(req: NextRequest) {
 
     const lower = text.toLowerCase();
 
+    // 0. Quote agent kill switch (decision 10b)
+    if (lower === '/pause' || lower === '/resume' || lower === '/draftonly') {
+      const mode = lower === '/pause' ? 'paused' : lower === '/resume' ? 'live' : 'draft-only';
+      await quoteStore.setMode(mode, `telegram:${senderName}`);
+      const explain = mode === 'paused' ? 'The agent will not read or send anything.' : mode === 'live' ? 'Catalog quotes that pass every rule are sent automatically.' : 'Everything becomes a draft for your approval; nothing is sent automatically.';
+      await sendTelegramReply(chatId, `🔧 *info@ agent mode:* \`${mode}\`\n${explain}`);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (lower === '/quotestatus' || lower === '/pending') {
+      const [cfg, pending] = await Promise.all([quoteStore.getConfig(), quoteStore.listDrafts('pending', 10)]);
+      const list = pending.map(d => `• ${d.category}: ${d.summary.replace(/[*_`[\]]/g, '')}`).join('\n') || 'None';
+      await sendTelegramReply(chatId,
+        `🤖 *info@ agent*\n• Mode: \`${cfg.mode}\`${cfg.pausedReason ? ` (${cfg.pausedReason.replace(/[*_`[\]]/g, '')})` : ''}\n` +
+        `• Last run: ${cfg.lastRunAt || 'never'}\n• Failures in a row: ${cfg.consecutiveFailures || 0}\n\n*Waiting for you (${pending.length}):*\n${list}`);
+      return NextResponse.json({ ok: true });
+    }
+
     // 1. /start or /help
     if (lower === '/start' || lower === '/help') {
       const helpText = `👋 *Hello ${senderName}! Your Cloud 24/7 Command Center is LIVE.*\n\n` +
         `This bot executes in Google Cloud Run on \`myacc.co.za\` and responds 24/7/365, even when your laptop is turned off.\n\n` +
         `⚡ *Available Commands:*\n` +
-        `• \`/check\` — Live scan of \`kev@thinkestry.co.za\` & \`info@myacc.co.za\`\n` +
+        `• \`/check\` — Live scan of \`info@myacc.co.za\`\n` +
+        `• \`/quotestatus\` — info@ agent mode and drafts waiting for you\n` +
+        `• \`/pause\` \`/resume\` \`/draftonly\` — info@ agent kill switch\n` +
         `• \`/orders\` — View all active orders and status pipeline\n` +
         `• \`/order 10173\` — Lookup specific client order details\n` +
         `• \`/status\` — View cloud system and database health\n\n` +
@@ -121,13 +199,13 @@ export async function POST(req: NextRequest) {
     if (lower === '/status' || lower.includes('status')) {
       const db = getAdminDb();
       const snap = await db.collection('orders').where('status', 'in', ['Processing', 'Waiting on Customer', 'Waiting on External']).get();
-      
+      const agent = await quoteStore.getConfig();
+
       const statusText = `🟢 *Cloud Runner Status (Always-On 24/7):*\n\n` +
         `• *Hosting:* Google Cloud Run (\`myacc.co.za\`)\n` +
-        `• *Mailboxes:* Connected (\`kev@thinkestry.co.za\` & \`info@myacc.co.za\`)\n` +
+        `• *info@ agent:* \`${agent.mode}\` (last run ${agent.lastRunAt || 'never'})\n` +
         `• *Firestore Database:* Connected & Live\n` +
         `• *Active Orders:* ${snap.size} orders\n` +
-        `• *Server Uptime:* 100% Cloud Online (Laptop independent)\n` +
         `• *VAT Thresholds:* Compulsory R2.3m / Voluntary R120k`;
       await sendTelegramReply(chatId, statusText);
       return NextResponse.json({ ok: true });
@@ -185,17 +263,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 5. /check
+    // 5. /check (info@ only; credentials from env)
     if (lower.startsWith('/check') || lower.includes('check email') || lower.includes('check mail')) {
-      await sendTelegramReply(chatId, `⏳ *Connecting to mailboxes from Google Cloud...*`);
-      const [kevItems, infoItems] = await Promise.all([
-        quickCheckMailbox('kev@thinkestry.co.za', '7In~K;EF}?7E_7p4'),
-        quickCheckMailbox('info@myacc.co.za', 'lv1gIJK5O50s6A!w')
-      ]);
+      const pass = process.env.INFO_MAIL_PASS;
+      if (!pass) {
+        await sendTelegramReply(chatId, `⚠️ INFO_MAIL_PASS is not configured on the server.`);
+        return NextResponse.json({ ok: true });
+      }
+      await sendTelegramReply(chatId, `⏳ *Connecting to info@myacc.co.za from Google Cloud...*`);
+      const infoItems = await quickCheckMailbox(process.env.INFO_MAIL_USER || 'info@myacc.co.za', pass);
 
-      const all = [...kevItems, ...infoItems];
-      if (all.length > 0) {
-        await sendTelegramReply(chatId, `📬 *Cloud Mailbox Scan:*\n\n` + all.join('\n'));
+      if (infoItems.length > 0) {
+        await sendTelegramReply(chatId, `📬 *Cloud Mailbox Scan:*\n\n` + infoItems.join('\n'));
       } else {
         await sendTelegramReply(chatId, `✓ *All inboxes up to date!* No unread actionable messages found.`);
       }
@@ -214,7 +293,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[Telegram Webhook Route Error]', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Always 200: a 5xx makes Telegram redeliver the update, which could repeat an action.
+    return NextResponse.json({ ok: false, error: error.message });
   }
 }
 
