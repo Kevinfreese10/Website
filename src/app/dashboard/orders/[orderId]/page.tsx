@@ -1586,7 +1586,36 @@ export default function ClientOrderDetailsPage() {
                                                  ) : ( 
                                                      <FormattedNoteText text={note.text} as="p" className="text-sm whitespace-pre-wrap" /> 
                                                  )}
-                                                 {note.attachments && note.attachments.length > 0 && ( <div className="mt-2 space-y-1">{note.attachments.map((att, i) => ( <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><Paperclip className="h-4 w-4"/>{att.name}</a> ))}</div> )}
+                                                 {note.attachments && note.attachments.length > 0 && (
+                                                     <div className="mt-3 pt-2.5 border-t border-border/60">
+                                                         <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                                                             <Paperclip className="h-3.5 w-3.5 text-primary" />
+                                                             Attached Documents ({note.attachments.length}) &mdash; Click to Download:
+                                                         </p>
+                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                             {note.attachments.map((att, i) => (
+                                                                 <a
+                                                                     key={i}
+                                                                     href={att.url}
+                                                                     target="_blank"
+                                                                     rel="noopener noreferrer"
+                                                                     download={att.name}
+                                                                     className="group flex items-center justify-between gap-2 p-2.5 rounded-lg border border-primary/20 bg-background hover:bg-primary/5 hover:border-primary transition-all shadow-xs"
+                                                                 >
+                                                                     <div className="flex items-center gap-2 min-w-0">
+                                                                         <FileText className="h-4 w-4 text-red-600 shrink-0" />
+                                                                         <span className="text-xs font-semibold text-foreground group-hover:text-primary truncate">
+                                                                             {att.name}
+                                                                         </span>
+                                                                     </div>
+                                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                                                         <ExternalLink className="h-3 w-3" /> Download
+                                                                     </span>
+                                                                 </a>
+                                                             ))}
+                                                         </div>
+                                                     </div>
+                                                 )}
                                             </div>
                                         </div>
                                     );
