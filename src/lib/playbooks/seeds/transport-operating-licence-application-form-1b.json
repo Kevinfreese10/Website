@@ -1,0 +1,120 @@
+{
+  "slug": "transport-operating-licence-application-form-1b",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Completed Provincial Regulatory Entity (PRE) Form 1B Operating Licence Application Dossier",
+    "Detailed Route Description Annexure, Transport Motivation Letter & PRE Lodgement Guide"
+  ],
+  "playbookCommonFailures": [
+    "Route description is too vague (PRE requires exact origin, turn-by-turn street/highway names, pick-up points, and destination)",
+    "Vehicle seating capacity on RC1 logbook does not match the service category applied for on Form 1B"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_tol_cor143_and_ids",
+      "label": "Company Registration Certificate (CoR 14.3) & Certified SA ID Copies (< 3 Months) of Directors",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 and certified director ID copies (< 3 months).",
+      "aiHint": "Official CIPC CoR14.3 and certified director ID copies (< 90 days)."
+    },
+    {
+      "id": "req_tol_tcs_pin",
+      "label": "Valid SARS Tax Compliance Status (TCS) PIN Letter",
+      "type": "pdf",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Provincial Regulatory Entities (PRE) strictly require an original/valid SARS Tax Clearance PIN letter with Form 1B.",
+      "aiHint": "Valid SARS Tax Compliance Status (TCS) PIN letter in the applicant name."
+    },
+    {
+      "id": "req_rc1_logbook",
+      "label": "Vehicle Registration Certificate (RC1 / Logbook)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Certificate of registration showing vehicle VIN, engine number, and seating capacity.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_roadworthy",
+      "label": "Valid Roadworthy Certificate (Certificate of Fitness - COF)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Current roadworthy certificate issued by an approved testing station.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_driver_prdp",
+      "label": "Driver's Licence with valid PrDP (Public Road Driver Permit)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Driver licence card showing active PrDP category (Passengers).",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "alternatives": []
+    },
+    {
+      "id": "req_route_details",
+      "label": "Intended Operating Area / Routes",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Metro area, radius in km, or specific originating and destination points.",
+      "alternatives": []
+    },
+    {
+      "id": "req_tol_contract_and_insurance",
+      "label": "Transport Service Contract / Scholar List / Route Support Letter & Passenger Liability Insurance Confirmation",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your signed charter/staff/scholar transport contract (or taxi association support letter) and proof of Passenger Liability Insurance.",
+      "aiHint": "Signed passenger transport contract, school/parent schedule, or association letter of support alongside Passenger Liability Insurance schedule."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tol_collect",
+      "title": "Collect vehicle and operator documentation",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Logbook, COF, PrDP, and tax clearance verified"
+    },
+    {
+      "id": "tol_draft",
+      "title": "Draft Form 1B and route specification dossier",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Form 1B populated with vehicle details and route coordinates",
+      "templateIds": [
+        "pre_form_1b",
+        "route_specification_motivation"
+      ]
+    },
+    {
+      "id": "tol_deliver",
+      "title": "Deliver PRE submission pack to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Lodgement bundle and board payment instructions delivered"
+    },
+    {
+      "id": "tol_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

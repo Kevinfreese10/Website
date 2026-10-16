@@ -1,0 +1,120 @@
+{
+  "slug": "business-plan-for-funding",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "25–35 Page Bankable Business Plan (SEFA / IDC / NYDA / Commercial Bank Compliant) in PDF & Word",
+    "3–5 Year Integrated Financial Model (Income Statement, Balance Sheet, Cash Flow, Break-Even & Loan Amortization)"
+  ],
+  "playbookCommonFailures": [
+    "Funding amount requested does not reconcile to the supplier quotations and working capital breakdown",
+    "Projected debt-service coverage ratio (DSCR) falls below 1.25x under realistic revenue assumptions"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_bp_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate of the applicant business.",
+      "aiHint": "Official CIPC CoR14.3 showing the registered enterprise name, registration number, and directors."
+    },
+    {
+      "id": "req_biz_summary",
+      "label": "Business Concept, Target Market, Target Funder (Bank / SEFA / IDC / NYDA) & Exact Funding Amount + Use of Funds Breakdown",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Detail what your business does, your target customers/off-take agreements, which funding institution you are applying to, the exact funding amount needed, and how the funds will be allocated (e.g., equipment, working capital, stock, vehicles)."
+    },
+    {
+      "id": "req_bp_financial_assumptions",
+      "label": "Revenue / Pricing Model & Expected Monthly Operating Overhead Costs",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your product/service unit prices, expected monthly sales volumes, gross margin estimates, and monthly fixed expenses (rent, salaries, marketing, transport) to build your 3–5 year financial forecast."
+    },
+    {
+      "id": "req_founder_cv",
+      "label": "CVs / Resumes & Certified ID Copies of All Directors / Key Founders",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the CVs/resumes and ID copies of the directors and key management team.",
+      "aiHint": "Curriculum Vitae (CV) / resume and identification documents of the company directors and founders detailing qualifications and industry track record."
+    },
+    {
+      "id": "req_quotations_capex",
+      "label": "Supplier Quotations / Pro-Forma Invoices for Equipment, Vehicles or Stock to be Financed",
+      "type": "pdf",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload formal supplier quotations for any machinery, vehicles, or inventory to be purchased with the funding.",
+      "aiHint": "Supplier pro-forma invoices or quotations supporting the capital expenditure schedule in the business plan."
+    },
+    {
+      "id": "req_bp_existing_financials",
+      "label": "Latest Annual Financial Statements or 6 Months Bank Statements (If Business Is Already Trading)",
+      "type": "pdf",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "alternatives": [
+        "6 months business bank statements",
+        "Management accounts"
+      ],
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Is the business already actively trading?",
+      "helpText": "If the business is already trading, upload your latest financial statements or 6 months bank statements to anchor historical performance.",
+      "aiHint": "Historical Annual Financial Statements, management accounts, or 6 months business bank statements of the applicant company."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "bp_collect",
+      "title": "Review funding questionnaire & business drivers",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Revenue models, cost assumptions, and capex items confirmed"
+    },
+    {
+      "id": "bp_model",
+      "title": "Build 3-year financial model and forecast",
+      "type": "calculate",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "3-year P&L, balance sheet, and cash flow projections completed"
+    },
+    {
+      "id": "bp_draft",
+      "title": "Draft full narrative business plan document",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Executive summary, market analysis, operations, and financials merged",
+      "templateIds": [
+        "business_plan_narrative",
+        "financial_projection_model"
+      ]
+    },
+    {
+      "id": "bp_deliver",
+      "title": "Deliver Word & PDF business plan pack to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Delivered to client with review session support"
+    },
+    {
+      "id": "bp_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms quality and signs off"
+    }
+  ]
+}

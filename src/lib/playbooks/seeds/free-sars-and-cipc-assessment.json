@@ -1,0 +1,152 @@
+{
+  "slug": "free-sars-and-cipc-assessment",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Comprehensive CIPC & SARS Compliance Health Check Report detailing company status, CIPC Annual Return arrears, Beneficial Ownership status, and SARS tax compliance across Income Tax, VAT, and PAYE/UIF/SDL",
+    "Actionable Remediation Plan & Itemised Quote to clear any non-compliance blocks"
+  ],
+  "playbookCommonFailures": [
+    "Company registration number or ID number provided is inaccurate or cannot be located on CIPC",
+    "SARS eFiling credentials are not provided or OTP is not relayed to inspect the full SARS My Compliance Profile (MCP)"
+  ],
+  "informationToProvide": [
+    {
+      "id": "entity_and_reg_details",
+      "label": "Company Name & CIPC Registration Number (or Individual Name & SA ID Number)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your registered company name and CIPC registration number (e.g., 2020/123456/07) or your full name and 13-digit SA ID number.",
+      "aiHint": "Company name and CIPC registration number, or individual full name and SA ID number."
+    },
+    {
+      "id": "sars_tax_numbers",
+      "label": "SARS Income Tax, VAT & PAYE Reference Numbers (if known)",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Provide your SARS tax reference numbers and let us know what compliance issues you are experiencing (e.g., CIPC AR deregistration, non-compliant TCS PIN, outstanding returns).",
+      "aiHint": "Known SARS tax reference numbers and client notes on compliance concerns."
+    },
+    {
+      "id": "cor14_3_or_id",
+      "label": "CIPC Registration Certificate (CoR 14.3) or Director SA ID Copy (optional)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "either",
+      "isRequired": false,
+      "helpText": "Upload your CIPC CoR 14.3 or SA ID document if available.",
+      "aiHint": "CIPC CoR 14.3 certificate or SA ID document."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": false,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "fsca_collect",
+      "stepNumber": 1,
+      "title": "Collect CIPC registration number, SARS tax numbers and optional eFiling access",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Company registration number / ID number and SARS details collected",
+      "aiInstructions": "Confirm the CIPC registration number and whether SARS eFiling credentials have been supplied for a full My Compliance Profile audit."
+    },
+    {
+      "id": "fsca_verify_cipc",
+      "stepNumber": 2,
+      "title": "Audit CIPC registration status, Annual Return arrears and Beneficial Ownership standing",
+      "type": "portal_filing",
+      "stepType": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.checkEnterpriseCompliance",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "CIPC enterprise status (In Business / AR Deregistration / Final Deregistered), outstanding Annual Return years/fees, and BO status recorded",
+      "aiInstructions": "Look up the enterprise on CIPC eServices / BizPortal to verify current status, outstanding Annual Return years and fees/penalties, and Beneficial Ownership declaration status."
+    },
+    {
+      "id": "fsca_verify_sars",
+      "stepNumber": 3,
+      "title": "Audit SARS My Compliance Profile (MCP) across all registered tax types",
+      "type": "portal_filing",
+      "stepType": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkComplianceStatus",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "SARS compliance status (outstanding returns and debt balances across Income Tax, VAT, PAYE) documented",
+      "aiInstructions": "If SARS eFiling credentials or Tax Practitioner access are available, inspect My Compliance Profile (MCP) to list every outstanding return and unpaid balance per tax type."
+    },
+    {
+      "id": "fsca_draft_report",
+      "stepNumber": 4,
+      "title": "Compile CIPC & SARS Compliance Health Check Report and Remediation Plan",
+      "type": "draft_client_message",
+      "stepType": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Structured Compliance Health Check Report and itemised remediation quote approved by Kevin",
+      "aiInstructions": "Prepare a clear, structured Compliance Health Check summary covering (1) CIPC Status & Annual Returns/BO, (2) SARS Compliance Status (ITR14/ITR12, IRP6, VAT201, EMP201/EMP501, Debt/Penalties), and (3) Step-by-step recommended actions and fees to restore full compliance."
+    },
+    {
+      "id": "fsca_deliver",
+      "stepNumber": 5,
+      "title": "Deliver CIPC & SARS Compliance Health Check Report to client",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "compliance_health_check_report"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Health Check Report posted to Communication History",
+      "aiInstructions": "Post the complete CIPC & SARS Compliance Health Check Report to Communication History."
+    },
+    {
+      "id": "fsca_signoff",
+      "stepNumber": 6,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the Free SARS & CIPC Assessment order is complete"
+    }
+  ]
+}

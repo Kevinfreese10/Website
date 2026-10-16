@@ -14,38 +14,66 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "company_name_and_vat_period",
+      "label": "Company Name, 10-Digit VAT Number & VAT Period (YYYY-MM)",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name as on the SARS profile with the VAT registration number (10 digits starting with 4)."
+      "helpText": "Registered company name, 10-digit SARS VAT number (starting with 4), and the VAT period to be filed.",
+      "aiHint": "Company name, 10-digit SARS VAT number, and VAT201 tax period (YYYY-MM)."
     },
     {
-      "label": "SARS eFiling Username",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "SARS eFiling Password",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "Completed VAT figures for the period (output VAT, input VAT, zero-rated and exempt supplies)",
+      "id": "completed_vat_figures",
+      "label": "Completed VAT Figures for the Period (Standard-Rated Output, Zero-Rated/Exempt, Capital & Other Input VAT)",
       "type": "text",
       "isRequired": true,
-      "aiHint": "This service excludes the VAT calculation: the client must supply the final figures for each VAT201 field. Accept a VAT report from their accounting system (Xero/Sage/QuickBooks) as the source. If they cannot supply figures, upsell Periodic VAT Calculation and Submission."
+      "helpText": "Provide your finalized output VAT, zero-rated/exempt sales, capital goods input VAT, and other input VAT figures (or state \"See attached VAT report\").",
+      "aiHint": "Client-calculated Output VAT, zero-rated/exempt supplies, and Input VAT figures for the period."
     },
     {
-      "label": "VAT report from accounting system for the period",
+      "id": "accounting_vat_report",
+      "label": "VAT Summary Report from Accounting System for the Period",
+      "type": "pdf",
       "documentKind": "other",
       "inNameOf": "entity",
-      "alternatives": [
-        "Manually completed VAT201 worksheet"
-      ],
+      "isRequired": true,
+      "helpText": "Upload the VAT201 summary report exported from Xero, Sage, QuickBooks, or your spreadsheet.",
+      "aiHint": "VAT summary report from the client's accounting system supporting the declared VAT201 figures."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
       "isRequired": false,
-      "aiHint": "System VAT return report showing sales by VAT type, purchases by VAT type and net VAT. Used to verify the client's figures before filing."
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -56,7 +84,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Credentials and a complete set of VAT201 field values (or a system VAT report) for the period on file",
-      "aiInstructions": "Explain that this service files the figures the client provides and does not calculate them. Ask for the tax period, output VAT on standard-rated supplies, zero-rated and exempt supplies, input VAT on purchases and capital goods, and any adjustments. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Explain that this service files the figures the client provides and does not calculate them. Ask for the tax period, output VAT on standard-rated supplies, zero-rated and exempt supplies, input VAT on purchases and capital goods, and any adjustments. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "vat201t_verify",
@@ -65,7 +95,9 @@
       "owner": "staff",
       "estimatedDays": 1,
       "doneCriteria": "Field values reconcile (15% check on standard-rated supplies), period matches the vendor category and the return is issued on eFiling",
-      "aiInstructions": "Sanity-check: output VAT ≈ 15% of standard-rated supplies (field 1 → field 4); input VAT not more than 15% of purchases; net = output − input. Check period category on eFiling (A/B 2-monthly, C monthly). Flag anything that looks VAT-inclusive. Do not recalculate from source — if the figures are unreliable, raise a proposal to upsell the calculation service."
+      "aiInstructions": "Sanity-check: output VAT ≈ 15% of standard-rated supplies (field 1 → field 4); input VAT not more than 15% of purchases; net = output − input. Check period category on eFiling (A/B 2-monthly, C monthly). Flag anything that looks VAT-inclusive. Do not recalculate from source — if the figures are unreliable, raise a proposal to upsell the calculation service.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "vat201t_handoff",
@@ -77,7 +109,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet lists every VAT201 field number and value with the client's source",
-      "aiInstructions": "Map to VAT201 fields (1, 1A, 2, 2A, 3, 4, 4A, 5–13 outputs; 14–19 inputs; 20 net). Show payable/refundable and the due date."
+      "aiInstructions": "Map to VAT201 fields (1, 1A, 2, 2A, 3, 4, 4A, 5–13 outputs; 14–19 inputs; 20 net). Show payable/refundable and the due date.",
+      "stepNumber": 3,
+      "stepType": "draft_document"
     },
     {
       "id": "vat201t_file",
@@ -89,7 +123,9 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "VAT201 submitted; confirmation and PRN saved",
-      "aiInstructions": "Returns → VAT201 → select the tax period. Enter each field from the handoff sheet; check the computed VAT payable/refundable matches. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns → VAT201 → select the tax period. Enter each field from the handoff sheet; check the computed VAT payable/refundable matches. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 4,
+      "stepType": "portal_filing"
     },
     {
       "id": "vat201t_deliver",
@@ -101,7 +137,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Filed VAT201, PRN, amount and due date posted to Communication History",
-      "aiInstructions": "Give the amount payable, PRN, and due date (last business day of the month following the period for eFiling vendors ⚠ verify) or say a refund is due and SARS may verify before paying. No deadline threats."
+      "aiInstructions": "Give the amount payable, PRN, and due date (last business day of the month following the period for eFiling vendors ⚠ verify) or say a refund is due and SARS may verify before paying. No deadline threats.",
+      "stepNumber": 5,
+      "stepType": "deliver"
     },
     {
       "id": "vat201t_signoff",
@@ -109,7 +147,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 6,
+      "stepType": "signoff"
     }
   ]
 }

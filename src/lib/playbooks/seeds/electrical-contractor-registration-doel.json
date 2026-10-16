@@ -1,0 +1,104 @@
+{
+  "slug": "electrical-contractor-registration-doel",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Completed Department of Employment and Labour Electrical Contractor Registration Pack (Annexure 3 & Annexure 5)",
+    "Provincial DoEL Submission & Verification Checklist"
+  ],
+  "playbookCommonFailures": [
+    "Registered Person (IE / MIE) wireman card has expired or is already linked full-time to another electrical contractor",
+    "Test instrument calibration certificates are older than 12 months"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_ecr_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 registration certificate of the electrical contracting company."
+    },
+    {
+      "id": "req_ecr_ids_and_poa",
+      "label": "Certified SA ID Copy (< 3 Months) of Registered Electrician & Directors + Proof of Business Address (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) of the registered electrician (IE/MIE) and company directors, plus proof of physical business address (< 3 months).",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_wireman_cert",
+      "label": "Registered Person Wireman's Licence / Registration Card",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Copy of DoEL registration certificate (Single Phase Tester, Installation Electrician, or Master Electrician).",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "alternatives": []
+    },
+    {
+      "id": "req_coida_letter",
+      "label": "COIDA Letter of Good Standing",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Current valid Letter of Good Standing from the Compensation Commissioner.",
+      "documentKind": "letter_of_good_standing",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_calibration_cert",
+      "label": "Test Instrument Calibration Certificates",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Calibration certificate for insulation resistance tester, earth loop impedance tester, etc. (< 12 months old).",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ecr_collect",
+      "title": "Collect electrician credentials and COIDA standing",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Wireman certificate, ID, calibration cert, and COIDA verified"
+    },
+    {
+      "id": "ecr_draft",
+      "title": "Prepare Annexure 3 and Annexure 5 documentation",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Both annexures populated and ready for signature",
+      "templateIds": [
+        "doel_annexure_3",
+        "doel_annexure_5"
+      ]
+    },
+    {
+      "id": "ecr_deliver",
+      "title": "Deliver completed pack and provincial labour office submission guide",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Delivered to client with submission guidance"
+    },
+    {
+      "id": "ecr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

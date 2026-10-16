@@ -16,67 +16,88 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "sole_prop_details_and_tax_year",
+      "label": "Full Name, Trading Name, Nature of Trade, SARS Tax Number & Tax Year",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Trading name of the sole proprietorship AND the full name of the individual owner — the taxpayer is the individual, the business has no separate tax number."
+      "helpText": "Provide your full name, trading name, nature of business (for the ITR12 local business schedule), 10-digit SARS tax number, and the tax year (1 March – 28 Feb).",
+      "aiHint": "Sole proprietor full name, trading name, industry/nature of trade, SARS tax number, and tax year."
     },
     {
+      "id": "taxpayer_id_copy",
+      "label": "Copy of South African ID Document or Passport",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload a clear copy of your SA ID or Passport.",
+      "aiHint": "South African ID document or passport of the sole proprietor."
+    },
+    {
+      "id": "bank_statements_and_income_records",
+      "label": "Full Tax-Year Bank Statements (PDF/CSV) & Proof of Income / IRP5s",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload all bank statements used for business trading from 1 March to 28 February, plus any sales schedules or IRP5/IT3(a) certificates.",
+      "aiHint": "Full-year bank statements (1 March to 28 Feb), sales summaries, and any employment IRP5 certificates."
+    },
+    {
+      "id": "business_expense_records",
+      "label": "Business Expense Records, Asset Purchases & Vehicle Logbook (if applicable)",
+      "type": "pdf",
+      "documentKind": "receipt",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload expense schedules, major supplier invoices, asset purchase invoices, and vehicle logbook / home office details if claiming business use.",
+      "aiHint": "Business expense schedules, supplier receipts, asset register, and vehicle logbook for s11(a) deductions."
+    },
+    {
+      "id": "personal_tax_certificates",
+      "label": "Medical Aid, Retirement Annuity (IT3(f)), IT3(b) & s18A Certificates (if applicable)",
+      "type": "pdf",
+      "documentKind": "medical_aid_cert",
+      "inNameOf": "director",
+      "isRequired": false,
+      "helpText": "Upload any personal tax certificates (Medical Aid, RA, IT3(b) interest, s18A donations) for the tax year.",
+      "aiHint": "Personal tax certificates: Medical Aid, Retirement Annuity IT3(f), IT3(b) investment, and s18A donations."
+    },
+    {
+      "id": "sars_efiling_username",
       "label": "SARS eFiling Username",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
     },
     {
+      "id": "sars_efiling_password",
       "label": "SARS eFiling Password",
       "type": "text",
+      "isRequired": true,
       "isSecret": true,
-      "isRequired": true
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
     },
     {
-      "label": "Copy of your South African ID document or passport",
-      "documentKind": "sa_id",
-      "inNameOf": "entity",
-      "alternatives": [
-        "Passport"
-      ],
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
       "isRequired": true,
-      "aiHint": "ID book / smart ID (both sides) or passport of the individual owner."
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
     },
     {
-      "label": "Proof of all income received (e.g., invoices, bank statements, IRP5s/IT3(a)s for any employment)",
-      "documentKind": "bank_statement",
-      "inNameOf": "entity",
-      "alternatives": [
-        "Sales invoices",
-        "Accounting system income report",
-        "IRP5/IT3(a)"
-      ],
-      "isRequired": true,
-      "aiHint": "Business bank statements for the full tax year (1 March – end Feb) plus invoices or a sales report; IRP5/IT3(a) for any salaried employment alongside the trade."
-    },
-    {
-      "label": "Records of all business expenses (e.g., receipts, bank statements, vehicle logbook if applicable)",
-      "documentKind": "receipt",
-      "inNameOf": "entity",
-      "alternatives": [
-        "Supplier invoices",
-        "Expense report from accounting system",
-        "Vehicle logbook"
-      ],
-      "isRequired": true,
-      "aiHint": "Receipts/invoices or an expense listing by category; vehicle logbook if motor expenses are claimed; asset list with cost and purchase date for wear-and-tear. Private expenses paid from the business account must be identified."
-    },
-    {
-      "label": "Any other relevant tax documents (e.g., medical aid certificates, retirement annuity certificates)",
-      "documentKind": "medical_aid_cert",
-      "inNameOf": "entity",
-      "alternatives": [
-        "RA certificate",
-        "IT3(b)"
-      ],
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
       "isRequired": false,
-      "aiHint": "Medical scheme certificate, RA certificate, IT3(b) interest certificates for the owner personally."
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -87,7 +108,9 @@
       "owner": "agent",
       "estimatedDays": 3,
       "doneCriteria": "Bank statements for the full tax year, income evidence, expense records and personal certificates uploaded",
-      "aiInstructions": "Ask for the full tax year (1 March to end February) of business bank statements first — they are the backbone of the income statement. Then expense records by category, a logbook if a vehicle is used, and personal certificates (IRP5, medical, RA). Confirm whether the client is a VAT vendor or employer so the figures can be reconciled. Do not promise a turnaround shorter than 3–5 working days."
+      "aiInstructions": "Ask for the full tax year (1 March to end February) of business bank statements first — they are the backbone of the income statement. Then expense records by category, a logbook if a vehicle is used, and personal certificates (IRP5, medical, RA). Confirm whether the client is a VAT vendor or employer so the figures can be reconciled. Do not promise a turnaround shorter than 3–5 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "itr12sp_verify",
@@ -96,7 +119,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "No statement gaps in the year; expense evidence supports each category; logbook compliant if vehicle claimed",
-      "aiInstructions": "The taxpayer is the individual; the trade is reported in the \"Local business, trade and professional income\" section of the ITR12, there is no separate business tax number. Check statement continuity (closing balance = next opening balance). Flag deposits that look like loans/transfers versus sales. Flag private spend."
+      "aiInstructions": "The taxpayer is the individual; the trade is reported in the \"Local business, trade and professional income\" section of the ITR12, there is no separate business tax number. Check statement continuity (closing balance = next opening balance). Flag deposits that look like loans/transfers versus sales. Flag private spend.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "itr12sp_calc",
@@ -105,7 +130,9 @@
       "owner": "kevin",
       "estimatedDays": 1,
       "doneCriteria": "Income statement by ITR12 expense category and tax computation reviewed by Kevin",
-      "aiInstructions": "Build the income statement in the AI Accountant module from the bank statements and records: turnover, cost of sales, expense categories matching the ITR12 business schedule, wear-and-tear per SARS Interpretation Note 47 write-off periods, home office apportionment, motor expenses per logbook business %. Add salary/interest/medical/RA at the personal level. Assessed loss ring-fencing (s20A) is Kevin's call. ⚠ verify current rebates, thresholds and IN47 periods."
+      "aiInstructions": "Build the income statement in the AI Accountant module from the bank statements and records: turnover, cost of sales, expense categories matching the ITR12 business schedule, wear-and-tear per SARS Interpretation Note 47 write-off periods, home office apportionment, motor expenses per logbook business %. Add salary/interest/medical/RA at the personal level. Assessed loss ring-fencing (s20A) is Kevin's call. ⚠ verify current rebates, thresholds and IN47 periods.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "itr12sp_handoff",
@@ -118,7 +145,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Every ITR12 business-section field and personal field listed with its value and source",
-      "aiInstructions": "Include the business schedule totals (turnover, cost of sales, each expense line, net profit/loss), balance sheet fields if SARS requires them for the turnover band, and personal items. Note whether the client is a provisional taxpayer and any IRP6 payments already made (they appear on the assessment)."
+      "aiInstructions": "Include the business schedule totals (turnover, cost of sales, each expense line, net profit/loss), balance sheet fields if SARS requires them for the turnover band, and personal items. Note whether the client is a provisional taxpayer and any IRP6 payments already made (they appear on the assessment).",
+      "stepNumber": 4,
+      "stepType": "draft_document"
     },
     {
       "id": "itr12sp_file",
@@ -130,7 +159,9 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "ITR12 submitted; confirmation and summary screenshot saved",
-      "aiInstructions": "Returns Issued → ITR12 → tax year. In the wizard answer YES to \"Did you receive income from local business, trade or profession\" and set the number of trades. Fill the business schedule from the handoff sheet; the agent drives to the summary, Kevin checks and presses Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns Issued → ITR12 → tax year. In the wizard answer YES to \"Did you receive income from local business, trade or profession\" and set the number of trades. Fill the business schedule from the handoff sheet; the agent drives to the summary, Kevin checks and presses Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 5,
+      "stepType": "portal_filing"
     },
     {
       "id": "itr12sp_assessment",
@@ -143,7 +174,9 @@
       ],
       "estimatedDays": 3,
       "doneCriteria": "ITA34 received, or verification documents uploaded and outcome received",
-      "aiInstructions": "Sole-prop returns with a loss or large expenses are often verified. If SARS asks for supporting documents, propose the bundle (income statement, bank statements, expense evidence, logbook) for Kevin to approve, then upload via eFiling within the window on the letter (⚠ verify: 21 business days)."
+      "aiInstructions": "Sole-prop returns with a loss or large expenses are often verified. If SARS asks for supporting documents, propose the bundle (income statement, bank statements, expense evidence, logbook) for Kevin to approve, then upload via eFiling within the window on the letter (⚠ verify: 21 business days).",
+      "stepNumber": 6,
+      "stepType": "wait_external"
     },
     {
       "id": "itr12sp_deliver",
@@ -157,7 +190,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "ITA34, computation and plain-English note posted to Communication History",
-      "aiInstructions": "Explain the outcome and the payment due date on the ITA34. If the client is not yet a provisional taxpayer but the trade profit means they should be, explain IRP6 in plain terms and offer the provisional tax service. No deadline threats."
+      "aiInstructions": "Explain the outcome and the payment due date on the ITA34. If the client is not yet a provisional taxpayer but the trade profit means they should be, explain IRP6 in plain terms and offer the provisional tax service. No deadline threats.",
+      "stepNumber": 7,
+      "stepType": "deliver"
     },
     {
       "id": "itr12sp_signoff",
@@ -165,7 +200,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 8,
+      "stepType": "signoff"
     }
   ]
 }

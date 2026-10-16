@@ -1,0 +1,100 @@
+{
+  "slug": "star-grading-application-tgcsa",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "TGCSA Online Star Grading Application & National Grading Subsidy Dossier",
+    "Pre-Assessment Gap Audit & TGCSA Assessor Readiness Checklist (1 to 5 Stars)"
+  ],
+  "playbookCommonFailures": [
+    "Expired SARS TCS PIN or B-BBEE Affidavit disqualifies the establishment from the 50%–90% TGCSA grading fee subsidy",
+    "Missing Certificate of Acceptability (CoA) where the establishment serves breakfast or cooked meals to guests"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_property_type",
+      "label": "Accommodation Type, Room Count & Target Star Rating",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "E.g., 8-room guesthouse seeking 4-star grading.",
+      "alternatives": []
+    },
+    {
+      "id": "req_public_liability",
+      "label": "Public Liability Insurance Policy Confirmation",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Insurance schedule showing public liability cover for guests.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_food_coa",
+      "label": "Certificate of Acceptability (CoA) (if meals served)",
+      "type": "pdf",
+      "isRequired": false,
+      "aiHint": "Municipal health certificate if breakfast or dining is provided.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_tgc_cor143_tcs_bee",
+      "label": "Company CoR 14.3, SARS Tax Compliance Status (TCS) PIN & B-BBEE Sworn Affidavit (For TGCSA Grading Subsidy)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your CoR 14.3, SARS TCS PIN letter, and B-BBEE Sworn Affidavit to qualify for the Department of Tourism / TGCSA grading fee discount.",
+      "aiHint": "Official CIPC CoR14.3, valid SARS TCS PIN letter, and B-BBEE Affidavit/Certificate in the hospitality entity name."
+    },
+    {
+      "id": "req_tgc_photos_and_lease",
+      "label": "Proof of Lawful Occupation (Title Deed / Lease) & Interior/Exterior Establishment Photographs",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload your property lease/title deed and photos of the establishment exterior, bedrooms, bathrooms, and dining/common areas.",
+      "aiHint": "Property lease agreement or title deed plus photographs of the hospitality establishment."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tgc_collect",
+      "title": "Collect property inventory, insurance, and compliance documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Inventory, photos, insurance, and subsidy criteria checked"
+    },
+    {
+      "id": "tgc_draft",
+      "title": "Prepare TGCSA application and subsidy discount bundle",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Online application drafted with discount subsidy documentation",
+      "templateIds": [
+        "tgcsa_grading_application",
+        "tgcsa_pre_assessment_checklist"
+      ]
+    },
+    {
+      "id": "tgc_deliver",
+      "title": "Deliver TGCSA submission dossier & assessor prep checklist",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Delivered to client for assessor booking"
+    },
+    {
+      "id": "tgc_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

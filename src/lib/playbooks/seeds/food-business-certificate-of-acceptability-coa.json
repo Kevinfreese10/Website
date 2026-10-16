@@ -1,0 +1,106 @@
+{
+  "slug": "food-business-certificate-of-acceptability-coa",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Completed Municipal Regulation R638 Certificate of Acceptability (CoA) Application Dossier",
+    "Customized R638 Food Hygiene SOP Pack (Cleaning, Cold Chain, Pest Control & Waste Management) & EHP Inspection Checklist"
+  ],
+  "playbookCommonFailures": [
+    "Premises lacks separate hand-washing basin with hot and cold running water in the food preparation area as required by Regulation R638",
+    "Person-in-Charge does not hold an accredited food safety / hygiene training certificate required by the local Environmental Health Practitioner (EHP)"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_biz_details",
+      "label": "Business Premises Address & Municipality Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Physical address of the food facility and which metro/local municipality has jurisdiction.",
+      "alternatives": []
+    },
+    {
+      "id": "req_food_nature",
+      "label": "Nature of Food Handling & Products",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "E.g., hot meal prep, bakery, butchery, retail pre-packaged, catering, or food delivery.",
+      "alternatives": []
+    },
+    {
+      "id": "req_person_in_charge",
+      "label": "Person-in-Charge Full Name & ID",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The designated manager or person responsible for food hygiene on site.",
+      "alternatives": []
+    },
+    {
+      "id": "req_coa_cor143_and_id",
+      "label": "Company Registration Certificate (CoR 14.3) & Certified ID Copy of Person-in-Charge (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate and certified ID copy of the designated Person-in-Charge.",
+      "aiHint": "Official CIPC CoR14.3 and certified ID of the designated food premises Person-in-Charge."
+    },
+    {
+      "id": "req_coa_floor_plan_and_lease",
+      "label": "Premises Layout / Floor Plan & Proof of Lawful Occupation (Lease Agreement or Municipal Account < 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload a sketch/floor plan showing food preparation, wash-up, storage, and toilet facilities, plus your signed lease or municipal bill.",
+      "aiHint": "Food premises floor layout sketch and proof of address / commercial lease agreement."
+    },
+    {
+      "id": "req_coa_pest_and_hygiene",
+      "label": "Food Handler Hygiene Certificate, Pest Control Contract & Waste Removal Proof (If Already Available)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload any existing food safety training certificate, pest control contract, or trade waste agreement.",
+      "aiHint": "Food hygiene training certificate, pest control service report, or waste management documentation."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "coa_collect",
+      "title": "Collect premises & food category details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Facility layout and municipality confirmed"
+    },
+    {
+      "id": "coa_draft",
+      "title": "Prepare municipal CoA application and hygiene checklist",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Municipal form completed with R638 readiness bundle",
+      "templateIds": [
+        "r638_coa_application",
+        "r638_food_hygiene_sop_pack"
+      ]
+    },
+    {
+      "id": "coa_deliver",
+      "title": "Deliver application pack to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack and inspector booking instructions delivered to client"
+    },
+    {
+      "id": "coa_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "slug": "cross-border-road-transport-permit",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Lodged C-BRTA Cross-Border Road Transport Permit Application on Cross-Easy Portal",
+    "C-BRTA Application Reference & Statutory Permit Fee Payment Voucher"
+  ],
+  "playbookCommonFailures": [
+    "Vehicle Certificate of Fitness (Roadworthy) expired or expires within the requested permit period",
+    "Mechanical horse and trailer(s) not each individually supported by RC1 and Roadworthy certificates",
+    "SARS Tax Compliance Status (TCS) PIN non-compliant on the day of C-BRTA verification"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_cbr_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3) & Certified Director ID (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate and certified director ID.",
+      "aiHint": "Official CIPC CoR14.3 and certified director ID."
+    },
+    {
+      "id": "req_operator_card",
+      "label": "Vehicle Registration (RC1 / NATIS Logbook), Valid Roadworthy Certificate (COF) & Operator Card (G-Disc)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the vehicle RC1 registration certificate, valid Certificate of Fitness (Roadworthy), and commercial Operator Card (Double Disc) for each vehicle/trailer.",
+      "aiHint": "Vehicle RC1 registration certificate, unexpired Roadworthy Certificate (Certificate of Fitness), and commercial Operator Card in the operator name."
+    },
+    {
+      "id": "req_cbr_driver_docs",
+      "label": "Driver Certified Passport & Valid Driver Licence with Professional Driving Permit (PrDP)",
+      "type": "pdf",
+      "documentKind": "passport",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the cross-border driver valid passport and driver licence card showing an active PrDP.",
+      "aiHint": "Valid passport and South African/SADC driving licence card showing an unexpired Professional Driving Permit (PrDP)."
+    },
+    {
+      "id": "req_cbr_contract_mandate",
+      "label": "Cross-Border Freight Consignment Contract / Customer Mandate Letter (or Passenger Timetable & Route Authority)",
+      "type": "pdf",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the cross-border transport contract or customer off-take mandate proving commercial need across the specified SADC borders.",
+      "aiHint": "Signed cross-border transport agreement, customer mandate letter, or passenger route schedule supporting the C-BRTA permit application."
+    },
+    {
+      "id": "req_destination_country",
+      "label": "Permit Type (Freight vs Passenger), Permit Duration (Temporary 14-Day / 3-Month / 12-Month), Destination SADC Countries & Border Posts",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify Freight or Passenger, permit duration, destination SADC countries (e.g., Zimbabwe, Mozambique, Botswana, Zambia, Namibia), and exact border posts."
+    },
+    {
+      "id": "req_tax_pin",
+      "label": "SARS Tax Compliance Status (TCS) PIN & Cross-Easy Portal Login Details (If Already Registered on C-BRTA Cross-Easy)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your active SARS TCS PIN and, if you already have a C-BRTA Cross-Easy profile, your login username and password."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cbr_collect",
+      "title": "Collect vehicle and cross-border route data",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "G-disc, roadworthy, tax PIN, and border posts verified"
+    },
+    {
+      "id": "cbr_file",
+      "title": "Capture and lodge application on Cross-Easy portal",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "other",
+      "estimatedDays": 1,
+      "doneCriteria": "Application submitted on C-BRTA portal and reference generated",
+      "submitMode": "stage"
+    },
+    {
+      "id": "cbr_deliver",
+      "title": "Deliver filing proof & C-BRTA fee payment invoice",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation voucher posted to Communication History"
+    },
+    {
+      "id": "cbr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms completion"
+    }
+  ]
+}

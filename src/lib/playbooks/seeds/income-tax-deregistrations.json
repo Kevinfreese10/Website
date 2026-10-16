@@ -1,0 +1,195 @@
+{
+  "slug": "income-tax-deregistrations",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Submitted SARS Income Tax Deregistration Application & Case Number",
+    "Official SARS Confirmation of Income Tax Deregistration (Inactive Tax Status)"
+  ],
+  "playbookCommonFailures": [
+    "Company is still \"In Business\" at CIPC — SARS will not deregister a company Income Tax number until CIPC Final Deregistration is completed",
+    "Outstanding ITR12/ITR14 tax returns or unpaid administrative penalties on the SARS Statement of Account",
+    "Individual still earns South African-source income or holds active tax types (VAT/PAYE) that have not been deregistered first"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_42k2b48i",
+      "label": "Certified SA ID or Passport Copy of Taxpayer / Public Officer (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport copy"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a certified copy of your ID or passport (< 3 months).",
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_804it6m8",
+      "label": "CIPC Final Deregistration Certificate (CoR 40.4) / CoR 14.3 / Trust Termination or Emigration Proof",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "either",
+      "alternatives": [
+        "CIPC Final Deregistration Notice",
+        "Master of the High Court Trust Termination Confirmation"
+      ],
+      "isRequired": true,
+      "helpText": "For a company, upload the CIPC CoR 14.3 and Final Deregistration confirmation; for an individual/trust, upload the supporting termination/emigration document.",
+      "aiHint": "CIPC Final Deregistration certificate (CoR 40.4), CoR 14.3, or individual/trust termination proof."
+    },
+    {
+      "id": "req_itd_bank_or_affidavit",
+      "label": "6 Months Bank Statements (or Bank Account Closure Letter) & Signed Zero-Activity / Cessation Affidavit",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "either",
+      "alternatives": [
+        "Bank account closure confirmation letter + commissioned non-trading affidavit"
+      ],
+      "isRequired": true,
+      "helpText": "Upload 6 months bank statements or a bank account closure letter proving no taxable income is being earned.",
+      "aiHint": "Bank statements or bank closure confirmation letter proving cessation of economic activity and zero taxable income."
+    },
+    {
+      "id": "req_itd_reason_and_tax_ref",
+      "label": "10-Digit SARS Income Tax Reference Number, Detailed Reason for Deregistration & Effective Cessation Date",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the 10-digit SARS Income Tax reference number, why it is being deregistered (e.g., CIPC final deregistration, duplicate tax number, emigration, deceased estate), and the date operations/income ceased."
+    },
+    {
+      "id": "req_sars_itd_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_itd_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_itd_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_itd_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "itd_collect",
+      "title": "Collect certified ID, CIPC final deregistration / cessation proof, bank closure proof, and eFiling credentials",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Certified ID, CIPC/cessation proof, bank closure/statements, tax number, and eFiling credentials received",
+      "aiInstructions": "Confirm the exact ground for Income Tax deregistration. If the taxpayer is a company that is still active at CIPC, advise that CIPC Company Deregistration must be completed before SARS will cancel the company Income Tax reference."
+    },
+    {
+      "id": "itd_verify",
+      "title": "Audit SARS Statement of Account, outstanding returns, and other active tax types on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkAccountStatus:IT",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Zero outstanding Income Tax returns, zero unpaid debt/penalties, and VAT/PAYE/SDL/UIF already deregistered",
+      "aiInstructions": "Log into SARS eFiling and verify that all ITR12/ITR14 returns up to the cessation year are filed, the ITSA balance is R0.00, and no other tax types (VAT, PAYE) remain active."
+    },
+    {
+      "id": "itd_draft",
+      "title": "Draft SARS Income Tax Deregistration Motivation Letter, Non-Trading Affidavit & POA",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "cover_letter",
+        "power_of_attorney",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Deregistration motivation letter, affidavit, and POA drafted for review",
+      "aiInstructions": "Draft a formal SARS deregistration cover letter detailing the cessation date, CIPC final deregistration status (if company), and zero assets/liabilities."
+    },
+    {
+      "id": "itd_file",
+      "title": "Submit Income Tax Deregistration on SARS eFiling (RAV01) / SARS Online Query System",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.deregisterTaxType:IT",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Income Tax deregistration submitted on eFiling / SOQS with all supporting documents and SARS case number recorded",
+      "aiInstructions": "Submit the Income Tax cancellation request under SARS Registered Details (RAV01) or SARS Online Query System and upload the CIPC Final Deregistration certificate, bank closure proof, certified ID, and signed motivation letter."
+    },
+    {
+      "id": "itd_wait",
+      "title": "Monitor SARS deregistration case and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        15,
+        30,
+        60
+      ],
+      "estimatedDays": 60,
+      "doneCriteria": "SARS confirms Income Tax reference number is deregistered / inactive",
+      "aiInstructions": "Check SARS case status at Days 15, 30, and 60 and respond to any final audit verification queries."
+    },
+    {
+      "id": "itd_deliver",
+      "title": "Deliver SARS Income Tax Deregistration confirmation to the client portal",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Official SARS deregistration confirmation posted to Communication History",
+      "aiInstructions": "Deliver the SARS deregistration confirmation and remind the client to retain tax records for the statutory 5-year period."
+    },
+    {
+      "id": "itd_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

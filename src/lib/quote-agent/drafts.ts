@@ -4,7 +4,7 @@
  */
 import { findContentProblems } from './filters';
 import { isValidClientRecipient } from './gate';
-import { sendEmail } from './mailer';
+import { sendEmail, moveEmailByMessageId } from './mailer';
 import * as store from './store';
 import { editTelegram, tgEscape } from './telegram';
 
@@ -39,6 +39,12 @@ export async function sendApprovedDraft(draftId: string, by: string): Promise<Dr
     }
     await store.updateDraft(draftId, { status: 'sent', sentMessageId: sent.messageId, error: undefined });
     await store.audit('draft_sent', { draftId, to: draft.to, by, quoteRef: draft.quoteRef, category: draft.category });
+    
+    // Automatically archive the source inquiry email from INBOX to INBOX.Archive
+    if (draft.sourceMessageKey) {
+      await moveEmailByMessageId(draft.sourceMessageKey, 'INBOX.Archive').catch(() => {});
+    }
+
     if (draft.telegramMessageId) {
       await editTelegram(draft.telegramMessageId, `✅ <b>Sent</b> to ${tgEscape(draft.to)} by ${tgEscape(by)}\n${tgEscape(draft.subject)}`);
     }
@@ -56,6 +62,13 @@ export async function discardDraft(draftId: string, by: string): Promise<DraftDe
   if (!draft || draft.status !== 'pending') return { ok: false, message: 'Draft not found or already handled.' };
   await store.updateDraft(draftId, { status: 'discarded', decidedBy: by, decidedAt: new Date().toISOString() });
   await store.audit('draft_discarded', { draftId, by, category: draft.category });
+  
+  // Automatically archive the source inquiry email from INBOX to INBOX.Archive
+  if (draft.sourceMessageKey) {
+    await moveEmailByMessageId(draft.sourceMessageKey, 'INBOX.Archive').catch(() => {});
+  }
+
   if (draft.telegramMessageId) await editTelegram(draft.telegramMessageId, `🗑 <b>Discarded</b> by ${tgEscape(by)}\n${tgEscape(draft.subject)}`);
   return { ok: true, message: 'Discarded.' };
 }
+

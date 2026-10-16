@@ -8,12 +8,14 @@
  * decision path without touching the mailbox or writing to Firestore.
  */
 import { randomUUID } from 'crypto';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { classifyEmail } from '@/ai/flows/quote-agent-classify';
 import { Catalog } from './catalog';
 import { KEVIN_ADDRESS, PORTAL_URL, QUOTE_POLICY } from './config';
 import { detectAutomation, findContentProblems, isObviousSpam } from './filters';
 import { decideAction, isValidClientRecipient } from './gate';
-import { fetchNewEmails, sendEmail, type OutboundEmail } from './mailer';
+import { fetchNewEmails, moveEmails, sendEmail, type OutboundEmail } from './mailer';
 import * as store from './store';
 import { draftButtons, sendTelegram, tgEscape } from './telegram';
 import { formatZar, makeQuoteRef, renderLetterEmail, renderQuoteEmail } from './template';
@@ -168,8 +170,69 @@ export async function processEmail(email: InboundEmail, deps: ProcessDeps): Prom
   }
 
   if (decision.action === 'notify_only' && base.urgent) {
+    if (category === 'order_update' || category === 'regulator') {
+      const orderMatch = `${email.subject}\n${email.text}`.match(/(?:order\s*#?|#|id:\s*)([0-9]{4,6})/i);
+      let matchedOrder: { id: string; orderNumber: any } | null = null;
+      if (orderMatch) {
+        try {
+          const db = getAdminDb();
+          const orderNum = Number(orderMatch[1]);
+          const snap = await db.collection('orders').where('orderNumber', '==', orderNum).limit(1).get();
+          if (!snap.empty) {
+            matchedOrder = { id: snap.docs[0].id, orderNumber: snap.docs[0].data()?.orderNumber || orderNum };
+          } else {
+            const snap2 = await db.collection('orders').doc(String(orderNum)).get();
+            if (snap2.exists) matchedOrder = { id: snap2.id, orderNumber: snap2.data()?.orderNumber || orderNum };
+          }
+        } catch (e: any) {
+          console.warn('[quote-agent] Order lookup failed:', e.message);
+        }
+      }
+
+      if (matchedOrder) {
+        try {
+          const db = getAdminDb();
+          const note = {
+            id: randomUUID(),
+            content: `Inbound ${(category as string) === 'regulator' ? 'Regulator Notice' : 'Email'} from ${email.fromName} (${email.fromAddress}):\n\nSubject: ${email.subject}\n\n${email.text.slice(0, 1500)}`,
+            author: 'quote-agent',
+            authorName: 'Cloud Email Agent',
+            createdAt: new Date().toISOString(),
+            type: 'internal'
+          };
+          await db.collection('orders').doc(matchedOrder.id).update({
+            notes: FieldValue.arrayUnion(note),
+            updatedAt: new Date().toISOString()
+          });
+        } catch (e: any) {
+          console.warn('[quote-agent] Note append failed:', e.message);
+        }
+
+        await deps.telegram(
+          `📦 <b>Order #${matchedOrder.orderNumber} Updated</b>\n` +
+          `<b>From:</b> ${tgEscape(email.fromName)} &lt;${tgEscape(email.fromAddress)}&gt;\n` +
+          `<b>Subject:</b> ${tgEscape(email.subject)}\n` +
+          `<i>${tgEscape(c.summary)}</i>\n\n` +
+          `Auto-attached to order in admin portal.`,
+          [[{ text: `Open Order #${matchedOrder.orderNumber}`, url: `${PORTAL_URL}/admin/orders/${matchedOrder.id}` }]]
+        );
+        return base;
+      }
+
+      if ((category as string) === 'regulator') {
+        await deps.telegram(
+          `🏛️ <b>Regulator notice</b>\n` +
+          `<b>From:</b> ${tgEscape(email.fromName)} &lt;${tgEscape(email.fromAddress)}&gt;\n` +
+          `<b>Subject:</b> ${tgEscape(email.subject)}\n` +
+          `<i>${tgEscape(c.summary)}</i>`,
+          [[{ text: '📊 View Active Orders', url: `${PORTAL_URL}/admin/orders` }]]
+        );
+        return base;
+      }
+    }
+
     await deps.telegram(
-      `${category === 'regulator' ? '🏛️' : '📦'} <b>${tgEscape(category === 'regulator' ? 'Regulator notice' : 'Order update')}</b>\n<b>From:</b> ${tgEscape(email.fromName)} &lt;${tgEscape(email.fromAddress)}&gt;\n<b>Subject:</b> ${tgEscape(email.subject)}\n${tgEscape(c.summary)}`,
+      `${(category as string) === 'regulator' ? '🏛️' : '📦'} <b>${tgEscape((category as string) === 'regulator' ? 'Regulator notice' : 'Order update')}</b>\n<b>From:</b> ${tgEscape(email.fromName)} &lt;${tgEscape(email.fromAddress)}&gt;\n<b>Subject:</b> ${tgEscape(email.subject)}\n${tgEscape(c.summary)}`,
     );
   }
   return base;
@@ -204,6 +267,9 @@ export async function runTick(): Promise<TickResult> {
       telegram: (h, b, silent) => sendTelegram(h, b, silent), audit: store.audit,
     };
 
+    const toArchiveUids: number[] = [];
+    const toSpamUids: number[] = [];
+
     for (const email of emails.sort((a, b) => a.date.localeCompare(b.date))) {
       if (Date.now() - started > 240_000) break;
       const key = email.messageId;
@@ -212,6 +278,18 @@ export async function runTick(): Promise<TickResult> {
         const { preview, ...outcome } = await processEmail(email, deps);
         await store.finishMessage(key, outcome);
         outcomes.push({ from: email.fromAddress, subject: email.subject, category: outcome.category, action: outcome.action, status: outcome.status });
+
+        if (outcome.status === 'baseline' || outcome.status === 'ignored') {
+          toArchiveUids.push(email.uid);
+        } else if (outcome.category === 'spam') {
+          toSpamUids.push(email.uid);
+        } else if (outcome.category === 'system_notice') {
+          toArchiveUids.push(email.uid);
+        } else if (outcome.action === 'auto_send') {
+          toArchiveUids.push(email.uid);
+        } else if (outcome.category === 'order_update' || outcome.category === 'regulator') {
+          toArchiveUids.push(email.uid);
+        }
       } catch (err: any) {
         failures++;
         lastError = err?.message || String(err);
@@ -219,6 +297,14 @@ export async function runTick(): Promise<TickResult> {
         await store.releaseForRetry(key, lastError);
         outcomes.push({ from: email.fromAddress, subject: email.subject, status: 'error', error: lastError });
       }
+    }
+
+    // Physically move emails in IMAP for true Inbox Zero
+    if (toSpamUids.length) {
+      await moveEmails(toSpamUids, 'INBOX.spam').catch(e => console.warn('[quote-agent] Move to spam failed:', e.message));
+    }
+    if (toArchiveUids.length) {
+      await moveEmails(toArchiveUids, 'INBOX.Archive').catch(e => console.warn('[quote-agent] Move to archive failed:', e.message));
     }
 
     if (failures) {

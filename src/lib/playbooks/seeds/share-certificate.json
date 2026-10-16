@@ -14,14 +14,78 @@
     "Client is a close corporation — CCs have member interests, not shares, and need a CK2 amendment instead"
   ],
   "informationToProvide": [
-    { "label": "Company name and registration number (CK number)", "type": "text", "isRequired": true },
-    { "label": "Company registration certificate (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 or MOI showing the registration number, registered name and directors who will sign the certificate. If it is a CK1/CK2 (close corporation) stop — CCs do not issue share certificates." },
-    { "label": "Copy of company Memorandum of Incorporation (MOI)", "type": "pdf", "documentKind": "moi", "inNameOf": "entity", "isRequired": true, "aiHint": "Registered MOI (CoR15.1A or customised) showing the authorised number and classes of shares. Extract the authorised share count and any class rights." },
-    { "label": "Details of shareholders (full names, ID numbers/company registration numbers)", "type": "text", "isRequired": true, "helpText": "For each shareholder receiving a certificate: full legal names as on ID, ID or registration number, and address." },
-    { "label": "ID copy of each shareholder", "type": "pdf", "documentKind": "sa_id", "inNameOf": "either", "isRequired": true, "aiHint": "Clear copy of the SA ID or passport (or CoR14.3 for a corporate shareholder) so the names and numbers on the certificate match exactly. Certification not required for this service." },
-    { "label": "Number and class of shares being issued or transferred", "type": "text", "isRequired": true, "helpText": "E.g. 100 ordinary no-par-value shares to each shareholder; state whether this is a new issue or a transfer." },
-    { "label": "Previous share certificate details (if applicable, for transfers)", "type": "text", "isRequired": false, "helpText": "Certificate number, transferor and number of shares being transferred." },
-    { "label": "Existing share certificates or securities register (if any)", "type": "pdf", "documentKind": "share_certificate", "inNameOf": "entity", "isRequired": false, "aiHint": "Existing certificates or register, used to continue the certificate numbering and confirm the transferor holds the shares." }
+    {
+      "id": "company_name_and_reg",
+      "label": "Company Name & CIPC Registration Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Registered company name and CIPC registration number.",
+      "aiHint": "Registered company name and CIPC registration number."
+    },
+    {
+      "id": "shareholder_and_share_details",
+      "label": "Shareholder Details (Full Names, ID/Reg Numbers, Physical Addresses & Email)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the full name, ID/registration number, and physical address of every shareholder receiving a share certificate.",
+      "aiHint": "Full names, ID or company registration numbers, and physical addresses of each shareholder."
+    },
+    {
+      "id": "number_and_class_of_shares",
+      "label": "Number, Class of Shares & Issue / Transfer Date per Shareholder",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the exact number and class of shares (e.g., 100 Ordinary No Par Value Shares) allocated to each shareholder and the effective allotment/transfer date.",
+      "aiHint": "Exact number, class of shares, and allotment/transfer date per shareholder (must not exceed authorised shares in the MOI)."
+    },
+    {
+      "id": "previous_certificate_details",
+      "label": "Previous Share Certificate Details (if transferring existing shares)",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "If this is a share transfer rather than an initial allotment, specify the transferor name, certificate number, and consideration paid.",
+      "aiHint": "Transferor details and previous certificate number if issuing upon share transfer."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate.",
+      "aiHint": "CIPC CoR 14.3 registration certificate showing company name, registration number, and directors."
+    },
+    {
+      "id": "company_moi",
+      "label": "Company Memorandum of Incorporation (MOI)",
+      "type": "pdf",
+      "documentKind": "moi",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company MOI (CoR 15.1A / custom MOI) so we can verify authorised share capital and share classes.",
+      "aiHint": "Company Memorandum of Incorporation (MOI) showing authorised share classes and maximum authorised shares."
+    },
+    {
+      "id": "shareholder_ids",
+      "label": "ID Copy (or CIPC CoR 14.3) of Each Shareholder",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the SA ID/Passport of each individual shareholder (or CoR 14.3 for a corporate/trust shareholder).",
+      "aiHint": "Identity documents or registration certificates of all shareholders."
+    },
+    {
+      "id": "existing_certificates_optional",
+      "label": "Existing Share Certificates or Securities Register (if any)",
+      "type": "pdf",
+      "documentKind": "share_certificate",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload any previously issued share certificates or existing share register to maintain sequential certificate numbering.",
+      "aiHint": "Previously issued share certificates or securities register."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -31,7 +95,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "CoR14.3, MOI, shareholder details with IDs, share numbers/class and (for transfers) previous certificate details received",
-      "aiInstructions": "Ask whether this is a first issue (new company), a further allotment or a transfer between people — the paperwork differs. Ask for names exactly as on the ID. Turnaround 1-2 working days; never promise faster."
+      "aiInstructions": "Ask whether this is a first issue (new company), a further allotment or a transfer between people — the paperwork differs. Ask for names exactly as on the ID. Turnaround 1-2 working days; never promise faster.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "sc_verify",
@@ -40,17 +106,24 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Issued + to-be-issued shares do not exceed authorised shares; names and ID numbers match IDs; certificate numbering continues correctly",
-      "aiInstructions": "Extract the authorised shares from the MOI. Total shares in issue after this transaction must not exceed it — if it does, flag: the MOI must be amended (CoR15.2) first. For transfers, confirm the transferor appears on an existing certificate / register. Check the MOI for the number of signatories required on a certificate (default: two directors, or one director plus the company secretary; a sole director signs alone)."
+      "aiInstructions": "Extract the authorised shares from the MOI. Total shares in issue after this transaction must not exceed it — if it does, flag: the MOI must be amended (CoR15.2) first. For transfers, confirm the transferor appears on an existing certificate / register. Check the MOI for the number of signatories required on a certificate (default: two directors, or one director plus the company secretary; a sole director signs alone).",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "sc_draft",
       "title": "Draft share certificate(s) and director resolution",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["share_certificate", "director_resolution"],
+      "templateIds": [
+        "share_certificate",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "One certificate per shareholder and a resolution approving the allotment / transfer drafted for Kevin's review",
-      "aiInstructions": "Certificate content (s51 Companies Act): company name and registration number, certificate number, shareholder's full names and ID/registration number, number and class of shares, date of issue, statement of any restrictions on transfer per the MOI, and signature lines for the required directors. For a transfer, note 'issued in replacement of certificate no. X' and draft the transfer entry. Never round or guess share numbers."
+      "aiInstructions": "Certificate content (s51 Companies Act): company name and registration number, certificate number, shareholder's full names and ID/registration number, number and class of shares, date of issue, statement of any restrictions on transfer per the MOI, and signature lines for the required directors. For a transfer, note 'issued in replacement of certificate no. X' and draft the transfer entry. Never round or guess share numbers.",
+      "stepNumber": 3,
+      "stepType": "draft_document"
     },
     {
       "id": "sc_client_sign",
@@ -59,17 +132,24 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Signed certificate(s) and resolution uploaded",
-      "aiInstructions": "Explain that the directors sign the certificate and the resolution, and that the original certificate belongs to the shareholder while the company keeps a copy in its register. Return as PDF."
+      "aiInstructions": "Explain that the directors sign the certificate and the resolution, and that the original certificate belongs to the shareholder while the company keeps a copy in its register. Return as PDF.",
+      "stepNumber": 4,
+      "stepType": "draft_client_message"
     },
     {
       "id": "sc_deliver",
       "title": "Deliver signed share certificate(s) and register entry",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["share_certificate", "director_resolution"],
+      "deliverArtefacts": [
+        "share_certificate",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Signed certificates, resolution and register entry posted to Communication History",
-      "aiInstructions": "Advise safekeeping and that CIPC's beneficial ownership register must be updated if ownership changed — offer the Beneficial Ownership Declaration and Share Register services."
+      "aiInstructions": "Advise safekeeping and that CIPC's beneficial ownership register must be updated if ownership changed — offer the Beneficial Ownership Declaration and Share Register services.",
+      "stepNumber": 5,
+      "stepType": "deliver"
     },
     {
       "id": "sc_signoff",
@@ -77,7 +157,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 6,
+      "stepType": "signoff"
     }
   ]
 }

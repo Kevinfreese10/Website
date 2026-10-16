@@ -14,15 +14,148 @@
     "SARS case rejected because the CoR14.3 uploaded is an old version that does not show current directors"
   ],
   "informationToProvide": [
-    { "label": "COR14.3 (Company registration document) (e.g., CIPC COR14.3", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Latest CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and CURRENT directors. If the nominated public officer is not listed as a director, a director resolution and POA are needed." },
-    { "label": "ID copy of the person to be appointed as the Public Officer", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport plus proof of SA residence"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the nominated public officer. Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name. SARS requires the public officer to be resident in South Africa." },
-    { "label": "SARS eFiling login details - Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "SARS eFiling login details - Password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "Contact number of the person to be appointed as the Public Officer", "type": "text", "isRequired": true, "aiHint": "SA cell number the representative can answer — SARS sends the OTP and verification call here. Must be a number the person actually controls." },
-    { "label": "Email address of the person to be appointed as the Public Officer", "type": "text", "isRequired": true, "aiHint": "Personal email of the representative; SARS correspondence and OTPs go here." },
-    { "label": "ID copies of all directors as per company registration certificate ", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "aiHint": "One certified ID (or passport) per director listed on the CoR14.3. Cross-check names and ID numbers against the CoR14.3; flag any director without an ID." },
-    { "label": "Personal Income Tax number for the person who will be appointed as the Tax Rep", "type": "text", "isRequired": true, "aiHint": "The nominated representative's own SARS income tax reference (10 digits, usually starting 0/1/2/3). SARS links the representative by this number; if the person has never been registered, they must register for personal income tax first." },
-    { "label": "Selfie / photo of the representative holding their ID document", "documentKind": "photo", "inNameOf": "director", "isRequired": false, "aiHint": "Clear photo of the nominated representative holding their ID next to their face, taken recently. SARS frequently requests this during the registered representative case — ⚠ verify whether SARS still asks for it; collect upfront to avoid a second round." }
+    {
+      "id": "req_qizdgqbf",
+      "label": "COR14.3 (Company registration document) (e.g., CIPC COR14.3",
+      "type": "pdf",
+      "helpText": "",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Latest CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and CURRENT directors. If the nominated public officer is not listed as a director, a director resolution and POA are needed.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_94beinaj",
+      "label": "ID copy of the person to be appointed as the Public Officer",
+      "type": "pdf",
+      "helpText": "",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport plus proof of SA residence"
+      ]
+    },
+    {
+      "id": "req_uct5j4xs",
+      "label": "Contact number of the person to be appointed as the Public Officer",
+      "type": "text",
+      "helpText": "",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SA cell number the representative can answer — SARS sends the OTP and verification call here. Must be a number the person actually controls.",
+      "alternatives": []
+    },
+    {
+      "id": "req_an0gy48d",
+      "label": "Email address of the person to be appointed as the Public Officer",
+      "type": "text",
+      "helpText": "",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Personal email of the representative; SARS correspondence and OTPs go here.",
+      "alternatives": []
+    },
+    {
+      "id": "req_xqoq15y7",
+      "label": "ID copies of all directors as per company registration certificate ",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_kxgueir6",
+      "label": "Personal Income Tax number for the person who will be appointed as the Tax Rep",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "The nominated representative's own SARS income tax reference (10 digits, usually starting 0/1/2/3). SARS links the representative by this number; if the person has never been registered, they must register for personal income tax first.",
+      "alternatives": []
+    },
+    {
+      "id": "req_wnjp8ufj",
+      "label": "Clear Photo (Selfie) of the Nominated Public Officer Holding Their Original ID & Handwritten Note Reading \"For SARS Purpose\" with Current Date",
+      "type": "image",
+      "isRequired": true,
+      "aiHint": "Clear photo of the nominated representative holding their ID next to their face, taken recently. SARS frequently requests this during the registered representative case — ⚠ verify whether SARS still asks for it; collect upfront to avoid a second round.",
+      "documentKind": "photo",
+      "inNameOf": "director",
+      "alternatives": [],
+      "helpText": "Mandatory for SARS Registered Representative activation: upload a clear photo showing the Public Officer face holding their ID and a handwritten note reading \"For SARS Purpose\" with today date."
+    },
+    {
+      "id": "req_trep_poa_and_bank",
+      "label": "Proof of Residential Address (< 3 Months) of Public Officer & Company Bank Confirmation Letter (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload proof of residential address (< 3 months) for the nominated Public Officer and the company bank confirmation letter (< 3 months).",
+      "aiHint": "Proof of residential address (< 90 days) of the nominated Public Officer and official company bank confirmation letter."
+    },
+    {
+      "id": "req_sars_trep_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_trep_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_trep_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_trep_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -48,7 +181,11 @@
       "title": "Draft power of attorney, cover letter and (if needed) director resolution",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["power_of_attorney", "tax_rep_cover_letter", "director_resolution"],
+      "templateIds": [
+        "power_of_attorney",
+        "tax_rep_cover_letter",
+        "director_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Drafts generated from verified facts and posted for Kevin's review",
       "aiInstructions": "POA: company appoints the nominated public officer / My Accountant for SARS matters; use the SARS special power of attorney wording (⚠ verify the current SARS POA form — SPPOA/TPPOA — is used where SARS insists on its own form). Cover letter explains the appointment and lists attachments. Resolution only when the nominee is not a director. Never invent director names — pull from the CoR14.3."
@@ -79,7 +216,10 @@
       "title": "Wait for SARS verification and activation",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [3, 5],
+      "followUpAfterDays": [
+        3,
+        5
+      ],
       "estimatedDays": 5,
       "doneCriteria": "Representative shows active on SARS Registered Details or SARS outcome letter received",
       "aiInstructions": "Check the case status and SARS correspondence at each follow-up. If SARS asks for further documents (commonly the selfie or a newer certified ID) create a proposal for Kevin and a client message listing exactly what is needed. Log the case number on every contact."
@@ -89,7 +229,9 @@
       "title": "Deliver confirmation of appointment",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["tax_rep_cover_letter"],
+      "deliverArtefacts": [
+        "tax_rep_cover_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Confirmation letter / screenshot of active representative posted to Communication History",
       "aiInstructions": "Explain what the representative can now do (activate tax types, request TCS, file returns) and that their contact details must be kept current with SARS. Offer the PAYE/VAT registration or annual compliance services that were blocked before."

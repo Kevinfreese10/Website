@@ -1,0 +1,105 @@
+{
+  "slug": "tourist-guide-registration-cathsseta",
+  "playbookEntity": "individual",
+  "playbookOutputs": [
+    "Completed Provincial Tourist Guide Registrar Application Form & Signed Code of Conduct Pack",
+    "Provincial Registrar Submission & Badge Collection Guide"
+  ],
+  "playbookCommonFailures": [
+    "First Aid certificate has expired or was issued by a provider not accredited with the Department of Employment and Labour",
+    "CATHSSETA Statement of Results has not yet been converted to an official CATHSSETA certificate or verification letter"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_tg_id_and_photo",
+      "label": "Certified SA ID Copy (< 3 Months) & Passport-Style Colour Photograph (For Tourist Guide ID Card & Badge)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified Passport + Valid Work/Residence Permit (foreign nationals)"
+      ],
+      "isRequired": true,
+      "helpText": "Upload your certified SA ID copy (< 3 months), proof of residential address, and a clear passport-style colour photo.",
+      "aiHint": "Certified South African ID (or Passport + valid work permit) certified within 90 days, plus passport photo."
+    },
+    {
+      "id": "req_cathsseta_cert",
+      "label": "CATHSSETA Tourist Guiding Qualification Certificate",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Proof of CATHSSETA-accredited training provider qualification.",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "alternatives": []
+    },
+    {
+      "id": "req_first_aid_cert",
+      "label": "Valid First Aid Certificate (Level 1 or higher)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Must be current and accredited by Department of Labour / DoEL.",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "alternatives": []
+    },
+    {
+      "id": "req_police_clearance",
+      "label": "Police Clearance Certificate / SAPS Name Clearance",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Clean criminal record verification.",
+      "documentKind": "criminal_clearance",
+      "inNameOf": "either",
+      "alternatives": [],
+      "maxAgeDays": 180
+    },
+    {
+      "id": "req_tg_province_and_category",
+      "label": "Province of Registration, Guiding Category (Nature / Culture / Adventure), Geographical Sites/Regions & Languages Spoken",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the Provincial Tourist Guide Registrar (e.g. Western Cape, Gauteng, KZN, Mpumalanga), your guiding category on your CATHSSETA certificate, and any foreign language endorsements."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tg_collect",
+      "title": "Collect and verify CATHSSETA and First Aid credentials",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Certificates verified against provincial tourism registrar requirements"
+    },
+    {
+      "id": "tg_draft",
+      "title": "Prepare tourist guide application and code of ethics pack",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Application form, photo specs, and payment vouchers completed",
+      "templateIds": [
+        "tourist_guide_application",
+        "tourist_guide_code_of_conduct"
+      ]
+    },
+    {
+      "id": "tg_deliver",
+      "title": "Deliver pack and registrar submission instructions",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack delivered to client for lodging and badge collection"
+    },
+    {
+      "id": "tg_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

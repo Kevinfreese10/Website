@@ -1,0 +1,112 @@
+{
+  "slug": "accountant-appointment-letter",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Official Accountant Appointment Confirmation Letter on My Accountant letterhead signed by Kevin Freese, CBA(SA) #3561 (PDF)",
+    "Professional Engagement & Scope Confirmation Summary for banks, regulators, or third parties"
+  ],
+  "playbookCommonFailures": [
+    "CIPC CoR 14.3 registration certificate or ID document is missing or does not match the entity name requested for the letter",
+    "Recipient institution (e.g., bank, CIPC, SARS, tender authority, or landlord) and required scope of appointment are not specified"
+  ],
+  "informationToProvide": [
+    {
+      "id": "entity_name_and_reg",
+      "label": "Entity Legal Name, Registration Number & Tax Reference Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your registered company name and CIPC number (or full name and SA ID number for a sole proprietor/individual), plus SARS Income Tax number.",
+      "aiHint": "Full legal name, CIPC registration number or SA ID number, and SARS tax number of the client."
+    },
+    {
+      "id": "recipient_and_scope",
+      "label": "Recipient Institution & Scope of Accounting / Tax Appointment to Confirm",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify who the letter is addressed to (e.g., FNB, Standard Bank, CIPC, Tender Board, or \"To Whom It May Concern\") and the services to confirm (accounting officer, tax practitioner, bookkeeping, payroll).",
+      "aiHint": "Addressee institution and specific scope of accounting/tax officer appointment to confirm in the letter."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate (or upload your SA ID here if appointing for an individual/sole proprietor).",
+      "aiHint": "CIPC CoR 14.3 registration certificate showing the company name, registration number, and directors."
+    },
+    {
+      "id": "director_id",
+      "label": "Copy of Director / Individual South African ID or Passport",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload a clear copy of the director's or individual's SA ID or Passport.",
+      "aiHint": "South African ID document or passport of the director or individual."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "aal_collect",
+      "stepNumber": 1,
+      "title": "Collect company registration, director ID and appointment scope",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Entity details, addressee, scope of appointment, CoR 14.3 and director ID are on file",
+      "aiInstructions": "Confirm the exact entity name, registration number, addressee institution, and scope of appointment required."
+    },
+    {
+      "id": "aal_verify",
+      "stepNumber": 2,
+      "title": "Verify CIPC registration and director KYC details",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "CoR 14.3 and director ID match the entity name and registration number",
+      "aiInstructions": "Verify that the company registration number, registered address, and director name/ID match the uploaded CoR 14.3 and ID document."
+    },
+    {
+      "id": "aal_draft",
+      "stepNumber": 3,
+      "title": "Draft Accountant Appointment Confirmation Letter on My Accountant letterhead",
+      "type": "draft_document",
+      "stepType": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "accountants_letter_general"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Draft Accountant Appointment Letter generated with CIBA practice number (CBA(SA) #3561) and queued for Kevin's approval",
+      "aiInstructions": "Generate the formal Accountant Appointment Letter on My Accountant letterhead confirming that Kevin Freese, Professional Accountant / CBA(SA) #3561, acts as the appointed Accountant / Accounting Officer / Tax Practitioner for the entity."
+    },
+    {
+      "id": "aal_deliver",
+      "stepNumber": 4,
+      "title": "Deliver signed Accountant Appointment Letter to client",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "signed_accountant_appointment_letter"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Signed PDF letter posted to Communication History",
+      "aiInstructions": "Deliver the signed Accountant Appointment Letter PDF to the client in Communication History."
+    },
+    {
+      "id": "aal_signoff",
+      "stepNumber": 5,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order is complete"
+    }
+  ]
+}

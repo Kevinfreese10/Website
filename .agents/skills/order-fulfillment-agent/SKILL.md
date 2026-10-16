@@ -13,6 +13,7 @@ Governs order fulfilment on the **My Accountant** platform. The universal guardr
 - `references/regulator_directory.md` — NCR banking, prescribed fees and officer contacts.
 - `references/pdf_style_guide.md` — letterhead, signature stamp, layout and typography rules for PDF generators.
 - `references/document_map.json` — which generator/template applies to which service and SOP step.
+- `src/lib/playbooks/seeds/<slug>.json` — canonical 102-product playbook seeds (synced 1:1 with Firestore `services`), defining `playbookEntity`, `playbookOutputs`, `playbookCommonFailures`, `informationToProvide` (`documentKind`, `inNameOf`, `aiHint`, `maxAgeDays`, `mustBeCertified`, `isSecret`), and `fulfillmentChecklist` (`type`, `owner`, `portalId`, `templateIds`, `doneCriteria`).
 
 ---
 
@@ -71,7 +72,7 @@ New order / client note / inbound document
 1. **Portal only**: client correspondence goes to the order's Communication History — the `notes` **array** on `orders/{docId}` (appended with `FieldValue.arrayUnion`). Never email drafts, review requests or questionnaires to clients, and never write to an `orders/{id}/notes` subcollection (the portal does not read it).
 2. **Plain text**: no markdown `**`, no raw `firebasestorage.googleapis.com` URLs, no `Download Links:` header. Attachments render from the `attachments: [{ name, url }]` array.
 3. Concise: readable in under 30 seconds.
-4. **Credentials**: never ask clients to type passwords or eFiling credentials into notes or emails, and never forward a password by email (the Tax Rep dossier states the password will be shared by phone).
+4. **Credentials & SARS OTP Scheduling**: never ask clients to type passwords or eFiling credentials into notes or emails, and never forward a password by email. All SARS eFiling services use the 4-field encrypted `SARS_EFILING_LOGIN_PACK` in the portal intake (`SARS eFiling Username`, encrypted `SARS eFiling Password` with `isSecret: true`, `SARS eFiling OTP Required?`, and `Best Time to Contact for SARS OTP` `type: 'datetime'`). Use the client's selected `datetime` window to coordinate real-time 2FA OTP relay within SARS eFiling's 10-minute session timeout.
 
 ---
 
@@ -92,7 +93,8 @@ New order / client note / inbound document
 - For client notes, honour the 30-minute debounce window and never blindly regenerate existing deliverables (rule §9).
 
 ### Step 2: Document Verification & KYC Pre-Flight
-- Audit uploads against the service checklist (`references/document_map.json`, the service's `informationToProvide` in Firestore, and the playbooks below).
+- Audit uploads against the service checklist (`references/document_map.json`, the service's `informationToProvide` in Firestore, and `src/lib/playbooks/seeds/<slug>.json`).
+- Check `clientRequirements` (`type: 'product'`) and `requiredProductIds`: if a mandatory prerequisite (e.g. `Tax Representative Appointment` `2HG85hwbhbDsDQsjQE6y`, `Private Company Registration` `9TrFE99XEJOOeRAAeRae`, `VAT Registration` `uvkujgUBTIbIwXLdE4Tu`, `PAYE Registration` `LvDQhiBfEJOdlbqFxY21`, or `Annual Financial Statements` `aB3sBqTw9X1THHOimdKL`) is not yet held by the client, flag the linked store product in the audit summary.
 - **AI false positives** (e.g. "expected payslip, found invoice" for a contractor): you may recommend an override, but state the reason in the review summary; Kevin approves it with the pack.
 - Missing documents: draft an itemised checklist note → Approval Gate → `Waiting on Customer`.
 
@@ -126,12 +128,14 @@ Client answers must be verified against bank debits, contracts or invoices befor
 ### B: Accountant's Income & Financial Standing Confirmation
 Issued under Kevin Freese (identity strings from `src/lib/documents/helpers.ts`). Requires Steps 2.5 and 2.6. Layout rules in `references/pdf_style_guide.md`.
 
-### C: COIDA Nature of Business Change
+### C: COIDA Nature of Business Change & ROE
 - Form CF-1B (`public/templates/CF-1B Form Application for Change of Nature of Business_ORIGINAL_BACKUP.pdf`, 3 pages) + Special POA appointing Kevin Freese before the Compensation Commissioner + instruction letter.
+- **CF-1B Page 2 mandatory intake**: requires **5 major trade clients** (company name, contact person, phone/email, exact nature of work performed) and **5 core daily operational activities**, plus machinery/equipment used, headcount split (admin vs site/operations), and physical inspection address. Never draft CF-1B without all 5 client references and 5 daily activities.
 - `CF99…` is the COIDA reference; `YYYY/XXXXXX/XX` is the CIPC registration number. Don't confuse them.
 
-### D: B-BBEE Sworn Affidavit (EME – General)
-dtic template `public/templates/Affidavit-EME-Gen.pdf`; signature above the `Commissioner of Oaths:` header with the stamp box below.
+### D: B-BBEE Sworn Affidavit (EME & QSE)
+- dtic template `public/templates/Affidavit-EME-Gen.pdf` (`templateId: bee_eme_affidavit`); signature above the `Commissioner of Oaths:` header with the stamp box below.
+- Mandatory checks: complete financial year-end date (Day, Month & Year matching CIPC CoR 14.3), exact annual turnover confirming EME (<= R10m) or qualifying QSE (R10m–R50m with >= 51% Black ownership), and exact breakdown of % Total Black Owned, % Black Female Owned, and % Black Designated Groups.
 
 ### E: Voluntary Liquidation & CM100 Pack
 - Source templates: `public/templates/LIQUIDATION_APPLICATION_MASTER.docx` (core pack, converted to PDF for delivery) and `public/templates/CM100_CALLENDRA_HOLDINGS_22_Pages.pdf` (22-page AcroForm).
@@ -151,8 +155,18 @@ dtic template `public/templates/Affidavit-EME-Gen.pdf`; signature above the `Com
 ### I: CIPC Filings
 Use `references/cipc_filings.md` for forms, supporting documents, mailboxes and fees. Key invariants:
 - SA citizens: certified ID book/Smart ID (both sides, certified within 3 months) — never passports. Foreign nationals: certified passport + permits.
+- **Director Resignation vs Removal (`s71`)**: Voluntary resignation (`director-resignation`) uses signed resignation letter + Board Resolution + CoR 39. Contentious/forced removal (`remove-director`) under Section 71 of the Companies Act requires proof of formal Notice of Meeting served on the affected director (affording opportunity to make representations before the vote) + Minutes/Resolution + CoR 39.
+- **Company Reinstatement (`CoR 40.5`)**: Requires the 6-part dossier: (1) Deeds Office property search printout, (2) proof of multiple-source advertisement or sworn affidavit confirming no immovable property/assets/economic value, (3) 12 months company bank statements (or economic activity proof), (4) CIPC Customer Code funded with R200, (5) certified IDs of all directors, and (6) signed undertaking to file all outstanding Annual Returns & Beneficial Ownership within 30 business days of reinstatement.
 - `eservicescoreg@cipc.co.za` subject = the **Registration Application Number** from CoR 15.1A only (e.g. `9468810967`), nothing else.
 - After approved lodgement: `status: Waiting on External`, `fulfillmentStatus: Lodged with CIPC`, `cipcTrackingNumber`, `lodgedAt`, and an approved client note.
+
+### J: SARS Customs (RLA) & Tax Type Deregistrations
+- **Customs RLA (`import-licence`, `export-licence`, `clearing-agent-licence`, `remover-of-goods-in-bond-licence-application`)**: Filed on **SARS eFiling Registration, Licensing and Accreditation (RLA)** (not ITAC, unless restricted goods require a separate ITAC permit). Clearing Agents and Removers of Goods in Bond require SARS Customs Surety Bond (DA 185.C) and clearing facility/carrier fleet proof.
+- **Tax Deregistrations (`paye-deregistration`, `vat-deregistration`, `income-tax-deregistrations`)**: Verify all historical returns (EMP201/EMP501, VAT201, ITR14) are filed up to the cessation date and the SARS Statement of Account balance is R0.00. Require 3 months post-cessation bank statements proving zero payroll/trading activity and a signed Deregistration Motivation Letter (`sars_paye_deregistration_letter`).
+
+### K: CIDB & NCCA / NBC Compliance
+- **CIDB (`cidb-registration`, `cidb-annual-renewal`, `cidb-3-year-renewal`, `cidb-upgrades-grades-2-9`)**: Requires active CSD MAAA number, compliant SARS TCS PIN, and B-BBEE certificate/affidavit. Grades 2–9 require 2 years signed AFS, Track A/B works capability (`letter_of_award`, `completion_certificate`, payment certificates), and `EB` (Electrical) class requires valid Department of Employment & Labour Electrical Contractor registration.
+- **NCCA (`ncca-registration-services`) & NBC Provident Fund (`nbc-provident-fund-company-registration`)**: NCCA is the **National Contract Cleaners Association**; registration requires active **Contract Cleaning National Provident Fund (NBC)** employer registration, COIDA Letter of Good Standing (cleaning subclass), UIF compliance, and Public Liability Insurance.
 
 ---
 

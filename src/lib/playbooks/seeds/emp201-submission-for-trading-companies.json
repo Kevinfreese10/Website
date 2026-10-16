@@ -15,55 +15,86 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "company_name_and_paye_period",
+      "label": "Company Name, PAYE Reference Number & Return Month (YYYY-MM)",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name as on the SARS profile with the PAYE reference number (7…), and UIF/SDL numbers if separate."
+      "helpText": "Registered company name, 10-digit PAYE reference number, and the payroll month (e.g., 2026-09).",
+      "aiHint": "Company name, PAYE reference number, and EMP201 return period (YYYY-MM)."
     },
     {
-      "label": "SARS eFiling Username",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "SARS eFiling Password",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "Monthly payroll data (salaries, deductions, benefits)",
+      "id": "monthly_payroll_report",
+      "label": "Monthly Payroll Summary / Payslips for the Period",
+      "type": "pdf",
       "documentKind": "payslip",
       "inNameOf": "entity",
-      "alternatives": [
-        "Payroll summary report",
-        "Spreadsheet of gross pay per employee"
-      ],
       "isRequired": true,
-      "aiHint": "Payroll run for the month: gross remuneration, fringe benefits, allowances, PAYE, UIF and SDL per employee. If payroll is run in AI Payroll, pull the EMP201 report from there instead."
+      "helpText": "Upload the monthly payroll report or payslips showing gross salaries, PAYE, UIF, SDL, and ETI (if applicable).",
+      "aiHint": "Monthly payroll report or payslip bundle showing PAYE, SDL, UIF, and ETI figures for the period."
     },
     {
-      "label": "Updated employee information (if changes occurred)",
+      "id": "employee_changes_note",
+      "label": "Updated Employee Information (New Starters / Terminations, if any)",
       "type": "text",
-      "isRequired": false
+      "isRequired": false,
+      "helpText": "Note any new employees, terminations, or salary changes during the month.",
+      "aiHint": "Details of any employee movements or changes during the payroll month."
     },
     {
-      "label": "Previous EMP201 submissions and payment confirmations (for new clients)",
+      "id": "prior_emp201_records",
+      "label": "Previous EMP201 Return & Payment Confirmation (for new clients)",
+      "type": "pdf",
       "documentKind": "other",
       "inNameOf": "entity",
-      "alternatives": [
-        "eFiling statement of account"
-      ],
       "isRequired": false,
-      "aiHint": "Last filed EMP201 and proof of payment — for continuity and to catch unallocated payments."
+      "helpText": "If this is your first EMP201 with My Accountant, upload the previous month's EMP201 for ETI carry-forward verification.",
+      "aiHint": "Prior month EMP201 declaration and proof of payment."
     },
     {
-      "label": "Bank statements reflecting payment of statutory contributions",
+      "id": "bank_statement_statutory_payments",
+      "label": "Bank Statement Reflecting Salary / Statutory Payments (optional)",
+      "type": "pdf",
       "documentKind": "bank_statement",
       "inNameOf": "entity",
       "isRequired": false,
-      "aiHint": "Statement showing the previous month's PAYE payment to SARS, used to reconcile the statement of account."
+      "helpText": "Optional bank statement confirming net salary payments and prior PAYE payments.",
+      "aiHint": "Company bank statement showing payroll outflows."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -74,7 +105,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Credentials and the month's payroll data (or AI Payroll run) on file",
-      "aiInstructions": "Ask for the month's payroll before the 5th so filing and payment are in time for the 7th. Name the data needed: gross pay per employee, benefits, PAYE, UIF, SDL. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Ask for the month's payroll before the 5th so filing and payment are in time for the 7th. Name the data needed: gross pay per employee, benefits, PAYE, UIF, SDL. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "emp201t_verify",
@@ -83,7 +116,9 @@
       "owner": "staff",
       "estimatedDays": 1,
       "doneCriteria": "Payroll totals reconcile per employee; EMP201 for the month is issued on eFiling",
-      "aiInstructions": "Check the month on eFiling (Returns → EMP201). Check UIF is 1% employee + 1% employer up to the ceiling (⚠ verify current ceiling), SDL only if annual payroll > R500k, and every employee has an ID and tax number. Flag new employees not yet registered for tax."
+      "aiInstructions": "Check the month on eFiling (Returns → EMP201). Check UIF is 1% employee + 1% employer up to the ceiling (⚠ verify current ceiling), SDL only if annual payroll > R500k, and every employee has an ID and tax number. Flag new employees not yet registered for tax.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "emp201t_calc",
@@ -92,7 +127,9 @@
       "owner": "staff",
       "estimatedDays": 1,
       "doneCriteria": "EMP201 totals produced from AI Payroll and reviewed by Kevin",
-      "aiInstructions": "Pull the EMP201 report from the AI Payroll module for the month: PAYE per tax tables, UIF, SDL, ETI (only for qualifying employees — Kevin confirms eligibility). Total liability = PAYE + UIF + SDL − ETI. ⚠ verify current tax tables and ETI rules."
+      "aiInstructions": "Pull the EMP201 report from the AI Payroll module for the month: PAYE per tax tables, UIF, SDL, ETI (only for qualifying employees — Kevin confirms eligibility). Total liability = PAYE + UIF + SDL − ETI. ⚠ verify current tax tables and ETI rules.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "emp201t_handoff",
@@ -105,7 +142,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet lists PAYE, SDL, UIF, ETI and total payable for the month",
-      "aiInstructions": "Include the number of employees and the due date (7th of the following month, or the preceding business day ⚠ verify)."
+      "aiInstructions": "Include the number of employees and the due date (7th of the following month, or the preceding business day ⚠ verify).",
+      "stepNumber": 4,
+      "stepType": "draft_document"
     },
     {
       "id": "emp201t_file",
@@ -117,7 +156,9 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "EMP201 submitted; confirmation and PRN saved",
-      "aiInstructions": "Returns → EMP201 → select the month. Enter PAYE, SDL, UIF, ETI from the handoff sheet; check the total. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns → EMP201 → select the month. Enter PAYE, SDL, UIF, ETI from the handoff sheet; check the total. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 5,
+      "stepType": "portal_filing"
     },
     {
       "id": "emp201t_deliver",
@@ -130,7 +171,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Filed EMP201, PRN, amount and due date posted to Communication History",
-      "aiInstructions": "Give the amount, the PRN and the due date; explain payment must use the PRN so it allocates to the month. Keep a copy in the client's records for the EMP501 reconciliation. No deadline threats."
+      "aiInstructions": "Give the amount, the PRN and the due date; explain payment must use the PRN so it allocates to the month. Keep a copy in the client's records for the EMP501 reconciliation. No deadline threats.",
+      "stepNumber": 6,
+      "stepType": "deliver"
     },
     {
       "id": "emp201t_signoff",
@@ -138,7 +181,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 7,
+      "stepType": "signoff"
     }
   ]
 }

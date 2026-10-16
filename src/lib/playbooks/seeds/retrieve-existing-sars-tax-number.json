@@ -1,0 +1,125 @@
+{
+  "slug": "retrieve-existing-sars-tax-number",
+  "playbookEntity": "individual",
+  "playbookOutputs": [
+    "Official SARS Notice of Registration (IT150) confirming your 10-digit SARS Income Tax Reference Number",
+    "Verification of demographic details linked to your ID/Passport on the SARS system"
+  ],
+  "playbookCommonFailures": [
+    "Taxpayer was never registered for Income Tax with SARS (requires new SARS Tax Number Registration instead of retrieval)",
+    "ID number or passport number on file with SARS is linked to a legacy passport or mismatched surname",
+    "Missing signed Power of Attorney or selfie verification required for SARS practitioner lookup"
+  ],
+  "informationToProvide": [
+    {
+      "id": "full_name_and_id",
+      "label": "Full Name, Surname & SA ID / Passport Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Your full legal names, surname (including any previous maiden surname registered with SARS), and 13-digit SA ID or passport number.",
+      "aiHint": "Taxpayer full legal names, surname, and 13-digit SA ID or passport number."
+    },
+    {
+      "id": "contact_and_employer_history",
+      "label": "Current Cellphone, Email & Last Known Employer Name",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your current cell number, email address, and the name of the employer who registered you or issued an IRP5.",
+      "aiHint": "Taxpayer contact details and last known employer for SARS profile matching."
+    },
+    {
+      "id": "certified_id_or_passport",
+      "label": "Certified Copy of South African ID or Passport",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "isRequired": true,
+      "mustBeCertified": true,
+      "helpText": "Upload a clear certified copy of your SA ID or Passport.",
+      "aiHint": "Certified South African ID document or passport of the individual."
+    },
+    {
+      "id": "proof_of_address",
+      "label": "Proof of Residential Address (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload a recent municipal utility bill, bank statement, or lease agreement showing your physical address.",
+      "aiHint": "Proof of residential address dated within the last 90 days."
+    },
+    {
+      "id": "signed_poa",
+      "label": "Signed Power of Attorney (Authorizing SARS Tax Number Retrieval)",
+      "type": "pdf",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload the signed SARS Power of Attorney authorizing My Accountant to query your tax number.",
+      "aiHint": "Signed Power of Attorney authorizing My Accountant to retrieve the taxpayer IT150 Notice of Registration."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "retn_collect",
+      "stepNumber": 1,
+      "title": "Collect ID, proof of address, contact history and signed POA",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Full name, ID/passport number, certified ID, proof of address, and signed POA are on file",
+      "aiInstructions": "Verify that the 13-digit SA ID number or passport number matches the uploaded ID document and signed POA."
+    },
+    {
+      "id": "retn_verify",
+      "stepNumber": 2,
+      "title": "Verify identity documents and check SARS eFiling / Practitioner lookup",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Identity documents verified and taxpayer registration status confirmed",
+      "aiInstructions": "Verify the ID and POA signatures match. Prepare the taxpayer details for the SARS Tax Practitioner Taxpayer Lookup / IT150 request."
+    },
+    {
+      "id": "retn_portal",
+      "stepNumber": 3,
+      "title": "Retrieve IT150 Notice of Registration via SARS eFiling / SARS Online Query",
+      "type": "portal_filing",
+      "stepType": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.retrieveNoticeOfRegistration:IT150",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Official SARS IT150 Notice of Registration PDF retrieved showing the 10-digit Income Tax number",
+      "aiInstructions": "Use the SARS Tax Practitioner portal / SARS Online Query System (SOQS) \"Notice of Registration (IT150)\" lookup using the client's ID number and demographic details to retrieve the official IT150 PDF."
+    },
+    {
+      "id": "retn_deliver",
+      "stepNumber": 4,
+      "title": "Deliver official SARS Notice of Registration (IT150) to client",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "sars_it150_notice_of_registration"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Official IT150 PDF and tax reference number posted to Communication History",
+      "aiInstructions": "Post the official SARS IT150 Notice of Registration PDF and clearly state the 10-digit Income Tax Reference Number in the message."
+    },
+    {
+      "id": "retn_signoff",
+      "stepNumber": 5,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the tax number retrieval order is complete"
+    }
+  ]
+}

@@ -13,11 +13,64 @@
     "Prior period figures unavailable, leaving no comparatives for trend or KPI analysis"
   ],
   "informationToProvide": [
-    { "label": "Access to your accounting software (e.g., Xero, Sage, QuickBooks) or detailed transaction data", "type": "any", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "alternatives": ["Accountant invite to Xero / Sage / QuickBooks", "General ledger / transaction export (Excel/CSV)"], "aiHint": "Accountant-level invite to the client's accounting software or a transaction listing export for the reporting period. If the client keeps no books, the period is compiled from bank statements in AI Accountant and this item is not required." },
-    { "label": "All bank statements for the reporting period", "type": "pdf", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Original electronic PDF bank statements for every business account covering the whole reporting period (no scans or photos — they must be importable into AI Accountant). Check the statements cover the agreed months with no gaps and that balances chain from one statement to the next." },
-    { "label": "Sales invoices and purchase invoices/expenses for the period", "type": "pdf", "documentKind": "invoice", "inNameOf": "entity", "isRequired": true, "aiHint": "Customer invoices issued and supplier invoices/expense receipts received in the period, as a PDF batch or ZIP. Used to record revenue and costs on an accrual basis and to identify debtors and creditors at period end." },
-    { "label": "Payroll summaries and related statutory returns (e.g., EMP201)", "type": "pdf", "documentKind": "payslip", "inNameOf": "entity", "isRequired": false, "aiHint": "Monthly payroll summary or payslips and the EMP201 returns for each month in the period, if the entity has employees. Supports salary costs and the PAYE/UIF/SDL liability at period end. If there are no employees, ask the client to confirm." },
-    { "label": "Previous period's financial statements for comparative analysis", "type": "pdf", "documentKind": "management_accounts", "inNameOf": "entity", "isRequired": false, "alternatives": ["Prior year signed AFS", "Prior period trial balance", "Approved budget for the period"], "aiHint": "Prior period management accounts, last signed AFS or trial balance for the same entity, plus the budget for the period if one exists. Used for opening balances, comparatives and budget vs actuals. Without a budget the pack reports period-on-period variances instead." }
+    {
+      "id": "company_period_and_purpose",
+      "label": "Company Name, Reporting Period (Start Month to End Month) & Purpose of Management Accounts",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the company name, exact reporting period (e.g., 1 March 2026 to 31 August 2026), and purpose (e.g., Bank/Asset Finance, Tender, Provisional Tax, Board Review).",
+      "aiHint": "Company name, exact reporting period start/end dates, and purpose of the Management Accounts."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate.",
+      "aiHint": "CIPC CoR 14.3 registration certificate confirming company details and directors."
+    },
+    {
+      "id": "bank_statements_period",
+      "label": "All Bank Statements for the Reporting Period (PDF / CSV)",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload complete bank statements for all business accounts covering every month of the reporting period.",
+      "aiHint": "Complete business bank statements covering the management accounts reporting period."
+    },
+    {
+      "id": "sales_and_expense_records",
+      "label": "Sales Invoices, Supplier Invoices, Debtors/Creditors Lists & Asset Schedule",
+      "type": "pdf",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload sales/purchase schedules, closing debtors & creditors lists, and any new asset/loan details for the period.",
+      "aiHint": "Sales and purchase records, closing debtors/creditors lists, and asset/loan schedules for the period."
+    },
+    {
+      "id": "payroll_summaries_optional",
+      "label": "Payroll Summaries & EMP201 Returns for the Period (if applicable)",
+      "type": "pdf",
+      "documentKind": "payslip",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload payroll summaries if the company employs staff.",
+      "aiHint": "Payroll summaries and EMP201 declarations for the reporting period."
+    },
+    {
+      "id": "prior_afs_or_ma",
+      "label": "Previous Year's Annual Financial Statements or Prior Management Accounts",
+      "type": "pdf",
+      "documentKind": "management_accounts",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload the latest signed AFS or prior Management Accounts for opening balances and comparatives.",
+      "aiHint": "Prior year Annual Financial Statements or prior Management Accounts for opening balances."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -27,7 +80,9 @@
       "owner": "agent",
       "estimatedDays": 2,
       "doneCriteria": "Reporting period (months covered, monthly or quarterly) confirmed; bank statements, invoices, payroll and prior period/budget uploaded or confirmed not applicable",
-      "aiInstructions": "First confirm exactly which months the pack covers and whether the client wants monthly or quarterly reporting — this order covers one reporting period. Ask whether a budget exists and which KPIs matter to the owner (gross margin, debtor days, cash runway are the defaults). Chase only what is missing and explain why each item is needed. Do not promise faster than 3–5 working days from receipt of everything."
+      "aiInstructions": "First confirm exactly which months the pack covers and whether the client wants monthly or quarterly reporting — this order covers one reporting period. Ask whether a budget exists and which KPIs matter to the owner (gross margin, debtor days, cash runway are the defaults). Chase only what is missing and explain why each item is needed. Do not promise faster than 3–5 working days from receipt of everything.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "ma_verify",
@@ -36,7 +91,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Bank statements are original PDFs in the company's name with no gaps in the period; invoices and payroll fall within the period; opening balances agree to the prior period",
-      "aiInstructions": "The entity is the company on the CoR14.3, never the ordering contact. Reject scans and photos. Check statement balances chain month to month and list gaps. Confirm opening balances agree to the prior period's management accounts or AFS; if none, note that the balance sheet will be built from the bank and known balances only. Flag invoices dated outside the period."
+      "aiInstructions": "The entity is the company on the CoR14.3, never the ordering contact. Reject scans and photos. Check statement balances chain month to month and list gaps. Confirm opening balances agree to the prior period's management accounts or AFS; if none, note that the balance sheet will be built from the bank and known balances only. Flag invoices dated outside the period.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "ma_import",
@@ -45,7 +102,9 @@
       "owner": "staff",
       "estimatedDays": 1,
       "doneCriteria": "Statements imported, every transaction allocated, invoices and payroll captured, bank reconciles to nil, period-end debtors and creditors listed",
-      "aiInstructions": "In the AI Accountant module: select the entity and the reporting period, import each PDF statement and allocate every line to the chart of accounts (set VAT treatment if the entity is VAT registered). Capture unpaid sales invoices as debtors and unpaid supplier invoices as creditors at period end; capture payroll costs and the PAYE/UIF/SDL liability from the EMP201s. Load the budget if supplied. Unidentified transactions go on a query list with date, amount and bank description — never dumped to sundry or the director's loan without a query."
+      "aiInstructions": "In the AI Accountant module: select the entity and the reporting period, import each PDF statement and allocate every line to the chart of accounts (set VAT treatment if the entity is VAT registered). Capture unpaid sales invoices as debtors and unpaid supplier invoices as creditors at period end; capture payroll costs and the PAYE/UIF/SDL liability from the EMP201s. Load the budget if supplied. Unidentified transactions go on a query list with date, amount and bank description — never dumped to sundry or the director's loan without a query.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "ma_queries",
@@ -54,7 +113,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Client has answered every query or confirmed a default treatment",
-      "aiInstructions": "Plain South African English. One consolidated list of unidentified transactions (date, amount, bank reference) with a question per item, plus confirmation of any period-end amounts owed to or by the business that are not visible in the bank. Keep it short — management accounts turn around quickly, so ask only what changes the numbers. No deadline threats."
+      "aiInstructions": "Plain South African English. One consolidated list of unidentified transactions (date, amount, bank reference) with a question per item, plus confirmation of any period-end amounts owed to or by the business that are not visible in the bank. Keep it short — management accounts turn around quickly, so ask only what changes the numbers. No deadline threats.",
+      "stepNumber": 4,
+      "stepType": "draft_client_message"
     },
     {
       "id": "ma_review_tb",
@@ -63,17 +124,23 @@
       "owner": "kevin",
       "estimatedDays": 1,
       "doneCriteria": "Kevin has reviewed the period TB, approved adjustments (accruals, prepayments, depreciation, payroll liabilities) and the KPI set, and locked the TB",
-      "aiInstructions": "Prepare a proposal for Kevin: period TB, bank reconciliation, proposed adjustments (monthly depreciation, accruals and prepayments, payroll liabilities, VAT control if applicable), the budget vs actuals or period-on-period variance table with the largest variances highlighted, and a first draft of the KPI commentary. Kevin decides every adjustment and edits the commentary; the agent never posts a journal without approval."
+      "aiInstructions": "Prepare a proposal for Kevin: period TB, bank reconciliation, proposed adjustments (monthly depreciation, accruals and prepayments, payroll liabilities, VAT control if applicable), the budget vs actuals or period-on-period variance table with the largest variances highlighted, and a first draft of the KPI commentary. Kevin decides every adjustment and edits the commentary; the agent never posts a journal without approval.",
+      "stepNumber": 5,
+      "stepType": "calculate"
     },
     {
       "id": "ma_draft",
       "title": "Draft the management accounts pack",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["management_accounts_pack"],
+      "templateIds": [
+        "management_accounts_pack"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Management accounts pack generated from the locked TB and posted for Kevin's review",
-      "aiInstructions": "Generate the management_accounts_pack: cover with entity name, registration number and reporting period; profit and loss for the period with comparative (prior period and/or budget) and variance columns; balance sheet at period end; cash flow summary and a short cash flow forecast for the next period based on known commitments; budget vs actuals table where a budget exists; KPI page (gross margin %, net margin %, debtor days, creditor days, cash on hand vs monthly costs) with Kevin's commentary. State plainly that the accounts are unaudited management accounts prepared from records supplied by management. Signature block for Kevin Freese CBA(SA) #3561 — applied only at approval."
+      "aiInstructions": "Generate the management_accounts_pack: cover with entity name, registration number and reporting period; profit and loss for the period with comparative (prior period and/or budget) and variance columns; balance sheet at period end; cash flow summary and a short cash flow forecast for the next period based on known commitments; budget vs actuals table where a budget exists; KPI page (gross margin %, net margin %, debtor days, creditor days, cash on hand vs monthly costs) with Kevin's commentary. State plainly that the accounts are unaudited management accounts prepared from records supplied by management. Signature block for Kevin Freese CBA(SA) #3561 — applied only at approval.",
+      "stepNumber": 6,
+      "stepType": "draft_document"
     },
     {
       "id": "ma_client_review",
@@ -82,17 +149,23 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Client has confirmed the pack or raised queries that Kevin has resolved",
-      "aiInstructions": "Plain South African English. Summarise the headline result and the two or three points from the commentary the owner should act on, and ask the client to confirm the pack is complete for the period. Requested changes to figures go to Kevin as a proposal — never change numbers to please the client."
+      "aiInstructions": "Plain South African English. Summarise the headline result and the two or three points from the commentary the owner should act on, and ask the client to confirm the pack is complete for the period. Requested changes to figures go to Kevin as a proposal — never change numbers to please the client.",
+      "stepNumber": 7,
+      "stepType": "draft_client_message"
     },
     {
       "id": "ma_deliver",
       "title": "Deliver signed management accounts",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["management_accounts_pack"],
+      "deliverArtefacts": [
+        "management_accounts_pack"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Signed management accounts pack, TB and general ledger posted to Communication History",
-      "aiInstructions": "Post the signed pack, the period trial balance and the general ledger export. Offer to set up the next period's management accounts and, if the financial year has ended, the annual financial statements service."
+      "aiInstructions": "Post the signed pack, the period trial balance and the general ledger export. Offer to set up the next period's management accounts and, if the financial year has ended, the annual financial statements service.",
+      "stepNumber": 8,
+      "stepType": "deliver"
     },
     {
       "id": "ma_signoff",
@@ -100,7 +173,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the pack is signed and the order can be completed"
+      "doneCriteria": "Kevin confirms the pack is signed and the order can be completed",
+      "stepNumber": 9,
+      "stepType": "signoff"
     }
   ]
 }

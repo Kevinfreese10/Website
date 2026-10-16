@@ -45,7 +45,7 @@
       "name": "Share Certificate",
       "generator": "generateShareCertificateDraft",
       "category": "Secretarial / CIPC",
-      "applicableServices": ["Company Registration", "Share Issue", "Shareholder Transfer", "CIPC"],
+      "applicableServices": ["Company Registration", "Share Issue", "Shareholder Transfer", "CIPC", "Share Certificate"],
       "sopStepKeywords": ["share certificate", "shares", "allotment"]
     },
     {
@@ -69,16 +69,80 @@
       "name": "Accountant's Confirmation Letter",
       "generator": "generateAccountantsLetterDraft",
       "category": "Practice / Banking",
-      "applicableServices": ["Accountant Letter", "Visa Financial Support", "Bank Account Confirmation", "Tender Support"],
-      "sopStepKeywords": ["accountant letter", "confirmation of income", "bank confirmation"]
+      "applicableServices": ["Accountant Letter", "Visa Financial Support", "Bank Account Confirmation", "Tender Support", "Accountant Appointment Letter"],
+      "sopStepKeywords": ["accountant letter", "confirmation of income", "bank confirmation", "appointment letter"]
     },
     {
       "id": "coida-cf1b",
       "name": "COIDA Return of Earnings / CF-1B Application",
       "generator": "generateCoidaCf1bApplicationDraft",
       "category": "Compliance / Labour",
-      "applicableServices": ["COIDA Registration", "Letter of Good Standing", "Return of Earnings", "CF-1B"],
-      "sopStepKeywords": ["coida", "cf1b", "cf-1b", "return of earnings", "good standing"]
+      "applicableServices": ["COIDA Registration", "Letter of Good Standing", "Return of Earnings", "CF-1B", "COIDA Nature of Business Change"],
+      "sopStepKeywords": ["coida", "cf1b", "cf-1b", "return of earnings", "good standing", "nature of business"]
+    },
+    {
+      "id": "bee_eme_affidavit",
+      "name": "B-BBEE Sworn Affidavit (EME & QSE)",
+      "generator": "generateBeeEmeAffidavitDraft",
+      "category": "Compliance / B-BBEE",
+      "applicableServices": ["BEE Affidavit", "BEE Certificate", "Tender Ready Company Registration Package"],
+      "sopStepKeywords": ["bee affidavit", "b-bbee", "sworn affidavit", "eme", "qse"]
+    },
+    {
+      "id": "company_resolution",
+      "name": "Company Resolution (Board / Shareholders)",
+      "generator": "generateCompanyResolutionDraft",
+      "category": "Secretarial / CIPC",
+      "applicableServices": ["Company Resolution Drafting", "Director Resignation", "Remove Director", "Share Certificate", "Share Register"],
+      "sopStepKeywords": ["company resolution", "board resolution", "shareholder resolution", "ordinary resolution", "special resolution"]
+    },
+    {
+      "id": "securities_register",
+      "name": "Securities / Share Register",
+      "generator": "generateSecuritiesRegisterDraft",
+      "category": "Secretarial / CIPC",
+      "applicableServices": ["Share Register", "Share Certificate", "Beneficial Ownership Declaration"],
+      "sopStepKeywords": ["securities register", "share register", "shareholders"]
+    },
+    {
+      "id": "registered_office_confirmation_letter",
+      "name": "Registered Office Address Confirmation Letter",
+      "generator": "generateRegisteredOfficeConfirmationDraft",
+      "category": "Secretarial / Compliance",
+      "applicableServices": ["Registered Office Address (12-Month Retainer)", "Company Address Change"],
+      "sopStepKeywords": ["registered office", "domicilium", "office address", "cor 21.1"]
+    },
+    {
+      "id": "sars_paye_deregistration_letter",
+      "name": "SARS PAYE Deregistration Motivation Letter",
+      "generator": "generateSarsPayeDeregistrationLetterDraft",
+      "category": "SARS / Tax",
+      "applicableServices": ["PAYE Deregistration", "Income Tax Deregistrations", "VAT Deregistration"],
+      "sopStepKeywords": ["paye deregistration", "deregistration letter", "emp123e", "rav01"]
+    },
+    {
+      "id": "sars_remission_motivation_letter",
+      "name": "SARS Remission of Interest and Penalties Motivation Letter",
+      "generator": "generateSarsRemissionMotivationLetterDraft",
+      "category": "SARS / Tax",
+      "applicableServices": ["Remission of SARS Interest and Penalties"],
+      "sopStepKeywords": ["remission", "penalties", "rfr", "interest", "motivation letter"]
+    },
+    {
+      "id": "afs_compilation_pack",
+      "name": "Annual Financial Statements Compilation Report & Pack",
+      "generator": "generateAfsCompilationPackDraft",
+      "category": "Accounting / AFS",
+      "applicableServices": ["Annual Financial Statements (Draft & Sign Off)", "Annual Financial Statements (Non-VAT Registered)", "Annual Financial Statements (VAT Registered)"],
+      "sopStepKeywords": ["annual financial statements", "afs", "compilation report", "balance sheet", "income statement"]
+    },
+    {
+      "id": "management_accounts_pack",
+      "name": "Management Accounts Reporting Pack",
+      "generator": "generateManagementAccountsPackDraft",
+      "category": "Accounting / Management",
+      "applicableServices": ["Management Accounts"],
+      "sopStepKeywords": ["management accounts", "p&l", "profit and loss", "balance sheet", "kpi"]
     }
   ]
 }

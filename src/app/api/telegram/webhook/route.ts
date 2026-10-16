@@ -5,7 +5,10 @@ import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import { discardDraft, sendApprovedDraft } from '@/lib/quote-agent/drafts';
 import * as quoteStore from '@/lib/quote-agent/store';
-import { answerCallback } from '@/lib/quote-agent/telegram';
+import { answerCallback, draftButtons, sendTelegram, tgEscape } from '@/lib/quote-agent/telegram';
+import { reviseDraftFlow } from '@/ai/flows/quote-agent-revise';
+import { renderLetterEmail } from '@/lib/quote-agent/template';
+import { htmlToText } from '@/lib/quote-agent/filters';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -287,8 +290,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 7. Generic instruction handler
-    await sendTelegramReply(chatId, `✅ *Received instruction:* "${text}"\n\nProcessing in Google Cloud Run...`);
+    // 7. Conversational draft revision (AI drafting assistant)
+    const pendingDrafts = await quoteStore.listDrafts('pending', 5);
+    if (pendingDrafts.length > 0) {
+      const matchedDraft = pendingDrafts.find(d => 
+        (d.clientName && lower.includes(d.clientName.toLowerCase())) ||
+        (d.to && lower.includes(d.to.toLowerCase()))
+      ) || pendingDrafts[0];
+
+      await sendTelegramReply(chatId, `✍️ *Revising draft for ${matchedDraft.clientName || 'client'} based on your instructions...*`);
+      try {
+        const revised = await reviseDraftFlow({
+          clientName: matchedDraft.clientName || 'Valued Client',
+          clientFirstName: matchedDraft.clientName ? matchedDraft.clientName.split(' ')[0] : 'there',
+          subject: matchedDraft.subject,
+          sourceExcerpt: matchedDraft.sourceExcerpt || '',
+          currentDraftText: matchedDraft.html ? htmlToText(matchedDraft.html) : '',
+          instructions: text,
+        });
+
+        const newHtml = renderLetterEmail({
+          subject: matchedDraft.subject,
+          clientFirstName: matchedDraft.clientName ? matchedDraft.clientName.split(' ')[0] : 'there',
+          paragraphs: revised.revisedParagraphs,
+        });
+
+        await quoteStore.updateDraft(matchedDraft.id, {
+          html: newHtml,
+          summary: `${matchedDraft.summary} (Revised: ${revised.summaryOfChanges})`,
+        });
+
+        const previewSnippet = revised.revisedParagraphs.slice(0, 3).map(p => `• ${p}`).join('\n\n');
+        const alertHtml = `📝 <b>Updated Draft for ${tgEscape(matchedDraft.clientName || 'Client')}</b>\n\n` +
+          `• <b>Changes:</b> ${tgEscape(revised.summaryOfChanges)}\n` +
+          `• <b>Subject:</b> ${tgEscape(matchedDraft.subject)}\n\n` +
+          `<b>Draft Content:</b>\n${tgEscape(previewSnippet.slice(0, 600))}...\n\n` +
+          `Tap below to send or open:`;
+
+        await sendTelegram(alertHtml, draftButtons(matchedDraft.id));
+        return NextResponse.json({ ok: true });
+      } catch (err: any) {
+        console.error('[quote-agent] Revision error:', err.message);
+        await sendTelegramReply(chatId, `⚠️ Could not revise draft: ${err.message}`);
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    // 8. Generic instruction fallback
+    await sendTelegramReply(chatId, `✅ *Received:* "${text}"\n\nNo pending draft waiting for revision. Type /help to see commands.`);
     return NextResponse.json({ ok: true });
 
   } catch (error: any) {

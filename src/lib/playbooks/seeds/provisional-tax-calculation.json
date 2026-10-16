@@ -1,0 +1,159 @@
+{
+  "slug": "provisional-tax-calculation",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Comprehensive Provisional Tax (IRP6) Calculation & Taxable Income Estimate reconciled to your bank statements and management accounts",
+    "Tax Liability Summary, Basic Amount vs Actual Estimate Comparison (Paragraph 19 & 20 of the Fourth Schedule penalty check), and SARS Payment Instructions"
+  ],
+  "playbookCommonFailures": [
+    "Bank statements or management accounts do not cover the full 6-month (1st period) or 12-month (2nd period) tax year-to-date",
+    "Underestimation penalty risk on 2nd Provisional Tax (IRP6-02) where taxable income is <= R1m (must be at least 90% of actual or basic amount) or > R1m (must be at least 80% of actual)",
+    "Prior 1st period IRP6 payment or year-to-date PAYE withheld is omitted from the tax credit calculation"
+  ],
+  "informationToProvide": [
+    {
+      "id": "taxpayer_name_and_period",
+      "label": "Company / Taxpayer Name, SARS Tax Number & Provisional Period (e.g., 2026-01 or 2026-02)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the company or individual taxpayer name, 10-digit SARS Income Tax number, whether SBC (s12E) rates apply, and the provisional tax period (1st or 2nd period).",
+      "aiHint": "Taxpayer name, 10-digit SARS Income Tax number, entity type (Company/SBC/Individual), and IRP6 period (YYYY-01 or YYYY-02)."
+    },
+    {
+      "id": "bank_statements_period",
+      "label": "Bank Statements for the Relevant Provisional Tax Period (PDF / CSV)",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload year-to-date bank statements for the provisional tax period.",
+      "aiHint": "Year-to-date bank statements for the provisional tax period."
+    },
+    {
+      "id": "management_accounts_or_schedule",
+      "label": "Management Accounts or Income & Expense Summary for the Period",
+      "type": "pdf",
+      "documentKind": "management_accounts",
+      "inNameOf": "either",
+      "isRequired": false,
+      "helpText": "Upload year-to-date management accounts, trial balance, or income/expense schedule.",
+      "aiHint": "Year-to-date management accounts or income/expense schedule for the provisional tax period."
+    },
+    {
+      "id": "prior_ita34_and_payments",
+      "label": "Latest ITA34 Assessment & Proof of 1st Period IRP6 / PAYE Credits (if applicable)",
+      "type": "pdf",
+      "documentKind": "receipt",
+      "inNameOf": "either",
+      "isRequired": false,
+      "helpText": "Upload your latest ITA34 (for the SARS Basic Amount) and proof of any 1st period provisional tax or PAYE paid.",
+      "aiHint": "Latest ITA34 assessment and proof of prior provisional tax or PAYE payments."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ptc_collect",
+      "stepNumber": 1,
+      "title": "Collect bank statements, management accounts, prior ITA34 and eFiling access",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Taxpayer details, period (YYYY-01 or YYYY-02), bank statements / management accounts, and eFiling access are on file",
+      "aiInstructions": "Confirm whether this is a 1st period (6 months) or 2nd period (12 months) provisional tax calculation and ensure all year-to-date records are uploaded."
+    },
+    {
+      "id": "ptc_verify",
+      "stepNumber": 2,
+      "title": "Verify SARS Basic Amount, prior IRP6/PAYE credits and completeness of records",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "SARS Basic Amount on the issued IRP6, prior payments, and year-to-date bank/management figures verified",
+      "aiInstructions": "Check the issued IRP6 on eFiling (or latest ITA34) to confirm the SARS Basic Amount and any 1st period payment on the ITSA Statement of Account."
+    },
+    {
+      "id": "ptc_calculate",
+      "stepNumber": 3,
+      "title": "Calculate annualized estimated taxable income and IRP6 provisional tax liability",
+      "type": "calculate",
+      "stepType": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Provisional tax computation completed (comparing Basic Amount safe harbour vs Actual Estimated Taxable Income under Fourth Schedule para 19/20)",
+      "aiInstructions": "Compute estimated full-year turnover, deductible expenditure, taxable income, and gross tax (27% corporate / s12E SBC / individual brackets less rebates/credits).Deduct PAYE and 1st period provisional tax paid."
+    },
+    {
+      "id": "ptc_draft",
+      "stepNumber": 4,
+      "title": "Draft Provisional Tax Calculation Schedule & Payment Summary",
+      "type": "draft_client_message",
+      "stepType": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Provisional Tax working paper and client summary approved by Kevin",
+      "aiInstructions": "Draft a clear Provisional Tax Calculation Schedule showing Estimated Turnover, Estimated Taxable Income, Tax Liability, Less Credits, Net IRP6 Payable, and Fourth Schedule penalty guidance."
+    },
+    {
+      "id": "ptc_deliver",
+      "stepNumber": 5,
+      "title": "Deliver Provisional Tax Calculation & Payment Instructions to client",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "provisional_tax_calculation_schedule"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Provisional Tax Calculation schedule and payment instructions posted to Communication History",
+      "aiInstructions": "Deliver the Provisional Tax Calculation working paper and payment deadline instructions in Communication History."
+    },
+    {
+      "id": "ptc_signoff",
+      "stepNumber": 6,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the Provisional Tax Calculation order is complete"
+    }
+  ]
+}

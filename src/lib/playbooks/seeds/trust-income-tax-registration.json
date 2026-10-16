@@ -1,0 +1,188 @@
+{
+  "slug": "trust-income-tax-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Official SARS Notice of Registration (IT150) Showing the Trust 10-Digit Income Tax Reference Number",
+    "Submitted SARS Trust Beneficial Ownership Register & Activated Representative Trustee Link"
+  ],
+  "playbookCommonFailures": [
+    "Missing certified IDs or tax numbers for the Founder or named Beneficiaries required by SARS Trust Beneficial Ownership rules",
+    "Trustee Resolution appointing the Representative Taxpayer is not signed by ALL Trustees listed on the Letters of Authority",
+    "Letters of Authority or Trustee ID copies are certified more than 3 months prior to submission"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_tr_letters_of_authority",
+      "label": "Certified Copy of Master of the High Court Letters of Authority (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload a certified copy (< 3 months) of the Letters of Authority issued by the Master of the High Court.",
+      "aiHint": "Certified copy of Master of the High Court Letters of Authority showing the Trust name, IT registration number, and appointed Trustees."
+    },
+    {
+      "id": "req_tr_trust_deed",
+      "label": "Certified Copy of Signed Trust Deed (or Will for a Testamentary Trust)",
+      "type": "pdf",
+      "documentKind": "moi",
+      "inNameOf": "entity",
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload a complete certified copy of the signed Trust Deed (or Last Will & Testament for a Testamentary Trust).",
+      "aiHint": "Complete certified copy of the executed Trust Deed or Will establishing the Trust."
+    },
+    {
+      "id": "req_tr_ids_all_parties",
+      "label": "Certified SA ID / Passport Copies (< 3 Months) of the Founder/Donor, All Trustees & All Named Beneficiaries",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "SARS requires certified ID copies (< 3 months) for every Founder, Trustee, and named Beneficiary for the mandatory Trust Beneficial Ownership register.",
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_tr_poa_all_trustees",
+      "label": "Proof of Residential Address (< 3 Months) for All Trustees & Proof of Trust Physical Address (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload proof of residential address (< 3 months) for each Trustee and proof of the Trust physical address.",
+      "aiHint": "Utility bill, municipal account, bank statement, or CRA01 dated within 90 days for all Trustees and the Trust."
+    },
+    {
+      "id": "req_tr_main_trustee_selfie",
+      "label": "Clear Photo (Selfie) of the Representative Trustee Holding Original ID & Note Reading \"For SARS Purpose\" with Date",
+      "type": "image",
+      "documentKind": "photo",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload a clear selfie of the Representative Trustee holding their ID and a handwritten note reading \"For SARS Purpose\" with the current date.",
+      "aiHint": "Clear photograph of the Representative Trustee holding their ID and a handwritten \"For SARS Purpose\" note."
+    },
+    {
+      "id": "req_tr_bank_confirmation",
+      "label": "Trust Bank Account Confirmation Letter (< 3 Months) (If Bank Account Already Opened)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": false,
+      "helpText": "Upload the Trust bank confirmation letter if the bank account is already open (or leave blank if the bank requires the SARS tax number first to open the account).",
+      "aiHint": "Official bank confirmation letter in the name of the Trust."
+    },
+    {
+      "id": "req_tr_bo_schedule",
+      "label": "Trust Beneficial Ownership & Particulars Schedule — Trust Type (Inter Vivos / Bewind / Testamentary), Activities, and Full Details (Name, ID, Tax No, Email, Cell, Address) of Founder, Trustees & Beneficiaries",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify: (1) Type of Trust & nature of activities/assets, (2) Which Trustee is the nominated Representative Taxpayer (Public Officer), and (3) Full Name, ID Number, SARS Income Tax Number, Email, Cellphone, and Residential Address for the Founder, every Trustee, and every Beneficiary."
+    },
+    {
+      "id": "req_tr_signed_res_poa",
+      "label": "Signed Trustee Resolution Appointing Representative Taxpayer & Signed SARS Power of Attorney (We Draft This for Signature)",
+      "type": "pdf",
+      "documentKind": "resolution",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the signed Trustee Resolution and SARS Power of Attorney once drafted by us.",
+      "aiHint": "Signed resolution by all Trustees nominating the Representative Trustee for SARS, plus signed SARS Special Power of Attorney."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tr_collect",
+      "title": "Collect Letters of Authority, Trust Deed, Founder/Trustee/Beneficiary KYC, and Representative Trustee selfie",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Certified Letters of Authority, Trust Deed, all Founder/Trustee/Beneficiary IDs & details, Proofs of Address, and Representative Trustee selfie received",
+      "aiInstructions": "Verify that every Trustee listed on the Master Letters of Authority has supplied a certified ID (< 3 months), proof of address (< 3 months), personal tax number, email, and cellphone."
+    },
+    {
+      "id": "tr_verify",
+      "title": "Verify Letters of Authority, Trust Deed, and Beneficial Ownership completeness",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All certifications verified < 90 days; Trustees on Letters of Authority match IDs; Beneficial Ownership schedule complete",
+      "aiInstructions": "Cross-check the Trust name and IT number on the Letters of Authority against the Trust Deed."
+    },
+    {
+      "id": "tr_draft",
+      "title": "Draft Representative Trustee Resolution, SARS Power of Attorney, and Trust Beneficial Ownership Schedule",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "director_resolution",
+        "power_of_attorney",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Trustee Resolution, SARS POA, and Beneficial Ownership spreadsheet drafted for review",
+      "aiInstructions": "Draft the Trustee Resolution appointing the Representative Trustee (all Trustees must sign) and the SARS Special Power of Attorney."
+    },
+    {
+      "id": "tr_client_sign",
+      "title": "Obtain signed Trustee Resolution and signed SARS Power of Attorney from all Trustees",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed Trustee Resolution (signed by all Trustees) and signed POA uploaded",
+      "aiInstructions": "Send the drafted resolution and POA to the client and ensure every Trustee on the Letters of Authority signs."
+    },
+    {
+      "id": "tr_file",
+      "title": "Submit Trust Income Tax Registration & Beneficial Ownership on SARS eFiling / SOQS",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.registerTrustIncomeTax",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Trust registration and Beneficial Ownership dossier submitted on SARS SOQS / eFiling with case number recorded",
+      "aiInstructions": "Lodge the Trust Income Tax Registration via SARS Online Query System (Register a Trust / Register Representative) attaching the Letters of Authority, Trust Deed, KYC pack, Representative Trustee selfie, signed Trustee Resolution, and Beneficial Ownership schedule."
+    },
+    {
+      "id": "tr_wait",
+      "title": "Wait for SARS verification and IT150 Notice of Registration",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        5,
+        10,
+        15
+      ],
+      "estimatedDays": 12,
+      "doneCriteria": "SARS issues the Trust IT150 Notice of Registration and activates the Representative Trustee",
+      "aiInstructions": "Monitor SARS case status at Days 5, 10, and 15."
+    },
+    {
+      "id": "tr_deliver",
+      "title": "Deliver Trust SARS IT150 Notice of Registration and ITR12T/IT3(t) compliance roadmap",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Official Trust IT150 delivered to Communication History",
+      "aiInstructions": "Deliver the IT150 Notice of Registration and explain the annual ITR12T return and annual IT3(t) third-party distribution reporting obligations."
+    },
+    {
+      "id": "tr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

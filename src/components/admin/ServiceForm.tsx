@@ -327,6 +327,10 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         isConditional: preset.isConditional ?? false,
         conditionalQuestion: preset.conditionalQuestion || '',
         aiHint: preset.aiHint || '',
+        documentKind: (preset as any).documentKind,
+        inNameOf: (preset as any).inNameOf,
+        maxAgeDays: (preset as any).maxAgeDays,
+        mustBeCertified: (preset as any).mustBeCertified,
       });
     });
     toast({
@@ -557,13 +561,20 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
   const handleCopyFrom = (serviceId: string) => {
     const sourceService = allServices.find(s => s.id === serviceId);
     if (sourceService && sourceService.informationToProvide) {
-      replaceInfo(sourceService.informationToProvide.map(v => ({
+      replaceInfo(sourceService.informationToProvide.map((v: any) => ({
         label: v.label,
         type: v.type || 'text',
         helpText: v.helpText || '',
         isConditional: v.isConditional || false,
         conditionalQuestion: v.conditionalQuestion || '',
         isRequired: v.isRequired ?? true,
+        isSecret: v.isSecret ?? false,
+        aiHint: v.aiHint || '',
+        documentKind: v.documentKind,
+        inNameOf: v.inNameOf,
+        maxAgeDays: v.maxAgeDays,
+        mustBeCertified: v.mustBeCertified,
+        alternativesText: Array.isArray(v.alternatives) ? v.alternatives.join(', ') : '',
       })));
       toast({ title: 'Information Copied', description: `Copied requirements from "${sourceService.title}".`});
     }

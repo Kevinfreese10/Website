@@ -1,0 +1,194 @@
+{
+  "slug": "turnover-tax-registration",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Completed & Submitted SARS Form TT01 (Turnover Tax Registration)",
+    "SARS Turnover Tax Registration Notice & TT02/TT03 Compliance Calendar"
+  ],
+  "playbookCommonFailures": [
+    "Company financial year-end is not February (Sixth Schedule disqualifies companies with a non-February year-end unless changed at CIPC first)",
+    "Shareholder holds directorship/shares in another registered company (multiple shareholding disqualification under Paragraph 3 of the Sixth Schedule)",
+    "Existing business applies after the start of the tax year (1 March) instead of before 1 March (new businesses must apply within 2 months of commencing business)"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_tt_id",
+      "label": "Certified SA ID Copy (< 3 Months) of Sole Proprietor or All Company Directors/Shareholders",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) of the business owner or all directors/shareholders.",
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_tt_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3) — Required If Registering a Company",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "isConditional": true,
+      "conditionalQuestion": "Is the applicant a registered Company / Close Corporation (rather than a Sole Proprietor)?",
+      "helpText": "Upload the CIPC CoR 14.3 certificate if registering a company (Note: the company financial year-end must end on the last day of February to qualify under the Sixth Schedule).",
+      "aiHint": "Official CIPC CoR14.3 showing the registered enterprise name, enterprise number, financial year-end, and directors."
+    },
+    {
+      "id": "req_tt_poa_and_bank",
+      "label": "Proof of Business Address (< 3 Months) & Business Bank Confirmation Letter (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload your proof of business address (< 3 months) and official bank confirmation letter (< 3 months).",
+      "aiHint": "Proof of business address and official bank confirmation letter dated within 90 days."
+    },
+    {
+      "id": "req_tt_eligibility_questionnaire",
+      "label": "Sixth Schedule Eligibility Questionnaire — Date Business Commenced, Estimated 12-Month Turnover (<= R1m), Nature of Business, Financial Year-End & Confirmation Shareholders Hold No Other Company Shares",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Exact date business started trading, (2) Estimated annual turnover for 1 March – 28 Feb (must be <= R1,000,000), (3) Detailed nature of business (confirming not professional/personal services), (4) Financial year-end (must be February), and (5) Confirmation that no shareholder holds shares in any other company."
+    },
+    {
+      "id": "req_sars_tt_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_tt_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_tt_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_tt_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tt_collect",
+      "title": "Collect KYC documents, CoR 14.3, bank confirmation, and Sixth Schedule eligibility questionnaire",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Certified IDs, CoR 14.3 (if company), bank confirmation, proof of address, and Sixth Schedule questionnaire received",
+      "aiInstructions": "Verify all Sixth Schedule qualifying criteria: turnover <= R1,000,000, February financial year-end, no professional service disqualification, and no multiple company shareholdings."
+    },
+    {
+      "id": "tt_verify",
+      "title": "Audit Sixth Schedule Micro Business eligibility and CIPC directorship/shareholding records",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Applicant passes all Paragraph 2 & 3 Sixth Schedule Turnover Tax tests",
+      "aiInstructions": "Check that the company financial year-end on CoR 14.3 is February and that directors/shareholders do not hold disqualifying interests in other active companies."
+    },
+    {
+      "id": "tt_draft",
+      "title": "Prepare SARS Form TT01 and Special Power of Attorney for client signature",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "sars_tt01_form",
+        "power_of_attorney",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Form TT01 and POA drafted for review and client signature",
+      "aiInstructions": "Populate Form TT01 with the verified taxpayer details, commencement date, turnover estimate, and Sixth Schedule declarations."
+    },
+    {
+      "id": "tt_client_sign",
+      "title": "Obtain signed Form TT01 and SARS Power of Attorney from client",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed Form TT01 and signed POA uploaded by client",
+      "aiInstructions": "Send Form TT01 and the POA to the client for signature."
+    },
+    {
+      "id": "tt_file",
+      "title": "Submit Form TT01 Turnover Tax registration to SARS via eFiling / SOQS",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.registerTurnoverTax",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "TT01 application submitted to SARS with supporting documents and case number recorded",
+      "aiInstructions": "Lodge the signed TT01 and supporting pack via SARS eFiling / SOQS and record the SARS case number."
+    },
+    {
+      "id": "tt_wait",
+      "title": "Wait for SARS to issue the Turnover Tax Registration Notice",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        5,
+        10,
+        15
+      ],
+      "estimatedDays": 10,
+      "doneCriteria": "SARS issues the Turnover Tax registration confirmation",
+      "aiInstructions": "Monitor the SARS case status until the Turnover Tax reference is activated."
+    },
+    {
+      "id": "tt_deliver",
+      "title": "Deliver Turnover Tax registration confirmation and TT02/TT03 compliance guide",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Turnover Tax registration notice and compliance calendar posted to Communication History",
+      "aiInstructions": "Deliver the registration confirmation and explain the simplified record-keeping rules and TT02 interim payment (August & February) + TT03 annual return deadlines."
+    },
+    {
+      "id": "tt_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

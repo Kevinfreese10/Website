@@ -13,32 +13,56 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "company_name_and_paye_ref",
+      "label": "Company Name, CIPC Number & PAYE Reference Number",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name (or individual's name if the taxpayer is a person) exactly as on the SARS profile, with the relevant SARS reference number."
+      "helpText": "Registered company name, CIPC registration number, and 10-digit PAYE reference number (starting with 7).",
+      "aiHint": "Company name, CIPC number, and 10-digit SARS PAYE reference number."
     },
     {
+      "id": "emp201_period_and_nil_confirmation",
+      "label": "Return Month (YYYY-MM) & Nil Payroll Confirmation",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the payroll month (e.g., 2026-09) and confirm in writing that no salaries/wages or PAYE/SDL/UIF liabilities were incurred.",
+      "aiHint": "EMP201 return period (YYYY-MM) and written confirmation of nil payroll."
+    },
+    {
+      "id": "sars_efiling_username",
       "label": "SARS eFiling Username",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
     },
     {
+      "id": "sars_efiling_password",
       "label": "SARS eFiling Password",
       "type": "text",
+      "isRequired": true,
       "isSecret": true,
-      "isRequired": true
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
     },
     {
-      "label": "Confirmation of no payroll activity for the specific month",
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
       "type": "text",
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
     },
     {
-      "label": "Company registration number (CIPC)",
-      "type": "text",
-      "isRequired": true
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -49,7 +73,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Credentials on file, period identified and client has confirmed in writing that the return is nil",
-      "aiInstructions": "Ask for the eFiling username/password and confirm which period the EMP201 is for. Get an explicit written confirmation in Communication History that no remuneration of any kind (including directors' fees and cash wages) was paid in the month. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Ask for the eFiling username/password and confirm which period the EMP201 is for. Get an explicit written confirmation in Communication History that no remuneration of any kind (including directors' fees and cash wages) was paid in the month. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "emp201n_verify",
@@ -58,7 +84,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Return is outstanding on eFiling for that period and nothing on file contradicts the nil declaration",
-      "aiInstructions": "Confirm the EMP201 for the month is issued under Returns → EMP201. A nil PAYE with employees below the threshold is NOT a nil EMP201 — UIF (1%+1%) and SDL (1% if payroll > R500k p.a.) may still be due. If evidence contradicts a nil return (e.g. payslips, a payroll run in AI Payroll, or bank transfers labelled salary/wages), stop and raise a proposal to switch to the trading version of this service."
+      "aiInstructions": "Confirm the EMP201 for the month is issued under Returns → EMP201. A nil PAYE with employees below the threshold is NOT a nil EMP201 — UIF (1%+1%) and SDL (1% if payroll > R500k p.a.) may still be due. If evidence contradicts a nil return (e.g. payslips, a payroll run in AI Payroll, or bank transfers labelled salary/wages), stop and raise a proposal to switch to the trading version of this service.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "emp201n_file",
@@ -70,7 +98,9 @@
       "submitMode": "stage",
       "estimatedDays": 1,
       "doneCriteria": "EMP201 shows status Filed/Submitted for the period and the confirmation is saved",
-      "aiInstructions": "Returns → EMP201 → select the month. PAYE, SDL, UIF and ETI all zero; payment reference (PRN) not needed. Submit the declaration. Stage with a screenshot of the completed return for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns → EMP201 → select the month. PAYE, SDL, UIF and ETI all zero; payment reference (PRN) not needed. Submit the declaration. Stage with a screenshot of the completed return for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 3,
+      "stepType": "portal_filing"
     },
     {
       "id": "emp201n_deliver",
@@ -82,7 +112,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Submission confirmation / filed return PDF posted to Communication History",
-      "aiInstructions": "Post the filed EMP201. Explain in plain English that a nil EMP201 is required every month the PAYE number is active, and that if there are no employees permanently the client can deregister for PAYE; offer that service. Due date is the 7th of the following month (⚠ verify: or the last business day before if the 7th is a weekend/holiday)."
+      "aiInstructions": "Post the filed EMP201. Explain in plain English that a nil EMP201 is required every month the PAYE number is active, and that if there are no employees permanently the client can deregister for PAYE; offer that service. Due date is the 7th of the following month (⚠ verify: or the last business day before if the 7th is a weekend/holiday).",
+      "stepNumber": 4,
+      "stepType": "deliver"
     },
     {
       "id": "emp201n_signoff",
@@ -90,7 +122,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 5,
+      "stepType": "signoff"
     }
   ]
 }

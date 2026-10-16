@@ -14,14 +14,112 @@
     "Tax compliance status not in good standing at the time of submission"
   ],
   "informationToProvide": [
-    { "label": "Company Name", "type": "text", "isRequired": true, "aiHint": "Registered name exactly as on the CIPC certificate, including '(Pty) Ltd'. Must match the entity on SARS Registered Details." },
-    { "label": "SARS eFiling Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "SARS eFiling Password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "Company Registration Certificate", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors of the applicant transporter." },
-    { "label": "Customs registration with SARS", "documentKind": "sars_notice_of_registration", "inNameOf": "entity", "isRequired": true, "alternatives": ["RLA dashboard screenshot showing the customs client number", "Customs registration letter"], "aiHint": "Proof that the entity already holds a SARS customs client number (importer/exporter or other customs registration). If none exists, propose the import/export licence service first — the remover licence cannot stand alone." },
-    { "label": "Customs transport documents", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "alternatives": ["Vehicle registration certificates (NaTIS)", "Lease agreements for vehicles/premises", "Operating licence / cross-border road transport permit"], "aiHint": "Documents identifying the vehicles and premises used to move or store bonded goods: vehicle registration papers or leases with registration numbers, trailer details, storage premises proof, and any cross-border road transport permit. Build a vehicle schedule from them; flag vehicles not in the entity's name without a lease." },
-    { "label": "Proof of business physical address - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account"], "aiHint": "Proof of the PHYSICAL business premises dated within 3 months in the entity's name. Customs may inspect; P.O. Box or virtual office not accepted." },
-    { "label": "Surety/bond details (if required by SARS for your specific operation)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "alternatives": ["Bank guarantee in SARS-prescribed form", "Insurance surety bond", "Insurer quotation"], "aiHint": "Bank guarantee or insurance surety in favour of SARS Customs (or the insurer's undertaking) showing amount and the entity's name. SARS determines the amount after assessment — ⚠ verify whether provisional security is accepted at application stage." }
+    {
+      "id": "req_rgb_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3) & Certified Director IDs (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate and certified director ID copies (< 3 months).",
+      "aiHint": "Official CIPC CoR14.3 and certified director IDs (< 90 days) of the applicant transporter."
+    },
+    {
+      "id": "req_rgb_customs_reg",
+      "label": "Existing SARS Customs Client Registration Proof (Customs Client Code Letter / RLA Notice)",
+      "type": "pdf",
+      "documentKind": "sars_notice_of_registration",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload proof of the company existing SARS Customs Client Number.",
+      "aiHint": "Proof that the entity already holds a SARS customs client number (importer/exporter or other customs registration)."
+    },
+    {
+      "id": "req_rgb_vehicles",
+      "label": "Fleet Vehicle & Trailer Registration Certificates (NaTIS RC1), Lease Agreements & Cross-Border Permits",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the NaTIS registration certificates (and lease agreements if leased) for every mechanical horse, truck, and trailer that will carry bonded goods.",
+      "aiHint": "Vehicle registration papers (RC1) or leases with registration numbers, trailer details, storage premises proof, and any cross-border road transport permit."
+    },
+    {
+      "id": "req_rgb_premises_poa",
+      "label": "Proof of Physical Business & Storage Premises Address (< 3 Months) & Bank Confirmation Letter (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload proof of physical business premises (< 3 months) and official company bank confirmation letter (< 3 months).",
+      "aiHint": "Proof of the PHYSICAL business premises and bank confirmation letter dated within 90 days in the entity name."
+    },
+    {
+      "id": "req_rgb_surety_bond",
+      "label": "Customs Remover in Bond Surety / Security Bond (Bank Guarantee or Insurance Surety Undertaking)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload your SARS Customs Remover in Bond security guarantee or provisional insurer undertaking.",
+      "aiHint": "Bank guarantee or insurance surety in favour of SARS Customs showing amount and the entity name."
+    },
+    {
+      "id": "req_rgb_routes_and_cell",
+      "label": "Borders / Ports of Entry Operated, VAT Number & Verifiable SARS Profile Cellphone Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List the border posts / ports of entry and corridors you will operate on, your VAT number (if VAT registered), and the verifiable cellphone number on SARS Registered Details."
+    },
+    {
+      "id": "req_sars_rgb_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_rgb_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_rgb_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_rgb_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -59,7 +157,9 @@
       "title": "Prepare RLA remover of goods in bond hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every RLA field value, vehicle schedule and upload list posted for Kevin",
       "aiInstructions": "Fields (RLA licence type 'Remover of goods in bond' — DA185 + the remover annexure, ⚠ verify annexure number): applicant details, existing customs code, tax and VAT numbers, physical premises, directors, contact person and cell, bank details, vehicle schedule (registration, make, type, owned/leased), storage premises, places of entry/exit and routes, security type and amount. Fill from verified facts only; leave unknowns blank and flag."
@@ -81,7 +181,11 @@
       "title": "Wait for Customs assessment, security acceptance and licence issue",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [3, 5, 10],
+      "followUpAfterDays": [
+        3,
+        5,
+        10
+      ],
       "estimatedDays": 10,
       "doneCriteria": "Licence issued on RLA / approval notification received, or SARS security determination received and actioned",
       "aiInstructions": "Check the RLA dashboard at each follow-up. Customs commonly responds with the required security amount or a premises/vehicle inspection; create a proposal for Kevin and a plain client message with what is needed. Escalate via the Customs contact centre with the reference number if no movement by day 10."
@@ -91,7 +195,9 @@
       "title": "Deliver licence and obligations note",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["customs_licence"],
+      "deliverArtefacts": [
+        "customs_licence"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Licence, customs code and guidance posted to Communication History",
       "aiInstructions": "Explain: keep the vehicle list current on RLA (add/remove vehicles), keep the surety in force, renew annually (⚠ verify renewal cycle), keep bonded movement records (SAD500/transit documents, acquittals) for 5 years, and that failing to acquit a bonded movement makes the remover liable for the duty. Offer the annual compliance and VAT services."

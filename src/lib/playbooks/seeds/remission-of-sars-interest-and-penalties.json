@@ -14,11 +14,88 @@
     "Understatement penalties or s89 interest treated as remissible administrative penalties — they need a different remedy (objection / s39 interest remission)"
   ],
   "informationToProvide": [
-    { "label": "SARS statements of account detailing the interest and penalties incurred", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS statement of account (income tax, VAT, PAYE or admin penalty) showing each penalty and interest line with the date, tax period and amount. Pull from eFiling if credentials are given. Identify penalty type per line: admin penalty (late return), late payment penalty (10%), or interest." },
-    { "label": "A clear, detailed explanation of the circumstances leading to the interest or penalties", "type": "text", "isRequired": true, "aiHint": "Client's own account of what happened and when: illness, death, natural disaster, SARS/eFiling system error, bank error, first-time offence, or that the return/payment was in fact made on time. Ask for dates and names so the motivation can be specific." },
-    { "label": "Any relevant supporting documents (e.g., medical certificates, financial statements, proof of administrative error)", "documentKind": "other", "inNameOf": "either", "isRequired": true, "aiHint": "Evidence backing the explanation: medical certificates, death certificate, proof of payment showing the payment date, bank error letters, screenshots of eFiling errors with dates, correspondence with SARS. Each claim in the letter should point to one of these." },
-    { "label": "Your SARS eFiling login credentials or signed Power of Attorney", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "Proof of identity and address (for individuals) or company registration documents (for businesses)", "documentKind": "sa_id", "inNameOf": "either", "maxAgeDays": 90, "isRequired": true, "alternatives": ["CIPC CoR14.3 for a company", "Certified passport"], "aiHint": "For an individual: certified ID within 3 months and proof of address. For a company: CIPC CoR14.3. Confirms the taxpayer identity that the RFR is lodged for." }
+    {
+      "id": "taxpayer_name_and_tax_refs",
+      "label": "Name of Company / Taxpayer & Affected SARS Tax Reference Numbers",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Full registered name of the company or individual and the SARS reference numbers (Income Tax / VAT / PAYE) carrying penalties/interest.",
+      "aiHint": "Taxpayer legal name and SARS tax reference numbers where penalties/interest were levied."
+    },
+    {
+      "id": "circumstances_explanation",
+      "label": "Detailed Explanation of Circumstances Leading to the Penalties / Interest",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide a chronological explanation of why the return or payment was late (e.g., illness, system failure, prior accountant negligence, first-time incidence under s217(3) of the TAA).",
+      "aiHint": "Chronological factual explanation of the grounds for remission under Chapter 15 of the Tax Administration Act."
+    },
+    {
+      "id": "sars_statement_of_account",
+      "label": "SARS Statement of Account (SOA) & Penalty Assessment Notices (AP34)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the SARS Statement of Account (ITSA, VATSA, or EMPSA) or AP34 penalty notices showing the exact penalty/interest amounts and tax periods.",
+      "aiHint": "SARS Statement of Account or AP34 penalty notice detailing the interest and penalties incurred."
+    },
+    {
+      "id": "supporting_evidence_pack",
+      "label": "Supporting Documentary Evidence (Medical, Financial, or Administrative Proof)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload documentary proof substantiating the circumstances (e.g., medical reports, bank correspondence, death certificate, or proof of first-time non-compliance remedy).",
+      "aiHint": "Documentary evidence supporting the Request for Remission (RFR) under TAA s217/s218."
+    },
+    {
+      "id": "id_or_cor14_3",
+      "label": "SA ID / Passport (Individuals) or CIPC CoR 14.3 & Director ID (Companies)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload your SA ID/Passport (for an individual) or CIPC CoR 14.3 and Public Officer ID (for a company).",
+      "aiHint": "Taxpayer SA ID / passport or company CoR 14.3 and Public Officer ID."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -28,7 +105,9 @@
       "owner": "agent",
       "estimatedDays": 3,
       "doneCriteria": "Statement of account, written explanation, supporting evidence and access (credentials or POA) received",
-      "aiInstructions": "Name each item and why: SARS only remits where the taxpayer shows exceptional circumstances or that the penalty was wrongly imposed, so evidence matters more than the story. Ask for exact dates. Check whether the return or payment the penalty relates to has since been filed/paid — if not, tell the client that must happen first. Do not promise faster than 5-10 working days and never promise the outcome."
+      "aiInstructions": "Name each item and why: SARS only remits where the taxpayer shows exceptional circumstances or that the penalty was wrongly imposed, so evidence matters more than the story. Ask for exact dates. Check whether the return or payment the penalty relates to has since been filed/paid — if not, tell the client that must happen first. Do not promise faster than 5-10 working days and never promise the outcome.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "rem_verify",
@@ -37,17 +116,23 @@
       "owner": "kevin",
       "estimatedDays": 1,
       "doneCriteria": "Kevin confirms which penalties/interest are remissible via RFR, which need an objection (NOO) or s39/s187 interest request, and whether the 30-business-day window is met",
-      "aiInstructions": "Classify: administrative non-compliance penalties (Chapter 15 TAA) → RFR; late-payment penalty (10%) → RFR under the relevant Act; understatement penalties → objection, not RFR; interest → remission only where SARS/bank error or circumstances beyond control (⚠ verify current interest remission grounds). Check the penalty assessment date: RFR must be lodged within 30 business days of the assessment notice or include a condonation request with reasons (⚠ verify window). If the underlying return is outstanding, stop and route to the return-filing service first. First-time and nominal penalties are the strongest candidates."
+      "aiInstructions": "Classify: administrative non-compliance penalties (Chapter 15 TAA) → RFR; late-payment penalty (10%) → RFR under the relevant Act; understatement penalties → objection, not RFR; interest → remission only where SARS/bank error or circumstances beyond control (⚠ verify current interest remission grounds). Check the penalty assessment date: RFR must be lodged within 30 business days of the assessment notice or include a condonation request with reasons (⚠ verify window). If the underlying return is outstanding, stop and route to the return-filing service first. First-time and nominal penalties are the strongest candidates.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "rem_draft_letter",
       "title": "Draft remission motivation letter",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["remission_motivation_letter"],
+      "templateIds": [
+        "remission_motivation_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Motivation letter drafted with a penalty schedule and evidence references, posted for Kevin's review",
-      "aiInstructions": "Structure: taxpayer details and reference numbers; table of each penalty/interest (tax type, period, date, amount); the facts in date order; the exceptional circumstances relied on with a reference to each attached proof; compliance history (all returns now filed, payments made); the remedy requested (full remission, or partial). Use only facts from the client's explanation and evidence — never embellish. Tone: factual and respectful, no accusations. Kevin edits and approves; the client signs."
+      "aiInstructions": "Structure: taxpayer details and reference numbers; table of each penalty/interest (tax type, period, date, amount); the facts in date order; the exceptional circumstances relied on with a reference to each attached proof; compliance history (all returns now filed, payments made); the remedy requested (full remission, or partial). Use only facts from the client's explanation and evidence — never embellish. Tone: factual and respectful, no accusations. Kevin edits and approves; the client signs.",
+      "stepNumber": 3,
+      "stepType": "draft_document"
     },
     {
       "id": "rem_client_sign",
@@ -56,7 +141,9 @@
       "owner": "agent",
       "estimatedDays": 2,
       "doneCriteria": "Signed motivation letter uploaded",
-      "aiInstructions": "Post the approved letter with plain instructions: read it carefully because it is a statement of fact to SARS, sign and date, return as PDF. Ask the client to correct anything inaccurate rather than sign."
+      "aiInstructions": "Post the approved letter with plain instructions: read it carefully because it is a statement of fact to SARS, sign and date, return as PDF. Ask the client to correct anything inaccurate rather than sign.",
+      "stepNumber": 4,
+      "stepType": "draft_client_message"
     },
     {
       "id": "rem_file",
@@ -68,27 +155,39 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "RFR submitted per penalty/period with the letter and evidence uploaded; case number recorded",
-      "aiInstructions": "Path: eFiling > the relevant tax type > Dispute > New > Request for Remission (RFR1 for admin penalties; for VAT/PAYE late-payment penalties the dispute menu under that tax type). Select each penalty transaction being disputed, choose the reason code that matches the letter, attach the signed motivation and evidence (PDF, under the eFiling size limit). Kevin lodges — reason selection and condonation require judgement. Where eFiling does not offer RFR for the transaction, fall back to a SARS Online Query System submission and note it."
+      "aiInstructions": "Path: eFiling > the relevant tax type > Dispute > New > Request for Remission (RFR1 for admin penalties; for VAT/PAYE late-payment penalties the dispute menu under that tax type). Select each penalty transaction being disputed, choose the reason code that matches the letter, attach the signed motivation and evidence (PDF, under the eFiling size limit). Kevin lodges — reason selection and condonation require judgement. Where eFiling does not offer RFR for the transaction, fall back to a SARS Online Query System submission and note it.",
+      "stepNumber": 5,
+      "stepType": "portal_filing"
     },
     {
       "id": "rem_wait",
       "title": "Wait for SARS decision",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [10, 20, 30],
+      "followUpAfterDays": [
+        10,
+        20,
+        30
+      ],
       "estimatedDays": 30,
       "doneCriteria": "SARS outcome letter (remission allowed / partially allowed / disallowed) received on eFiling",
-      "aiInstructions": "SARS aims to respond within 60 business days for RFRs (⚠ verify current service level); the catalogue 5-10 days covers our work, not SARS's. At each follow-up check dispute status on eFiling and SARS correspondence. On a disallowance, create a proposal for Kevin: the client has 30 business days to object (NOO) — recommend whether to proceed."
+      "aiInstructions": "SARS aims to respond within 60 business days for RFRs (⚠ verify current service level); the catalogue 5-10 days covers our work, not SARS's. At each follow-up check dispute status on eFiling and SARS correspondence. On a disallowance, create a proposal for Kevin: the client has 30 business days to object (NOO) — recommend whether to proceed.",
+      "stepNumber": 6,
+      "stepType": "wait_external"
     },
     {
       "id": "rem_deliver",
       "title": "Deliver outcome and next-step advice",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["remission_motivation_letter"],
+      "deliverArtefacts": [
+        "remission_motivation_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Outcome letter, updated statement of account and plain-English advice posted to Communication History",
-      "aiInstructions": "If allowed: show the reduced balance and payment reference for whatever remains. If disallowed: explain the objection option and its deadline without pressure. Add prevention advice (filing calendar, monthly services) and offer the relevant compliance service."
+      "aiInstructions": "If allowed: show the reduced balance and payment reference for whatever remains. If disallowed: explain the objection option and its deadline without pressure. Add prevention advice (filing calendar, monthly services) and offer the relevant compliance service.",
+      "stepNumber": 7,
+      "stepType": "deliver"
     },
     {
       "id": "rem_signoff",
@@ -96,7 +195,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 8,
+      "stepType": "signoff"
     }
   ]
 }

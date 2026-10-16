@@ -1,0 +1,202 @@
+{
+  "slug": "paye-deregistration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Final EMP201 / EMP501 reconciliation check confirming zero outstanding returns or balances on the PAYE, SDL, and UIF accounts",
+    "Signed PAYE Deregistration Motivation Letter and EMP123e / RAV01 deregistration request submitted on SARS eFiling",
+    "Official SARS Notice of Deregistration confirming cancellation of PAYE, SDL, and SARS UIF reference numbers"
+  ],
+  "playbookCommonFailures": [
+    "Outstanding EMP201 monthly declarations or EMP501 bi-annual reconciliations block SARS from processing PAYE deregistration",
+    "Unpaid PAYE/SDL/UIF penalties or interest on the SARS EMPSA Statement of Account",
+    "Bank statements still show salary/wage payments after the declared cessation date",
+    "Real-time SARS OTP is not relayed within the 10-minute session window"
+  ],
+  "informationToProvide": [
+    {
+      "id": "company_name_and_paye_ref",
+      "label": "Company Name, CIPC Number & PAYE Reference Number (7...)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Registered company name, CIPC registration number, and 10-digit PAYE reference number.",
+      "aiHint": "Company name, CIPC registration number, and 10-digit SARS PAYE reference number."
+    },
+    {
+      "id": "cessation_date_and_reason",
+      "label": "Date Last Employee Ceased Employment & Reason for Deregistration",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the exact date the last employee left or the business ceased employing staff, and the reason (e.g., retrenchment, business dormancy, closure).",
+      "aiHint": "Effective date of last employee termination and reason for PAYE/SDL/UIF deregistration."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate.",
+      "aiHint": "CIPC CoR14.3 registration certificate of the employer entity."
+    },
+    {
+      "id": "director_id",
+      "label": "Certified ID or Passport of Public Officer / Director",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "isRequired": true,
+      "mustBeCertified": true,
+      "helpText": "Upload a clear certified copy of the Public Officer or Director's SA ID or Passport.",
+      "aiHint": "Certified SA ID or passport of the director / public officer authorizing PAYE deregistration."
+    },
+    {
+      "id": "final_payroll_and_emp501",
+      "label": "Final Payroll Summary & Latest EMP501 Reconciliation Records",
+      "type": "pdf",
+      "documentKind": "payslip",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the final payroll records and latest EMP501 reconciliation up to the date of cessation.",
+      "aiHint": "Final payroll reports and EMP501 reconciliation records up to cessation date."
+    },
+    {
+      "id": "bank_statements_post_cessation",
+      "label": "Company Bank Statements (3 Months Post-Cessation) & Bank Confirmation Letter",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the latest 3 months company bank statements proving no further salaries or wages are being paid.",
+      "aiHint": "Company bank statements covering 3 months since cessation showing zero salary/wage outflows."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "payed_collect",
+      "stepNumber": 1,
+      "title": "Collect eFiling access, cessation details, final payroll and bank statements",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "PAYE reference number, cessation date/reason, CoR14.3, director ID, final payroll/EMP501, and 3 months bank statements are on file",
+      "aiInstructions": "Verify all required documents and the exact cessation date when the last employee was paid."
+    },
+    {
+      "id": "payed_verify",
+      "stepNumber": 2,
+      "title": "Audit EMPSA Statement of Account and EMP201/EMP501 compliance on eFiling",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All EMP201s and EMP501s up to the cessation date are filed and EMPSA balance is R0.00",
+      "aiInstructions": "Pull the EMPSA Statement of Account on eFiling. Check that every EMP201 and EMP501 period up to the cessation date has been submitted and that there are no unpaid balances or penalties."
+    },
+    {
+      "id": "payed_draft_letter",
+      "stepNumber": 3,
+      "title": "Draft PAYE Deregistration Motivation Letter & EMP123e pack",
+      "type": "draft_document",
+      "stepType": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "sars_paye_deregistration_letter"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "PAYE Deregistration Motivation Letter and EMP123e details drafted for director signature",
+      "aiInstructions": "Draft the formal motivation letter confirming the date the company ceased employing staff, confirming all EMP201/EMP501 reconciliations are up to date, and requesting cancellation of PAYE, SDL, and UIF reference numbers."
+    },
+    {
+      "id": "payed_file",
+      "stepNumber": 4,
+      "title": "Submit PAYE Deregistration on SARS eFiling (RAV01 / EMP123e Case)",
+      "type": "portal_filing",
+      "stepType": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.deregisterTaxType:PAYE",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "PAYE/SDL/UIF deregistration submitted on RAV01 / SARS Online Query with supporting pack and SARS case number recorded",
+      "aiInstructions": "Stage the RAV01 Payroll Tax Deregistration and upload the signed motivation letter, CoR14.3, director ID, final EMP501 confirmation, and 3 months bank statements. Record the SARS Case Number."
+    },
+    {
+      "id": "payed_wait",
+      "stepNumber": 5,
+      "title": "Monitor SARS PAYE deregistration audit & follow up on SLA",
+      "type": "wait_external",
+      "stepType": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        14,
+        30,
+        60
+      ],
+      "estimatedDays": 45,
+      "doneCriteria": "SARS issues the official Notice of Deregistration for PAYE/SDL/UIF",
+      "aiInstructions": "Track the SARS case number and check RAV01 / SARS Correspondence for the official PAYE Notice of Deregistration or any verification request."
+    },
+    {
+      "id": "payed_deliver",
+      "stepNumber": 6,
+      "title": "Deliver SARS PAYE Notice of Deregistration to client",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "sars_paye_deregistration_notice"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Official SARS PAYE Notice of Deregistration posted to Communication History",
+      "aiInstructions": "Deliver the official SARS Notice of Deregistration confirming that monthly EMP201 and bi-annual EMP501 filing obligations have ceased."
+    },
+    {
+      "id": "payed_signoff",
+      "stepNumber": 7,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the PAYE deregistration order is complete"
+    }
+  ]
+}

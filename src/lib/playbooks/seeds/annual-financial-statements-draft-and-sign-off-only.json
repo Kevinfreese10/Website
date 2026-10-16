@@ -14,11 +14,74 @@
     "Directors delay signing the representation letter and the AFS, stalling sign-off"
   ],
   "informationToProvide": [
-    { "label": "Complete general ledger for the financial year", "type": "excel", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "alternatives": ["Read-only accountant access to Xero / Sage / QuickBooks"], "aiHint": "Detailed general ledger export (Excel/CSV or PDF) covering the full financial year for the entity. Must show account, date, description and amount per transaction. Accept accountant invite to the client's accounting software as an alternative." },
-    { "label": "Trial Balance for the financial year", "type": "excel", "documentKind": "trial_balance", "inNameOf": "entity", "isRequired": true, "aiHint": "Year-end trial balance for the entity with debits equal to credits. Check the period end matches the company's financial year end on CIPC. Reject a trial balance for a different period or in a different entity's name." },
-    { "label": "Bank statements and reconciliations", "type": "pdf", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Original electronic PDF bank statements for every business account for the full financial year (no scans or photos), plus the year-end bank reconciliation if the client prepares one. Confirm the closing balance on the last statement agrees to the bank balance on the trial balance." },
-    { "label": "Asset register and depreciation schedule", "type": "excel", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "aiHint": "Fixed asset register listing each asset, cost, date acquired, depreciation method/rate, accumulated depreciation and carrying value. If none exists, ask for invoices of assets bought or sold during the year so one can be built." },
-    { "label": "Previous year's Annual Financial Statements (if available)", "type": "pdf", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed prior-year AFS for the same entity. Used for opening balances and comparatives. Accept the prior-year trial balance if the AFS were never prepared, and flag that comparatives will be unaudited/unreviewed." }
+    {
+      "id": "company_name_and_fye",
+      "label": "Company Name, Registration Number & Financial Year-End to Prepare",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the company name, CIPC registration number, and the exact financial year-end (e.g., 28 February 2026).",
+      "aiHint": "Company name, CIPC registration number, and financial year-end date for the AFS."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 disclosure/registration certificate confirming director details and financial year-end.",
+      "aiHint": "CIPC CoR 14.3 registration certificate confirming company details, financial year-end, and active directors."
+    },
+    {
+      "id": "trial_balance_excel",
+      "label": "Trial Balance for the Financial Year (Excel / CSV)",
+      "type": "excel",
+      "documentKind": "trial_balance",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the finalized Trial Balance for the financial year exported from Xero, Sage, QuickBooks, or Excel.",
+      "aiHint": "Final Trial Balance for the financial year in Excel/CSV format."
+    },
+    {
+      "id": "general_ledger_excel",
+      "label": "Complete General Ledger for the Financial Year (Excel / CSV)",
+      "type": "excel",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the full General Ledger transaction export for the financial year.",
+      "aiHint": "Complete General Ledger for the financial year in Excel/CSV format."
+    },
+    {
+      "id": "bank_statements_and_recons",
+      "label": "Company Bank Statements & Year-End Bank Reconciliations",
+      "type": "pdf",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company bank statements (especially the final month showing the closing year-end bank balance) and bank reconciliations.",
+      "aiHint": "Company bank statements and year-end bank reconciliations confirming closing cash balances."
+    },
+    {
+      "id": "asset_register_and_schedules",
+      "label": "Fixed Asset Register, Depreciation Schedule & Loan/Lease Statements",
+      "type": "excel",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload the fixed asset register and any loan/installment sale statements as at financial year-end.",
+      "aiHint": "Fixed asset register, depreciation schedule, and year-end loan/finance statements."
+    },
+    {
+      "id": "prior_year_afs",
+      "label": "Previous Year's Signed Annual Financial Statements (if available)",
+      "type": "pdf",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload the prior year signed AFS for comparative figures and opening balance verification.",
+      "aiHint": "Prior year signed Annual Financial Statements (AFS) for comparative balances."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -28,7 +91,9 @@
       "owner": "agent",
       "estimatedDays": 3,
       "doneCriteria": "General ledger, trial balance, full-year bank statements and asset register uploaded; prior AFS uploaded or confirmed not available",
-      "aiInstructions": "This service is drafting and sign-off only — the client already keeps books. Chase only what is missing and explain why each item is needed (e.g. the asset register supports the depreciation note; the prior AFS gives opening balances). Confirm the financial year end and the reporting framework (IFRS for SMEs is the default for a private company unless Kevin says otherwise). Do not promise anything faster than 7–10 working days from receipt of everything."
+      "aiInstructions": "This service is drafting and sign-off only — the client already keeps books. Chase only what is missing and explain why each item is needed (e.g. the asset register supports the depreciation note; the prior AFS gives opening balances). Confirm the financial year end and the reporting framework (IFRS for SMEs is the default for a private company unless Kevin says otherwise). Do not promise anything faster than 7–10 working days from receipt of everything.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "afsd_verify",
@@ -37,7 +102,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "TB balances, agrees to the GL, and the year-end bank balance agrees to the bank statement; opening balances agree to prior AFS",
-      "aiInstructions": "Check: (1) debits = credits on the TB; (2) TB account totals agree to the GL export; (3) closing bank balance per TB agrees to the last bank statement of the year for every account; (4) opening retained earnings and balance sheet items agree to the prior-year signed AFS; (5) the period on every document is the same financial year. List every difference with the amount and post it as a query for Kevin. Do not attempt to fix the client's books at this step."
+      "aiInstructions": "Check: (1) debits = credits on the TB; (2) TB account totals agree to the GL export; (3) closing bank balance per TB agrees to the last bank statement of the year for every account; (4) opening retained earnings and balance sheet items agree to the prior-year signed AFS; (5) the period on every document is the same financial year. List every difference with the amount and post it as a query for Kevin. Do not attempt to fix the client's books at this step.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "afsd_import",
@@ -46,7 +113,9 @@
       "owner": "staff",
       "estimatedDays": 2,
       "doneCriteria": "TB imported into the AI Accountant module, every account mapped to an AFS line item, bank statements imported for the reconciliation check",
-      "aiInstructions": "In the AI Accountant module: create/select the client entity and financial year, import the trial balance, and map each account to the statement line (revenue, cost of sales, operating expenses, PPE, loans, etc.). Import the bank statement PDFs so the module can reconcile the bank balance. Unmapped or suspense accounts must be listed for Kevin, not silently mapped to 'other'. Load the asset register so depreciation can be recomputed and compared to the client's figure."
+      "aiInstructions": "In the AI Accountant module: create/select the client entity and financial year, import the trial balance, and map each account to the statement line (revenue, cost of sales, operating expenses, PPE, loans, etc.). Import the bank statement PDFs so the module can reconcile the bank balance. Unmapped or suspense accounts must be listed for Kevin, not silently mapped to 'other'. Load the asset register so depreciation can be recomputed and compared to the client's figure.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "afsd_review_tb",
@@ -55,17 +124,23 @@
       "owner": "kevin",
       "estimatedDays": 1,
       "doneCriteria": "Kevin has reviewed the mapped TB, approved adjusting journals (depreciation, accruals, loan interest, tax) and the final TB is locked",
-      "aiInstructions": "Prepare a proposal for Kevin listing suggested adjustments: depreciation differences against the asset register, unreconciled bank items, director loan balances that need interest or confirmation, income tax and provisional tax payments to be shown as current tax, and any negative balances that look like classification errors. Kevin decides; the agent never posts a journal without approval. ⚠ verify: the applicable reporting framework and whether the company's Public Interest Score requires independent review or audit rather than compilation — if so stop and tell Kevin."
+      "aiInstructions": "Prepare a proposal for Kevin listing suggested adjustments: depreciation differences against the asset register, unreconciled bank items, director loan balances that need interest or confirmation, income tax and provisional tax payments to be shown as current tax, and any negative balances that look like classification errors. Kevin decides; the agent never posts a journal without approval. ⚠ verify: the applicable reporting framework and whether the company's Public Interest Score requires independent review or audit rather than compilation — if so stop and tell Kevin.",
+      "stepNumber": 4,
+      "stepType": "calculate"
     },
     {
       "id": "afsd_draft",
       "title": "Draft the AFS pack",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["afs_pack"],
+      "templateIds": [
+        "afs_pack"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Draft AFS generated from the locked TB and posted for Kevin's review",
-      "aiInstructions": "Generate the afs_pack from the final TB: directors' responsibility statement, compilation report (Kevin Freese CBA(SA) #3561 — signature applied only at approval), statement of financial position, statement of comprehensive income, statement of changes in equity, statement of cash flows, accounting policies and notes, and the detailed income statement as a supplementary schedule. Populate company name, registration number, directors and year end from the CoR14.3 on file; never guess a director's name. Comparatives come from the prior AFS — if none, label comparatives clearly. Check the statements cross-cast and the cash flow reconciles to the bank movement."
+      "aiInstructions": "Generate the afs_pack from the final TB: directors' responsibility statement, compilation report (Kevin Freese CBA(SA) #3561 — signature applied only at approval), statement of financial position, statement of comprehensive income, statement of changes in equity, statement of cash flows, accounting policies and notes, and the detailed income statement as a supplementary schedule. Populate company name, registration number, directors and year end from the CoR14.3 on file; never guess a director's name. Comparatives come from the prior AFS — if none, label comparatives clearly. Check the statements cross-cast and the cash flow reconciles to the bank movement.",
+      "stepNumber": 5,
+      "stepType": "draft_document"
     },
     {
       "id": "afsd_client_review",
@@ -74,17 +149,23 @@
       "owner": "agent",
       "estimatedDays": 3,
       "doneCriteria": "Directors have confirmed the draft (or raised queries) and returned the signed directors' responsibility statement and representation letter",
-      "aiInstructions": "Plain South African English. Explain that these are draft AFS for the year ended [date], list the queries Kevin still needs answered, and ask the directors to review, then sign the directors' responsibility statement and the management representation letter where marked and return as PDF. No deadline threats. If the client asks for changes to figures, route them to Kevin as a proposal — do not change numbers to please the client."
+      "aiInstructions": "Plain South African English. Explain that these are draft AFS for the year ended [date], list the queries Kevin still needs answered, and ask the directors to review, then sign the directors' responsibility statement and the management representation letter where marked and return as PDF. No deadline threats. If the client asks for changes to figures, route them to Kevin as a proposal — do not change numbers to please the client.",
+      "stepNumber": 6,
+      "stepType": "draft_client_message"
     },
     {
       "id": "afsd_deliver",
       "title": "Deliver signed AFS",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["afs_signed"],
+      "deliverArtefacts": [
+        "afs_signed"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Signed AFS PDF and final TB posted to Communication History",
-      "aiInstructions": "Post the signed AFS (Kevin's compilation report signed, directors' signatures in place), the final trial balance and the adjusting journals schedule. Add a short note on what the AFS are needed for next: the ITR14 company tax return and the CIPC annual return, and offer those services."
+      "aiInstructions": "Post the signed AFS (Kevin's compilation report signed, directors' signatures in place), the final trial balance and the adjusting journals schedule. Add a short note on what the AFS are needed for next: the ITR14 company tax return and the CIPC annual return, and offer those services.",
+      "stepNumber": 7,
+      "stepType": "deliver"
     },
     {
       "id": "afsd_signoff",
@@ -92,7 +173,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the AFS are signed and the order can be completed"
+      "doneCriteria": "Kevin confirms the AFS are signed and the order can be completed",
+      "stepNumber": 8,
+      "stepType": "signoff"
     }
   ]
 }

@@ -14,14 +14,134 @@
     "Premises proof is a P.O. Box / virtual office; Customs requires physical business premises and may inspect them"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC documents)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors of the applicant clearing agent." },
-    { "label": "Certified copies of ID documents for all directors/members", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport for foreign directors"], "aiHint": "One certified ID per director on the CoR14.3. Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name. Flag any director without one." },
-    { "label": "Proof of business address (e.g., utility bill)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account"], "aiHint": "Proof of the PHYSICAL business premises dated within 3 months, in the entity's name. Customs may inspect the premises; a P.O. Box or virtual office is not accepted." },
-    { "label": "Details of your proposed customs bond or security arrangements", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "alternatives": ["Bank guarantee in SARS-prescribed form", "Insurance surety bond", "Cash deposit confirmation"], "aiHint": "Bank guarantee or insurance surety in favour of SARS Customs, or the insurer's quotation/undertaking, showing the amount and the entity's name. SARS determines the security amount — ⚠ verify the current method and whether provisional security is accepted at application stage." },
-    { "label": "A valid bank confirmation letter in the name of the business - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the COMPANY's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code." },
-    { "label": "SARS eFiling login credentials for the entity - Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "SARS eFiling login credentials for the entity - Password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "A verifiable cell phone number linked to the entity or individual’s SARS profile", "type": "text", "isRequired": true, "aiHint": "The cell number currently on SARS Registered Details for the entity/representative. Ask for a cellphone invoice/contract, commissioned affidavit or accountant's letter tying the number to the applicant so RLA verification does not stall." }
+    {
+      "id": "req_cal_cor143",
+      "label": "Company Registration Documents (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the official CIPC CoR 14.3 registration certificate of the clearing agent company.",
+      "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors of the applicant clearing agent."
+    },
+    {
+      "id": "req_cal_director_ids",
+      "label": "Certified SA ID Copies of All Active Directors / Members (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport for foreign directors"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) for every director on the CoR 14.3.",
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_cal_business_poa",
+      "label": "Proof of Physical Business Premises (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed commercial lease agreement",
+        "Municipal rates/utility account"
+      ],
+      "isRequired": true,
+      "helpText": "Upload proof of the physical business premises (< 3 months) in the company name (no P.O. Box or virtual office).",
+      "aiHint": "Proof of the PHYSICAL business premises dated within 3 months, in the entity name. Customs may inspect the premises; a P.O. Box or virtual office is not accepted."
+    },
+    {
+      "id": "req_cal_bank_conf",
+      "label": "Valid Bank Confirmation Letter (In the Company Name, Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload an official stamped or QR-verified bank confirmation letter in the company name (< 3 months).",
+      "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the COMPANY name dated within 3 months."
+    },
+    {
+      "id": "req_cal_bond_security",
+      "label": "Proposed Customs Bond / Security Arrangements (Bank Guarantee or Insurance Surety Undertaking)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Bank guarantee in SARS-prescribed form",
+        "Insurance surety bond or insurer quotation"
+      ],
+      "isRequired": true,
+      "helpText": "Upload your bank guarantee / insurance surety bond or provisional insurer quotation, and specify the ports/places of entry where you will clear goods.",
+      "aiHint": "Bank guarantee or insurance surety in favour of SARS Customs, or the insurer quotation/undertaking, showing the amount and the entity name."
+    },
+    {
+      "id": "req_cal_cell_proof",
+      "label": "Verifiable Cellphone Number Linked to SARS Profile & Proof (Cellphone Invoice, Sworn Affidavit, or Request for Accountant Letter)",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Cellphone contract/statement",
+        "Commissioned affidavit confirming the cellphone number"
+      ],
+      "isRequired": true,
+      "helpText": "Upload a cellphone invoice or commissioned affidavit tying the cellphone number on SARS Registered Details to the company/representative.",
+      "aiHint": "Cellphone contract/invoice, commissioned affidavit, or accountant letter confirming the cellphone number on SARS Registered Details."
+    },
+    {
+      "id": "req_sars_cal_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_cal_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_cal_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_cal_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -59,7 +179,9 @@
       "title": "Prepare RLA clearing agent licence hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every RLA field value and upload list posted for Kevin",
       "aiInstructions": "Fields (RLA licence type 'Clearing agent' — the DA185 + DA185.4B7 equivalent; ⚠ verify annexure number): applicant details, tax and VAT numbers, physical premises, directors, contact person and cell, bank details, security type and amount, ports/places of entry at which they will operate, existing customs codes, staff authorised to lodge declarations. Fill from verified facts only; leave unknowns blank and flag."
@@ -81,7 +203,11 @@
       "title": "Wait for Customs assessment, security acceptance and licence issue",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 5, 10],
+      "followUpAfterDays": [
+        2,
+        5,
+        10
+      ],
       "estimatedDays": 10,
       "doneCriteria": "Licence issued on RLA / approval notification received, or SARS security determination received and actioned",
       "aiInstructions": "Check the RLA dashboard at each follow-up. Customs commonly responds with the security amount required or a premises inspection; create a proposal for Kevin and a plain client message with what is needed (e.g. lodge bank guarantee for R x). Escalate via the Customs contact centre with the reference number if no movement by day 10."
@@ -91,7 +217,9 @@
       "title": "Deliver licence and obligations note",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["customs_licence"],
+      "deliverArtefacts": [
+        "customs_licence"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Licence, customs code and guidance posted to Communication History",
       "aiInstructions": "Explain: the licence must be renewed annually (⚠ verify renewal cycle and fee), the security must stay in force, declarations must carry the agent code, and records are kept for 5 years. Offer the importer/exporter registrations for their own clients."

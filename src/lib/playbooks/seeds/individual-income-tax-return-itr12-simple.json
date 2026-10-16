@@ -15,50 +15,88 @@
   ],
   "informationToProvide": [
     {
-      "label": "Client Name",
+      "id": "client_name_and_tax_ref",
+      "label": "Client Full Name, ID Number, SARS Tax Number & Tax Year",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Full name as it appears on the SA ID and on the SARS profile. The taxpayer is the individual, not an employer or spouse."
+      "helpText": "Your full name, SA ID number, 10-digit SARS Income Tax number, and the tax year to be filed.",
+      "aiHint": "Individual taxpayer full name, ID number, SARS income tax number, and tax year."
     },
     {
+      "id": "irp5_certificates",
+      "label": "IRP5 / IT3(a) Certificates from Employers",
+      "type": "pdf",
+      "documentKind": "irp5",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload all IRP5/IT3(a) employee tax certificates received for the tax year.",
+      "aiHint": "IRP5/IT3(a) tax certificates from employers or funds for the tax year."
+    },
+    {
+      "id": "it3b_certificates",
+      "label": "IT3(b) Certificates for Interest / Investments (if applicable)",
+      "type": "pdf",
+      "documentKind": "it3",
+      "inNameOf": "director",
+      "isRequired": false,
+      "helpText": "Upload any IT3(b) certificates issued by your bank or investment provider.",
+      "aiHint": "IT3(b) tax certificates for interest or dividends."
+    },
+    {
+      "id": "medical_aid_certificate",
+      "label": "Medical Aid Tax Certificate (if applicable)",
+      "type": "pdf",
+      "documentKind": "medical_aid_cert",
+      "inNameOf": "director",
+      "isRequired": false,
+      "helpText": "Upload your annual medical aid tax certificate for the tax year.",
+      "aiHint": "Medical scheme annual tax certificate."
+    },
+    {
+      "id": "ra_certificate",
+      "label": "Retirement Annuity (IT3(f)) / s18A Certificates (if applicable)",
+      "type": "pdf",
+      "documentKind": "ra_cert",
+      "inNameOf": "director",
+      "isRequired": false,
+      "helpText": "Upload your Retirement Annuity (RA) contribution certificate or Section 18A donation certificate.",
+      "aiHint": "Retirement Annuity IT3(f) contribution certificate or s18A certificate."
+    },
+    {
+      "id": "sars_efiling_username",
       "label": "SARS eFiling Username",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
     },
     {
+      "id": "sars_efiling_password",
       "label": "SARS eFiling Password",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "IRP5/IT3(a) certificates from employers",
-      "documentKind": "irp5",
-      "inNameOf": "entity",
       "isRequired": true,
-      "aiHint": "One IRP5 or IT3(a) per employer for the tax year (1 March to end February). Check the tax year, the taxpayer's ID/tax number and that source codes 3601/3605/3810 totals match what eFiling pre-populates. If the client says they had no employer income, ask why they are filing a simple return."
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
     },
     {
-      "label": "IT3(b) certificates for investments/interest",
-      "documentKind": "it3",
-      "inNameOf": "entity",
-      "isRequired": false,
-      "aiHint": "Bank or unit trust IT3(b) showing local interest (code 4201) and dividends for the tax year. Skip if the client confirms no investment income."
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
     },
     {
-      "label": "Medical aid tax certificate",
-      "documentKind": "medical_aid_cert",
-      "inNameOf": "entity",
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
       "isRequired": false,
-      "aiHint": "Annual tax certificate from the medical scheme showing contributions, number of dependants per month and claims not recovered. Must be in the taxpayer's name as principal member; if a spouse is the main member, the contributions belong on the spouse's return."
-    },
-    {
-      "label": "Retirement annuity fund certificates",
-      "documentKind": "ra_cert",
-      "inNameOf": "entity",
-      "isRequired": false,
-      "aiHint": "RA contribution certificate for the tax year. Note contributions via an employer already appear on the IRP5 (code 4006/4475) — do not double count."
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -69,7 +107,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "eFiling credentials, IRP5s and any medical/RA certificates uploaded or explicitly confirmed as not applicable",
-      "aiInstructions": "Ask for the certificates by name and explain each one feeds a specific field on the ITR12. Confirm which tax year is being filed and that the client has not already accepted a SARS auto-assessment. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Ask for the certificates by name and explain each one feeds a specific field on the ITR12. Confirm which tax year is being filed and that the client has not already accepted a SARS auto-assessment. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "itr12s_verify",
@@ -78,7 +118,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Certificates match the taxpayer and tax year; no rental, business, foreign or CGT income present",
-      "aiInstructions": "The entity is the individual taxpayer. If the documents reveal rental income, a sole-prop business, foreign income, travel allowance with a logbook or capital gains, this is not a simple return: raise a proposal to upsell to the Complex ITR12 and pause. Check the tax year on every certificate."
+      "aiInstructions": "The entity is the individual taxpayer. If the documents reveal rental income, a sole-prop business, foreign income, travel allowance with a logbook or capital gains, this is not a simple return: raise a proposal to upsell to the Complex ITR12 and pause. Check the tax year on every certificate.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "itr12s_prepare",
@@ -90,7 +132,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet lists every source code amount, deductions and the expected pre-populated values",
-      "aiInstructions": "List IRP5 totals per source code, interest (4201), medical contributions (4005) and dependants, RA (4006). Flag any difference between client certificates and what SARS pre-populates so the filer knows which to trust (SARS third-party data usually wins; the client certificate explains gaps)."
+      "aiInstructions": "List IRP5 totals per source code, interest (4201), medical contributions (4005) and dependants, RA (4006). Flag any difference between client certificates and what SARS pre-populates so the filer knows which to trust (SARS third-party data usually wins; the client certificate explains gaps).",
+      "stepNumber": 3,
+      "stepType": "draft_document"
     },
     {
       "id": "itr12s_file",
@@ -102,7 +146,9 @@
       "submitMode": "stage",
       "estimatedDays": 1,
       "doneCriteria": "ITR12 filed and submission confirmation captured",
-      "aiInstructions": "Returns Issued → Personal Income Tax (ITR12) → select the tax year. Answer the wizard questions strictly from the verified facts (no to business income, rental, foreign income unless proven). Reconcile pre-populated IRP5/IT3 values against the handoff sheet; add medical/RA only where certificates exist. Stage the completed return with a screenshot of the summary for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns Issued → Personal Income Tax (ITR12) → select the tax year. Answer the wizard questions strictly from the verified facts (no to business income, rental, foreign income unless proven). Reconcile pre-populated IRP5/IT3 values against the handoff sheet; add medical/RA only where certificates exist. Stage the completed return with a screenshot of the summary for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 4,
+      "stepType": "portal_filing"
     },
     {
       "id": "itr12s_assessment",
@@ -115,7 +161,9 @@
       ],
       "estimatedDays": 2,
       "doneCriteria": "ITA34 downloaded or SARS verification letter received",
-      "aiInstructions": "ITA34 usually issues within minutes to a few days. If SARS requests supporting documents (verification/audit letter), create a proposal for Kevin listing the documents SARS wants — upload via eFiling \"Upload supporting documents\" within 21 days of the letter. ⚠ verify the current SARS response window."
+      "aiInstructions": "ITA34 usually issues within minutes to a few days. If SARS requests supporting documents (verification/audit letter), create a proposal for Kevin listing the documents SARS wants — upload via eFiling \"Upload supporting documents\" within 21 days of the letter. ⚠ verify the current SARS response window.",
+      "stepNumber": 5,
+      "stepType": "wait_external"
     },
     {
       "id": "itr12s_deliver",
@@ -128,7 +176,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "ITA34, submission confirmation and a plain-English outcome note posted to Communication History",
-      "aiInstructions": "Explain in plain SA English: refund due (SARS pays into the bank account on their profile, typically within 72 hours if verified) or amount payable and the due date shown on the ITA34, with payment via eFiling / bank EFT using the PRN. Never promise a refund date."
+      "aiInstructions": "Explain in plain SA English: refund due (SARS pays into the bank account on their profile, typically within 72 hours if verified) or amount payable and the due date shown on the ITA34, with payment via eFiling / bank EFT using the PRN. Never promise a refund date.",
+      "stepNumber": 6,
+      "stepType": "deliver"
     },
     {
       "id": "itr12s_signoff",
@@ -136,7 +186,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 7,
+      "stepType": "signoff"
     }
   ]
 }

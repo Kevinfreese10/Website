@@ -1,0 +1,107 @@
+{
+  "slug": "solar-sseg-grid-tie-registration",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Completed Municipal / Eskom Small-Scale Embedded Generation (SSEG) Application & Commissioning Pack",
+    "Compiled Technical Dossier (NRS 097-2-1, CoC, Single-Line Diagram & Bi-Directional Meter Request)"
+  ],
+  "playbookCommonFailures": [
+    "Installed hybrid/grid-tie inverter model does not appear on the municipality approved NRS 097-2-1 inverter list",
+    "Single-Line Diagram (SLD) or commissioning report lacks ECSA-registered Professional Engineer / Technologist sign-off required by the municipality"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_elec_acc",
+      "label": "Municipal / Eskom Electricity Account Bill",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Recent electricity utility bill showing account and meter number.",
+      "documentKind": "proof_of_address",
+      "inNameOf": "either",
+      "alternatives": []
+    },
+    {
+      "id": "req_inverter_specs",
+      "label": "Inverter Make, Model, Rating & Serial Number",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "E.g., Deye 8kW Hybrid / Sunsynk 8.8kW / Victron with NRS 097-2-1 certification.",
+      "alternatives": []
+    },
+    {
+      "id": "req_solar_capacity",
+      "label": "Total Solar Panel Installed Capacity (kWp)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Total peak kilowatt wattage of installed solar panels.",
+      "alternatives": []
+    },
+    {
+      "id": "req_sseg_owner_id",
+      "label": "Property Owner Certified ID Copy (< 3 Months) & CIPC CoR 14.3 (If Commercial/Company Property)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload the property owner certified ID (< 3 months) and, if registered in a company name, the CoR 14.3 and proxy letter.",
+      "aiHint": "Certified ID of the property owner and CIPC CoR 14.3 if owned by a company."
+    },
+    {
+      "id": "req_sseg_coc_and_sld",
+      "label": "Electrical Certificate of Compliance (CoC), Single-Line Diagram (SLD) & Inverter NRS 097-2-1 Certificate",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the electrical CoC issued by your solar installer, the Single-Line Diagram (SLD), and the NRS 097-2-1 certificate for your inverter.",
+      "aiHint": "Electrical Certificate of Compliance (CoC), Single-Line Diagram (SLD), and NRS 097-2-1 compliance certificate for the installed PV inverter."
+    },
+    {
+      "id": "req_sseg_installer_details",
+      "label": "Municipality / Utility Name (e.g. City Power, City of Cape Town, eThekwini, Tshwane, Eskom) & Solar Installer Contact Details",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "State which municipality or Eskom region supplies electricity to the property and provide your solar installer / electrician name, DoEL number, email, and phone number."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "sseg_collect",
+      "title": "Verify inverter approval & utility account",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Inverter checked against municipality approved list, account confirmed"
+    },
+    {
+      "id": "sseg_draft",
+      "title": "Compile municipal SSEG application and technical dossier",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Application form, SLD checklist, and inverter test certs compiled",
+      "templateIds": [
+        "municipal_sseg_application",
+        "sseg_technical_dossier"
+      ]
+    },
+    {
+      "id": "sseg_deliver",
+      "title": "Deliver SSEG pack to client or submit to municipality portal",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Application submitted or delivered with municipal lodging instructions"
+    },
+    {
+      "id": "sseg_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order closure"
+    }
+  ]
+}

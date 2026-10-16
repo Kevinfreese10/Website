@@ -15,53 +15,84 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "taxpayer_name_and_period",
+      "label": "Company / Taxpayer Name, SARS Tax Number & Provisional Period (e.g., 2026-01 or 2026-02)",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name (or the individual's name for a personal provisional taxpayer) as on the SARS profile, with the income tax reference number."
+      "helpText": "Registered company or individual taxpayer name, 10-digit SARS Income Tax reference number, and provisional period (1st or 2nd period).",
+      "aiHint": "Taxpayer name, 10-digit SARS Income Tax number, and IRP6 provisional period (YYYY-01 or YYYY-02)."
     },
     {
+      "id": "management_accounts_or_afs",
+      "label": "Latest Financial Statements or Year-to-Date Management Accounts",
+      "type": "pdf",
+      "documentKind": "management_accounts",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload year-to-date management accounts, trial balance, or latest AFS to compute estimated taxable income.",
+      "aiHint": "Year-to-date management accounts, trial balance, or financial statements for the provisional tax period."
+    },
+    {
+      "id": "income_and_expenses_summary",
+      "label": "Details of Estimated Full-Year Turnover, Expenses & Taxable Income",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide year-to-date figures and expected full-year turnover and expenses (or note if all figures are in the uploaded management accounts).",
+      "aiHint": "Summary of year-to-date and projected full-year turnover and deductible expenses."
+    },
+    {
+      "id": "capital_gains_details",
+      "label": "Details of Any Capital Gains or Losses During the Tax Year (if applicable)",
+      "type": "text",
+      "isRequired": false,
+      "helpText": "Specify if any assets, property, or investments were sold during the tax year.",
+      "aiHint": "Capital gains or losses incurred during the tax year."
+    },
+    {
+      "id": "prior_provisional_payments",
+      "label": "Proof of Prior Provisional Tax Payments / PAYE Withheld (if applicable)",
+      "type": "pdf",
+      "documentKind": "receipt",
+      "inNameOf": "either",
+      "isRequired": false,
+      "helpText": "Upload proof of 1st period IRP6 payment or year-to-date PAYE payslips (for individual provisional taxpayers).",
+      "aiHint": "Proof of 1st period provisional tax paid or PAYE credits for the current tax year."
+    },
+    {
+      "id": "sars_efiling_username",
       "label": "SARS eFiling Username",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
     },
     {
+      "id": "sars_efiling_password",
       "label": "SARS eFiling Password",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "Most recent financial statements or management accounts",
-      "documentKind": "management_accounts",
-      "inNameOf": "entity",
-      "alternatives": [
-        "Latest AFS",
-        "Trial balance from the accounting system"
-      ],
       "isRequired": true,
-      "aiHint": "Year-to-date income statement to the latest month (ideally to the end of the provisional period) plus the last signed AFS. The estimate is built from these; if only prior-year AFS exist, the basic amount from the last assessment becomes the floor."
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
     },
     {
-      "label": "Details of all income earned and expenses incurred for the period",
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
       "type": "text",
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
     },
     {
-      "label": "Information on any capital gains or losses",
-      "type": "text",
-      "isRequired": false
-    },
-    {
-      "label": "Record of any prior provisional tax payments made",
-      "documentKind": "receipt",
-      "inNameOf": "entity",
-      "alternatives": [
-        "eFiling statement of account"
-      ],
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
       "isRequired": false,
-      "aiHint": "Proof of the 1st-period IRP6 payment (bank proof or eFiling statement of account) so it is credited on the 2nd-period return."
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -72,7 +103,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Credentials, YTD management accounts / AFS, income & expense details and prior payment proof on file",
-      "aiInstructions": "Confirm which period (1st, 2nd or voluntary 3rd) and the entity's financial year-end. Ask for management accounts to the latest month and the previous ITA34 if we do not have it. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Confirm which period (1st, 2nd or voluntary 3rd) and the entity's financial year-end. Ask for management accounts to the latest month and the previous ITA34 if we do not have it. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "irp6t2_verify",
@@ -81,7 +114,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Period and due date confirmed; basic amount from the latest assessment noted; prior IRP6 payment confirmed on the statement of account",
-      "aiInstructions": "Check the IRP6 is issued on eFiling for the period and read the pre-populated basic amount (last assessed taxable income, escalated 8% p.a. if the assessment is older than 18 months ⚠ verify). Check prior-period payment on the eFiling statement of account. 1st period is due 6 months into the year, 2nd period on the last day of the financial year."
+      "aiInstructions": "Check the IRP6 is issued on eFiling for the period and read the pre-populated basic amount (last assessed taxable income, escalated 8% p.a. if the assessment is older than 18 months ⚠ verify). Check prior-period payment on the eFiling statement of account. 1st period is due 6 months into the year, 2nd period on the last day of the financial year.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "irp6t2_calc",
@@ -90,7 +125,9 @@
       "owner": "kevin",
       "estimatedDays": 1,
       "doneCriteria": "Estimate, tax thereon, credits and amount payable reviewed by Kevin",
-      "aiInstructions": "Pull the YTD figures from the AI Accountant module and annualise/project to year-end. Apply the company rate (27%) or individual tables/rebates; SBC tables if Kevin confirms SBC status. For the 1st period: 50% of tax on the estimate less employees' tax. For the 2nd period: full-year tax less employees' tax and 1st-period payment. Judgement calls — estimate below basic amount, 80%/90% safe-harbour risk, SBC status — are Kevin's. ⚠ verify current rates, rebates and thresholds."
+      "aiInstructions": "Pull the YTD figures from the AI Accountant module and annualise/project to year-end. Apply the company rate (27%) or individual tables/rebates; SBC tables if Kevin confirms SBC status. For the 1st period: 50% of tax on the estimate less employees' tax. For the 2nd period: full-year tax less employees' tax and 1st-period payment. Judgement calls — estimate below basic amount, 80%/90% safe-harbour risk, SBC status — are Kevin's. ⚠ verify current rates, rebates and thresholds.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "irp6t2_handoff",
@@ -103,7 +140,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet lists every IRP6 field: estimated taxable income, tax, rebates, employees' tax, prior payments, amount payable",
-      "aiInstructions": "Show the basic amount next to the estimate and state explicitly whether the estimate is lower and why. Include the due date and note that payment must be made by the same date."
+      "aiInstructions": "Show the basic amount next to the estimate and state explicitly whether the estimate is lower and why. Include the due date and note that payment must be made by the same date.",
+      "stepNumber": 4,
+      "stepType": "draft_document"
     },
     {
       "id": "irp6t2_file",
@@ -115,7 +154,9 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "IRP6 submitted; confirmation and PRN saved",
-      "aiInstructions": "Returns → Provisional Tax (IRP6) → select the period. Enter the estimate, allow eFiling to compute tax, enter employees' tax and previous payments, check the amount payable equals the handoff sheet. Agent drives to the summary; Kevin reviews and presses Submit, then captures the payment reference (PRN). eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns → Provisional Tax (IRP6) → select the period. Enter the estimate, allow eFiling to compute tax, enter employees' tax and previous payments, check the amount payable equals the handoff sheet. Agent drives to the summary; Kevin reviews and presses Submit, then captures the payment reference (PRN). eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 5,
+      "stepType": "portal_filing"
     },
     {
       "id": "irp6t2_deliver",
@@ -128,7 +169,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Filed IRP6, computation, PRN, amount and due date posted to Communication History",
-      "aiInstructions": "Give the amount, the PRN, the due date and how to pay (eFiling payment or EFT to SARS with the PRN as reference). Explain plainly that interest and a late-payment penalty apply if paid late, without deadline threats. Note the 2nd period or a voluntary top-up if this was the 1st."
+      "aiInstructions": "Give the amount, the PRN, the due date and how to pay (eFiling payment or EFT to SARS with the PRN as reference). Explain plainly that interest and a late-payment penalty apply if paid late, without deadline threats. Note the 2nd period or a voluntary top-up if this was the 1st.",
+      "stepNumber": 6,
+      "stepType": "deliver"
     },
     {
       "id": "irp6t2_signoff",
@@ -136,7 +179,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 7,
+      "stepType": "signoff"
     }
   ]
 }

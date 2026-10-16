@@ -1,0 +1,139 @@
+{
+  "slug": "liquor-licence-application-pack",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Provincial Liquor Board Statutory Application Forms & Section Motivation Dossier",
+    "Formatted Provincial Gazette & Local Newspaper Public Notice Templates + SAPS DLO Inspection Checklist"
+  ],
+  "playbookCommonFailures": [
+    "Proposed premises is within the prohibited provincial radius (e.g. 500m) of a school or place of worship without a compelling public-interest exemption motivation",
+    "Municipal zoning certificate does not permit business/restaurant/liquor trade on the erf"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_ll_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 registration certificate of the applicant entity."
+    },
+    {
+      "id": "req_id_directors",
+      "label": "Certified ID / Passports of all directors and applicant",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "alternatives": [],
+      "maxAgeDays": 90,
+      "mustBeCertified": true
+    },
+    {
+      "id": "req_lease_deed",
+      "label": "Premises Lease Agreement or Title Deed",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Signed commercial lease agreement or proof of property ownership showing right of occupation for the proposed premises.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_zoning_cert",
+      "label": "Municipal Zoning Certificate or Land-Use Consent",
+      "type": "pdf",
+      "isRequired": false,
+      "aiHint": "Proof of business/commercial zoning or special consent from the local municipality permitting liquor trade.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_floor_plan",
+      "label": "Rough Floor Plan / Dimensions of Premises",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Rough architectural layout or dimensioned sketch showing seating, bar area, storerooms, and emergency exits.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_tax_pin",
+      "label": "SARS Tax Compliance PIN",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Active SARS Tax Clearance PIN for the entity.",
+      "alternatives": []
+    },
+    {
+      "id": "req_ll_police_clearances",
+      "label": "SAPS Police Clearance Certificates (< 6 Months) for All Directors & Nominated Premises Manager",
+      "type": "pdf",
+      "documentKind": "criminal_clearance",
+      "inNameOf": "director",
+      "maxAgeDays": 180,
+      "isRequired": true,
+      "helpText": "Provincial Liquor Boards require SAPS Police Clearance Certificates (< 6 months) proving no disqualifying criminal convictions for all directors and the nominated manager.",
+      "aiHint": "SAPS Police Clearance Certificates issued within 180 days for all directors and the nominated liquor premises manager."
+    },
+    {
+      "id": "req_ll_licence_category",
+      "label": "Province, Liquor Licence Category (On-Consumption Restaurant/Tavern/Hotel vs Off-Consumption Liquor Store/Distributor), Nominated Manager Details & Proposed Trading Hours",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify the province, exact type of liquor licence required, full name & ID number of the nominated on-site manager, and surrounding landmarks within 500m (schools/places of worship) for the Public Interest Motivation."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ll_collect",
+      "title": "Collect premises details & director documentation",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "ID, lease agreement, floor plan dimensions, and tax PIN verified"
+    },
+    {
+      "id": "ll_verify",
+      "title": "Audit zoning status and provincial liquor act rules",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Province identified, licence category (on-consumption vs off-consumption) verified"
+    },
+    {
+      "id": "ll_draft",
+      "title": "Draft statutory application forms, notices, and motivation",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "liquor_form_1",
+        "saps_dlo_motivation",
+        "public_notice_draft"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "All lodgement forms and gazette notices compiled into a complete pack"
+    },
+    {
+      "id": "ll_deliver",
+      "title": "Deliver completed pack & lodgement instructions to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack uploaded to client portal with step-by-step submission steps"
+    },
+    {
+      "id": "ll_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms quality and order closure"
+    }
+  ]
+}

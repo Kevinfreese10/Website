@@ -1,0 +1,178 @@
+{
+  "slug": "sars-auto-assessment-review",
+  "playbookEntity": "individual",
+  "playbookOutputs": [
+    "Comprehensive SARS Auto Assessment Audit & Reconciliation Report comparing SARS third-party data against your actual tax certificates and eligible deductions",
+    "Calculated tax delta showing whether accepting the Auto Assessment leaves a refund unclaimed or creates a compliance risk",
+    "Clear written recommendation to either Accept the Auto Assessment or File an Amended ITR12 Return"
+  ],
+  "playbookCommonFailures": [
+    "Taxpayer has out-of-pocket medical expenses, travel allowance logbook, home office expenses, s18A donations, or rental/commission deductions omitted by SARS Auto Assessment",
+    "Employer IRP5 or medical aid / RA third-party data on SARS was incomplete or duplicated when the auto-assessment ran",
+    "40-business-day window to file an amended ITR12 after an Auto Assessment has expired, requiring a Request for Extension alongside the return"
+  ],
+  "informationToProvide": [
+    {
+      "id": "taxpayer_name_and_tax_ref",
+      "label": "Full Name, ID Number, SARS Tax Number & Assessment Year",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Your full name, 13-digit SA ID number, 10-digit SARS tax number, and the tax year of the Auto Assessment.",
+      "aiHint": "Taxpayer full name, ID number, SARS tax reference number, and assessment tax year."
+    },
+    {
+      "id": "unclaimed_deductions_or_income_notes",
+      "label": "Summary of Additional Deductions or Income Not Captured on Auto Assessment",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Tell us if you have out-of-pocket medical expenses, a travel allowance logbook, s18A donations, home office expenses, solar/wear-and-tear, or freelance/rental income/losses.",
+      "aiHint": "Client summary of additional deductions or income streams omitted from the SARS auto-assessment."
+    },
+    {
+      "id": "sars_auto_assessment_ita34",
+      "label": "SARS Auto Assessment Notice (ITA34) or Notification",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload the original ITA34 Auto Assessment issued by SARS (or let us pull it via eFiling).",
+      "aiHint": "SARS ITA34 Auto Assessment notice showing the auto-assessed income, deductions, and tax outcome."
+    },
+    {
+      "id": "irp5_and_it3_certificates",
+      "label": "All IRP5/IT3(a) & IT3(b)/IT3(c) Tax Certificates for the Year",
+      "type": "pdf",
+      "documentKind": "irp5",
+      "inNameOf": "director",
+      "isRequired": true,
+      "helpText": "Upload all employment IRP5s and bank/investment IT3(b)/IT3(c) certificates for the tax year.",
+      "aiHint": "IRP5, IT3(a), IT3(b), and IT3(c) tax certificates for the assessment year."
+    },
+    {
+      "id": "medical_and_ra_certificates",
+      "label": "Medical Aid Certificate, Out-of-Pocket Medical Proof, RA (IT3(f)) & s18A Certificates",
+      "type": "pdf",
+      "documentKind": "medical_aid_cert",
+      "inNameOf": "director",
+      "isRequired": false,
+      "helpText": "Upload your medical aid tax certificate, out-of-pocket medical receipts, Retirement Annuity certificates, and s18A donation receipts.",
+      "aiHint": "Medical scheme certificate, out-of-pocket medical schedules, RA IT3(f), and s18A donation certificates."
+    },
+    {
+      "id": "logbook_or_other_deductions",
+      "label": "Travel Logbook / Rental / Home Office / Other Supporting Schedules (if applicable)",
+      "type": "pdf",
+      "documentKind": "logbook",
+      "inNameOf": "director",
+      "isRequired": false,
+      "helpText": "Upload your vehicle travel logbook or any other deduction schedules you wish us to test against the Auto Assessment.",
+      "aiHint": "Vehicle travel logbook, home office calculation, or rental schedule."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "saar_collect",
+      "stepNumber": 1,
+      "title": "Collect Auto Assessment ITA34, tax certificates and deduction schedules",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Auto Assessment ITA34 (or eFiling access) and all client tax certificates/deduction proofs are on file",
+      "aiInstructions": "Ensure we have the SARS ITA34 Auto Assessment figures and all IRP5, medical, RA, s18A, and logbook/other deduction records."
+    },
+    {
+      "id": "saar_verify",
+      "stepNumber": 2,
+      "title": "Verify third-party certificates on SARS against actual certificates uploaded",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Every source code on the Auto Assessment is reconciled against the client's actual certificates",
+      "aiInstructions": "Compare each source code on the SARS ITA34 Auto Assessment against the uploaded IRP5, IT3(b), Medical Aid, and RA certificates. Identify any missing certificates or uncaptured deductions."
+    },
+    {
+      "id": "saar_calculate",
+      "stepNumber": 3,
+      "title": "Compute actual ITR12 tax position vs SARS Auto Assessment outcome",
+      "type": "calculate",
+      "stepType": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Side-by-side tax calculation completed showing Auto-Assessed outcome vs Amended ITR12 outcome",
+      "aiInstructions": "Calculate the exact tax refund or liability if an amended ITR12 is filed including all eligible deductions (s18A, out-of-pocket medicals, travel allowance, RA carry-forward, etc.)."
+    },
+    {
+      "id": "saar_draft_report",
+      "stepNumber": 4,
+      "title": "Draft SARS Auto Assessment Review & Recommendation Report",
+      "type": "draft_client_message",
+      "stepType": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Written Review Report and recommendation approved by Kevin",
+      "aiInstructions": "Draft a clear comparison report showing: (1) SARS Auto-Assessed figures, (2) Actual Audited figures, (3) Additional Refund / Tax Saving identified, and (4) Recommendation whether to accept as-is or proceed with filing an amended ITR12."
+    },
+    {
+      "id": "saar_deliver",
+      "stepNumber": 5,
+      "title": "Deliver Auto Assessment Review Report and next-step advice",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "auto_assessment_review_report"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Review report posted to Communication History with clear next steps",
+      "aiInstructions": "Post the review report to Communication History and inform the client of the 40-business-day SARS deadline if an amended ITR12 return is recommended."
+    },
+    {
+      "id": "saar_signoff",
+      "stepNumber": 6,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the Auto Assessment Review order is complete"
+    }
+  ]
+}

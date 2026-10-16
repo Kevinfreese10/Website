@@ -14,13 +14,128 @@
     "Goods are controlled (e.g. scrap metal, minerals, certain agricultural products) and need an ITAC export permit the client did not budget for"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors. For an individual exporter this is N/A — use the certified ID instead." },
-    { "label": "Proof of address for the business - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account", "Letter from the property owner with their proof of address"], "aiHint": "Proof of the PHYSICAL business address dated within 3 months, in the entity's name. Customs will not accept a P.O. Box or virtual office." },
-    { "label": "A bank confirmation letter in the name of the business or individual - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the APPLICANT's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code. A statement is not acceptable." },
-    { "label": "Detailed description of goods to be exported", "type": "text", "isRequired": true, "aiHint": "Plain description of the goods, destination countries and HS/tariff codes if known. Flag controlled exports (scrap metal, minerals, wildlife products, certain agricultural goods) that also need an ITAC or other permit." },
-    { "label": "The entity’s SARS eFiling username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "The entity’s SARS eFiling password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "A verifiable cell phone number linked to the entity or individual’s SARS profile", "type": "text", "isRequired": true, "aiHint": "The cell number currently on SARS Registered Details for the entity/representative. RLA verifies it; ask for a cellphone invoice/contract, commissioned affidavit or accountant's letter tying the number to the applicant if SARS challenges it." }
+    {
+      "id": "req_exp_cor143",
+      "label": "Company Registration Documents (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors."
+    },
+    {
+      "id": "req_exp_director_ids",
+      "label": "Certified SA ID Copies of All Directors / Members (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport for foreign directors"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) for all active directors.",
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_exp_business_poa",
+      "label": "Proof of Physical Business Address (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal utility account"
+      ],
+      "isRequired": true,
+      "helpText": "Upload proof of the physical business street address (< 3 months) in the entity name.",
+      "aiHint": "Proof of the PHYSICAL business address dated within 3 months, in the entity name. Customs will not accept a P.O. Box or virtual office."
+    },
+    {
+      "id": "req_exp_bank_conf",
+      "label": "Bank Confirmation Letter in the Name of the Business or Individual (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload an official stamped or QR-verified bank confirmation letter in the applicant name (< 3 months).",
+      "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the APPLICANT name dated within 3 months."
+    },
+    {
+      "id": "req_exp_cell_proof",
+      "label": "Invoice, Sworn Affidavit, or Accountant Letter Confirming the Cellphone Number Linked to the Entity SARS Profile",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Cellphone contract/invoice",
+        "Commissioned affidavit confirming the number"
+      ],
+      "isRequired": true,
+      "helpText": "SARS RLA requires proof of the cellphone number on SARS Registered Details (cellphone invoice or commissioned affidavit).",
+      "aiHint": "Cellphone invoice, commissioned affidavit, or accountant letter confirming the cellphone number on SARS Registered Details."
+    },
+    {
+      "id": "req_exp_goods_desc",
+      "label": "Detailed Description of Goods to be Exported, HS Tariff Codes (if known), Destination Countries & Expected Annual Export Value",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe the goods to be exported, destination countries, expected annual export turnover, and whether a clearing agent will be used.",
+      "aiHint": "Plain description of the goods, destination countries and HS/tariff codes if known."
+    },
+    {
+      "id": "req_sars_exp_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_exp_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_exp_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_exp_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -58,7 +173,9 @@
       "title": "Prepare RLA exporter application hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every RLA field value and the document upload list posted for Kevin",
       "aiInstructions": "Fields (RLA 'Exporter' client type — DA185 equivalent): applicant details, income tax and VAT numbers, physical and postal address, contact person and cell, bank details, nature of goods / tariff description, destination countries, whether a clearing agent will be used and its customs code, expected annual export value. Fill from verified facts only; leave unknowns blank and flag."
@@ -80,7 +197,11 @@
       "title": "Wait for Customs approval",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2, 5, 10],
+      "followUpAfterDays": [
+        2,
+        5,
+        10
+      ],
       "estimatedDays": 10,
       "doneCriteria": "Customs client number issued on RLA dashboard / approval notification received",
       "aiInstructions": "Check the RLA dashboard status at each follow-up. Customs may request additional documents; if so create a proposal for Kevin and a plain client message. Escalate via the Customs contact centre with the reference number if no movement by day 10."
@@ -90,7 +211,9 @@
       "title": "Deliver customs client number and obligations note",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["customs_client_number"],
+      "deliverArtefacts": [
+        "customs_client_number"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Customs code, approval notice and guidance posted to Communication History",
       "aiInstructions": "Explain: give the customs client number to the forwarding/clearing agent, keep export documentation (SAD500, bill of lading, proof of payment) for 5 years — it is also the evidence for zero-rating exports for VAT — and that controlled goods need an ITAC permit. Offer the import licence if they trade both ways."

@@ -1,0 +1,92 @@
+{
+  "slug": "traffic-register-number-trn",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Completed NaTIS Application for Traffic Register Number (Form ANR)",
+    "Signed Company Proxy Resolution / Representative Letter & DLTC Counter Lodgement Checklist"
+  ],
+  "playbookCommonFailures": [
+    "Foreign national visa/work permit has fewer than 3 months validity remaining at the date of DLTC submission",
+    "Proof of address utility bill does not match the exact street address on the CIPC CoR 14.3 or lease agreement"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_entity_foreign_id",
+      "label": "CIPC Registration (for companies) or Passport + Visa (for foreigners)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "CIPC certificate CoR14.3 or clear certified copy of foreign passport & valid work/residence permit.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_proxy_id",
+      "label": "Certified ID of Appointed Proxy / Representative",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "The person who will visit the licensing department on behalf of the entity.",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "alternatives": [],
+      "maxAgeDays": 90,
+      "mustBeCertified": true
+    },
+    {
+      "id": "req_utility_proof",
+      "label": "Proof of Address (< 3 months old)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Municipal utility bill, telco account, or bank statement matching the physical business address.",
+      "documentKind": "proof_of_address",
+      "inNameOf": "either",
+      "alternatives": [],
+      "maxAgeDays": 90
+    },
+    {
+      "id": "req_trn_details",
+      "label": "Application Type (Company Business TRN vs Foreign National Personal TRN), Target Licensing Department (DLTC) & Contact Details",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify whether this TRN (Form ANR) is for a Company or a Foreign Individual, which municipal Driving Licence Testing Centre (DLTC) / Registering Authority will be used, and contact email/phone."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "trn_collect",
+      "title": "Collect proxy, CIPC, and utility proof documentation",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Address and identity documentation verified"
+    },
+    {
+      "id": "trn_draft",
+      "title": "Draft Form ANR and formal board proxy resolution",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Form ANR populated with Natis proxy letter",
+      "templateIds": [
+        "natis_form_anr",
+        "natis_proxy_resolution"
+      ]
+    },
+    {
+      "id": "trn_deliver",
+      "title": "Deliver counter lodgement file to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Complete pack delivered with licensing office counter guidance"
+    },
+    {
+      "id": "trn_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

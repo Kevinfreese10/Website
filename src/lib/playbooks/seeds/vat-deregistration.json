@@ -14,11 +14,95 @@
     "Client expects cancellation to be immediate; SARS typically takes 2-3 months and may request a VAT audit first"
   ],
   "informationToProvide": [
-    { "label": "Certified copy of your ID document  / passport (not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the registered representative. Check for a Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name." },
-    { "label": "Company registration documents (e.g., COR14.3", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name and enterprise number of the VAT vendor. Not needed for a sole proprietor — mark N/A." },
-    { "label": "Business bank statements ((to verify closure or turnover) 6 Months", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Six consecutive months of business bank statements. Used to prove turnover is below R1 million or that trading has stopped — flag any customer receipts after the claimed cessation date." },
-    { "label": "SARS eFiling login Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "SARS eFiling login Password", "type": "text", "isSecret": true, "isRequired": true }
+    {
+      "id": "req_iqzo3uik",
+      "label": "Certified SA ID or Passport Copy of Representative (Not Older Than 3 Months)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days.",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport"
+      ]
+    },
+    {
+      "id": "req_xj70ze28",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name and enterprise number of the VAT vendor. Not needed for a sole proprietor — mark N/A.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_bq70s0v2",
+      "label": "6 Months Business Bank Statements (To Verify Turnover Below R1m or Cessation of Trading)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Six consecutive months of business bank statements. Used to prove turnover is below R1 million or that trading has stopped — flag any customer receipts after the claimed cessation date.",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_vatd_ground_and_assets",
+      "label": "Ground for VAT Deregistration, Effective Cessation Date, Past 12-Month Turnover & Schedule of Assets/Stock Held at Deregistration (For s8(2) Exit VAT)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Reason for VAT deregistration (ceased trading vs 12-month taxable supplies below R1m), (2) Effective date of cessation, (3) Total taxable turnover in the last 12 months, and (4) List of any assets, equipment, vehicles, or inventory still held on which input VAT was claimed (with cost and current market value)."
+    },
+    {
+      "id": "req_sars_vatd_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_vatd_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_vatd_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_vatd_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -56,7 +140,10 @@
       "title": "Prepare VAT123e hand-off sheet and cover letter",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "cover_letter"],
+      "templateIds": [
+        "handoff_sheet",
+        "cover_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every VAT123e field and a short cover letter explaining the ground, posted for Kevin",
       "aiInstructions": "VAT123e fields: vendor details, VAT number, reason code for cancellation, date of cessation / date from which cancellation is requested, turnover for the last 12 months, confirmation that all returns are filed, exit VAT declaration. Attach the asset schedule and bank statements. Do not invent a cessation date — take it from the client's answer and the bank statements."
@@ -90,7 +177,11 @@
       "title": "Wait for SARS to process the cancellation",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [20, 40, 60],
+      "followUpAfterDays": [
+        20,
+        40,
+        60
+      ],
       "estimatedDays": 60,
       "doneCriteria": "VAT type shows deregistered / cancelled on eFiling or a SARS confirmation letter is received",
       "aiInstructions": "At each follow-up check the case status on eFiling and SARS correspondence. SARS may open a verification/audit of the last periods — if so, create a proposal for Kevin with the request and gather the records. Escalate via the SARS Contact Centre with the case number if nothing has moved by day 60."
@@ -100,7 +191,9 @@
       "title": "Deliver confirmation of VAT deregistration",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["sars_notice_of_registration"],
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Confirmation, effective date and record-keeping note posted to Communication History",
       "aiInstructions": "Tell the client: stop charging VAT from the effective date, remove the VAT number from invoices, keep VAT records for 5 years, and that income tax obligations continue. If the company is closing, offer the CIPC deregistration service."

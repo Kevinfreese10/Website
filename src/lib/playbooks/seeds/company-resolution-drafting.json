@@ -1,0 +1,121 @@
+{
+  "slug": "company-resolution-drafting",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Custom Board of Directors and/or Shareholders Resolution (Ordinary or Special) drafted in accordance with the Companies Act 71 of 2008 (PDF)",
+    "Execution & Quorum Signing Instructions"
+  ],
+  "playbookCommonFailures": [
+    "Resolution does not include all active directors listed on the CIPC CoR 14.3 / CoR 39 certificate",
+    "Transaction requires a Shareholders Special Resolution under s65/s112/s115 of the Companies Act or the company MOI, but only a Board Resolution was prepared",
+    "Specific bank/institution wording or authorized signatory ID number is omitted"
+  ],
+  "informationToProvide": [
+    {
+      "id": "company_name_and_reg",
+      "label": "Company Name & CIPC Registration Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Registered company name and CIPC registration number.",
+      "aiHint": "Registered company name and CIPC registration number."
+    },
+    {
+      "id": "resolution_purpose_and_action",
+      "label": "Purpose of the Resolution & Specific Corporate Action / Authorised Signatory Details",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe the exact corporate action to be authorised (e.g., opening/amending a bank account at FNB, appointing a public officer, approving a loan/lease, issuing/transferring shares, CIPC director/address/name change) and who is authorised to sign documents on behalf of the company.",
+      "aiHint": "Detailed purpose of the resolution, transaction particulars, and name/ID of the person authorised to execute documents."
+    },
+    {
+      "id": "directors_and_shareholders_list",
+      "label": "Full Names & SA ID / Passport Numbers of All Directors and Shareholders",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List the full names and ID numbers of all current directors (and shareholders if a shareholders resolution is required).",
+      "aiHint": "Full names and ID numbers of all directors and shareholders for the signature blocks."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "CIPC Registration Certificate (CoR 14.3 / CoR 39)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the latest CIPC CoR 14.3 or CoR 39 certificate showing all active directors.",
+      "aiHint": "CIPC CoR 14.3 or CoR 39 certificate showing company details and active directors."
+    },
+    {
+      "id": "company_moi_optional",
+      "label": "Company Memorandum of Incorporation (MOI) (optional)",
+      "type": "pdf",
+      "documentKind": "moi",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "helpText": "Upload the company MOI if a customised MOI applies.",
+      "aiHint": "Company Memorandum of Incorporation (MOI)."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "crd_collect",
+      "stepNumber": 1,
+      "title": "Collect CoR 14.3, director/shareholder details and resolution purpose",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Company CoR 14.3, list of directors/shareholders, and specific resolution purpose are on file",
+      "aiInstructions": "Ensure we have the exact transaction details, authorised signatory name/ID, and the latest CIPC CoR 14.3 showing all active directors."
+    },
+    {
+      "id": "crd_verify",
+      "stepNumber": 2,
+      "title": "Verify Companies Act s60/s65/s74 requirements and active directors on CoR 14.3",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmed whether a Board Resolution (s74), Ordinary Shareholders Resolution, or Special Shareholders Resolution (s65) is required and verified all director names/IDs",
+      "aiInstructions": "Cross-check all directors against the CoR 14.3. Determine whether the corporate action requires a Board Resolution, Shareholders Resolution, or both under the Companies Act 71 of 2008."
+    },
+    {
+      "id": "crd_draft",
+      "stepNumber": 3,
+      "title": "Draft the Company Resolution PDF",
+      "type": "draft_document",
+      "stepType": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "company_resolution"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Custom Company Resolution PDF drafted with full recital, operative clauses, and signature blocks for every director/shareholder",
+      "aiInstructions": "Draft the formal resolution containing the company header, Companies Act citation, background recitals, specific operative resolutions, authorised signatory mandate, and signature blocks for all directors/shareholders."
+    },
+    {
+      "id": "crd_deliver",
+      "stepNumber": 4,
+      "title": "Deliver final Company Resolution PDF and signing instructions",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "company_resolution_pdf"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Resolution PDF posted to Communication History with signing and filing guidance",
+      "aiInstructions": "Deliver the ready-to-sign Company Resolution PDF in Communication History and explain who must sign and how the signed resolution should be retained in the company minute book."
+    },
+    {
+      "id": "crd_signoff",
+      "stepNumber": 5,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the resolution drafting order is complete"
+    }
+  ]
+}

@@ -14,16 +14,142 @@
     "Proof of business address is older than 3 months or is a P.O. Box / virtual office that SARS will not accept as the physical place of business"
   ],
   "informationToProvide": [
-    { "label": "Certified copy of your ID document (South African) - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport for a foreign director"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the registered representative / director. Check for visible Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name." },
-    { "label": "Proof of residential address - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "isRequired": true, "aiHint": "Proof of the representative's residential address dated within 3 months (utility bill, rates/taxes, lease, or bank statement). Name must match the certified ID." },
-    { "label": "Company registration documents (e.g., COR14.3", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. For a sole proprietor this row is not required — mark N/A." },
-    { "label": "Proof of business address - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account", "Affidavit from the property owner with their proof of address"], "aiHint": "Proof of the PHYSICAL place of business dated within 3 months, in the entity's name. A P.O. Box or virtual-office letter is not accepted; where the business trades from a director's home, accept the director's proof of address plus a short letter confirming the business operates from there." },
-    { "label": "Proof of business bank account  - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the ENTITY's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code. A statement is not a confirmation letter." },
-    { "label": "Records to prove that the Total Value of Taxable Supplies exceeded R120 000 in the preceding 12 months - Need invoices to proof", "documentKind": "invoice", "inNameOf": "entity", "isRequired": true, "alternatives": ["Signed customer contracts with invoiced amounts", "Sales ledger export with matching bank receipts"], "aiHint": "Customer sales invoices issued by the entity in the last 12 months. Total them: SARS registers voluntarily from R50 000 of taxable supplies in a 12-month period and compulsorily above R1 million; the catalogue's R120 000 figure is My Accountant's internal comfort level — ⚠ verify which threshold applies. Match invoice dates and amounts to bank receipts; quotes and pro formas do not count." },
-    { "label": " Six Months Bank statements", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Six consecutive months of business bank statements in the entity's name. Used by SARS to corroborate the taxable supplies; flag if the account differs from the bank confirmation letter or if receipts do not match the invoices." },
-    { "label": "SARS eFiling login Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "SARS eFiling login Password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "Nature of Business", "type": "text", "isRequired": true, "aiHint": "Main business activity and what the invoices are for. Drives the VAT101 activity code and whether supplies are standard-rated, zero-rated or exempt — if the supplies look exempt (e.g. residential letting, certain financial services) flag for Kevin before proceeding." }
+    {
+      "id": "req_s2l4c5xv",
+      "label": "Certified copy of your ID document (South African) - not older than 3 months",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport for a foreign director"
+      ],
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_dwnvntwr",
+      "label": "Proof of residential address - not older than 3 months",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "aiHint": "Proof of the representative's residential address dated within 3 months (utility bill, rates/taxes, lease, or bank statement). Name must match the certified ID."
+    },
+    {
+      "id": "req_c3b4e4y1",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. For a sole proprietor this row is not required — mark N/A."
+    },
+    {
+      "id": "req_7433f7qz",
+      "label": "Proof of business address - not older than 3 months",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Municipal account",
+        "Affidavit from the property owner with their proof of address"
+      ],
+      "aiHint": "Proof of the PHYSICAL place of business dated within 3 months, in the entity's name. A P.O. Box or virtual-office letter is not accepted; where the business trades from a director's home, accept the director's proof of address plus a short letter confirming the business operates from there."
+    },
+    {
+      "id": "req_vr3qykam",
+      "label": "Proof of business bank account  - not older than 3 months",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the ENTITY's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code. A statement is not a confirmation letter."
+    },
+    {
+      "id": "req_bm4h7psl",
+      "label": "Records to prove that the Total Value of Taxable Supplies exceeded R120 000 in the preceding 12 months - Need invoices to proof",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Signed customer contracts with invoiced amounts",
+        "Sales ledger export with matching bank receipts"
+      ],
+      "aiHint": "Customer sales invoices issued by the entity in the last 12 months. Total them: SARS registers voluntarily from R50 000 of taxable supplies in a 12-month period and compulsorily above R1 million; the catalogue's R120 000 figure is My Accountant's internal comfort level — ⚠ verify which threshold applies. Match invoice dates and amounts to bank receipts; quotes and pro formas do not count."
+    },
+    {
+      "id": "req_ua4zx5gn",
+      "label": " Six Months Bank statements",
+      "type": "pdf",
+      "isRequired": true,
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "aiHint": "Six consecutive months of business bank statements in the entity's name. Used by SARS to corroborate the taxable supplies; flag if the account differs from the bank confirmation letter or if receipts do not match the invoices."
+    },
+    {
+      "id": "req_yt66utjf",
+      "label": "Nature of Business, Requested VAT Liability Date, Expected 12-Month Taxable Turnover & Accounting Basis (Invoice vs Payments)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Main business activity and what the invoices are for. Drives the VAT101 activity code and whether supplies are standard-rated, zero-rated or exempt — if the supplies look exempt (e.g. residential letting, certain financial services) flag for Kevin before proceeding.",
+      "helpText": "Provide your main business activity, the date from which VAT registration is required, expected taxable turnover over the next 12 months, and invoice basis."
+    },
+    {
+      "id": "req_sars_vat_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_vat_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_vat_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_vat_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -61,7 +187,10 @@
       "title": "Prepare VAT101 hand-off sheet and evidence pack",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "cover_letter"],
+      "templateIds": [
+        "handoff_sheet",
+        "cover_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet with every VAT101 field, plus a merged evidence PDF (invoices schedule, bank letter, statements, address proof, IDs) posted for Kevin",
       "aiInstructions": "VAT101 fields: liability date, registration type (compulsory/voluntary), taxable supplies past 12 months and expected next 12 months, accounting basis, tax period category (Category A/B two-monthly is default for under R30m; ⚠ verify category rules), main activity code, bank details, physical and postal address, representative details. Fill from verified facts only; never invent turnover figures. The cover letter briefly explains the business and how the threshold is met — SARS verifiers read it first."
@@ -83,7 +212,11 @@
       "title": "Wait for SARS verification / interview and outcome",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [10, 21, 30],
+      "followUpAfterDays": [
+        10,
+        21,
+        30
+      ],
       "estimatedDays": 30,
       "doneCriteria": "VAT number issued (VAT103 available under Notices) or a SARS query received and answered",
       "aiInstructions": "SARS commonly phones the representative, requests additional documents on eFiling, or books a branch/virtual interview. At each follow-up check the eFiling case status and the client's SARS correspondence; if an interview is booked, draft a client message with the date, what to bring (originals of the pack) and typical questions (nature of business, who the customers are, where they trade from). If SARS raises a query, create a proposal for Kevin with the query text. At day 30 with no outcome, escalate via the SARS Contact Centre with the case number."
@@ -93,7 +226,9 @@
       "title": "Deliver VAT number and VAT103 notice",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["sars_notice_of_registration"],
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "VAT103, VAT number, first tax period and compliance notes posted to Communication History",
       "aiInstructions": "Explain: from the liability date all tax invoices must show the VAT number and 15% VAT, first VAT201 is due by the 25th (eFiling: last business day) after the period end, and records must be kept for 5 years. Offer the periodic VAT calculation and submission service."

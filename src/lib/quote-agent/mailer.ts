@@ -179,3 +179,48 @@ export async function sendEmail(msg: OutboundEmail): Promise<{ messageId: string
   }
   return { messageId: info.messageId, accepted: (info.accepted || []).map(String) };
 }
+
+/** Moves messages in INBOX by UID to destination folder (e.g. INBOX.Archive, INBOX.spam). */
+export async function moveEmails(uids: number[], destination: 'INBOX.Archive' | 'INBOX.spam' | 'INBOX.Trash'): Promise<number> {
+  if (!uids.length) return 0;
+  const cfg = getMailboxConfig();
+  const conn = await connect(cfg);
+  try {
+    await conn.openBox('INBOX');
+    let moved = 0;
+    for (const uid of uids) {
+      try {
+        await conn.moveMessage(String(uid), destination);
+        moved++;
+      } catch (err: any) {
+        console.warn(`[quote-agent] Failed to move UID ${uid} to ${destination}:`, err.message);
+      }
+    }
+    return moved;
+  } finally {
+    conn.end();
+  }
+}
+
+/** Locates an email in INBOX by its Message-ID and moves it to destination folder. */
+export async function moveEmailByMessageId(messageId: string, destination: 'INBOX.Archive' | 'INBOX.spam' | 'INBOX.Trash'): Promise<boolean> {
+  if (!messageId) return false;
+  const cfg = getMailboxConfig();
+  const conn = await connect(cfg);
+  try {
+    await conn.openBox('INBOX');
+    const msgs = await conn.search([['HEADER', 'MESSAGE-ID', messageId]], { bodies: ['HEADER.FIELDS (MESSAGE-ID)'], markSeen: false });
+    if (!msgs.length) return false;
+    for (const m of msgs) {
+      try {
+        await conn.moveMessage(String(m.attributes.uid), destination);
+      } catch (e: any) {
+        console.warn(`[quote-agent] moveMessage failed for UID ${m.attributes.uid}:`, e.message);
+      }
+    }
+    return true;
+  } finally {
+    conn.end();
+  }
+}
+

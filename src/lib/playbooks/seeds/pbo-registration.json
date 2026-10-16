@@ -14,12 +14,127 @@
     "Pack emailed to the wrong TEU mailbox or without the EI1 signed by an authorised office bearer — no acknowledgement ever arrives"
   ],
   "informationToProvide": [
-    { "label": "Certified copy of the organisation's founding document (e.g., Trust Deed, MOI, Constitution)", "documentKind": "moi", "inNameOf": "entity", "mustBeCertified": true, "isRequired": true, "alternatives": ["Trust deed with Master's letter of authority", "Signed constitution of a voluntary association"], "aiHint": "Complete, signed founding document: NPC MOI (with CIPC CoR14.3), trust deed plus Letters of Authority, or an association constitution. Check it contains the s30(3) clauses — three unconnected persons accepting fiduciary responsibility, no profit distribution, dissolution to a similar PBO/government, and the s18A wording if s18A is sought. If missing, flag: the founding document must be amended before the TEU will approve." },
-    { "label": "Latest audited or independently reviewed financial statements (if applicable)", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "alternatives": ["Budget / projected income and expenditure for a new organisation"], "aiHint": "Signed AFS for the last financial year if the organisation has operated. For a new organisation accept a 12-month budget showing sources of funding and planned spending on the public benefit activities." },
-    { "label": "Detailed description of the public benefit activities conducted", "type": "text", "isRequired": true, "aiHint": "Who benefits, what is done, where, how it is funded and how many beneficiaries. Map each activity to a Ninth Schedule Part I PBA category (welfare, health, education, conservation, religion, sport, etc.) and Part II for s18A. Ask for brochures, website or programme reports as evidence." },
-    { "label": "Proof of address for the organisation", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Lease agreement", "Letter from the property owner with their proof of address"], "aiHint": "Proof of the organisation's physical address dated within 3 months. Where it operates from an office bearer's home, accept their proof of address plus a short confirmation letter." },
-    { "label": "Certified copies of ID documents for all directors/trustees/office bearers", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport for foreign office bearers"], "aiHint": "One certified ID per director/trustee/office bearer named in the founding document or CoR14.3. Commissioner of Oaths or Police certification stamp dated within 3 months. Confirm at least three are not connected persons (not related, not employed by the same person)." },
-    { "label": "Organisation's SARS income tax reference number", "type": "text", "isRequired": true, "aiHint": "The organisation's own income tax number. If it has none, it must first be registered for income tax (offer the tax registration service) — the EI1 is linked to this number." }
+    {
+      "id": "req_6476h8qg",
+      "label": "Certified Copy of the Organisation Founding Document (Signed NPC MOI, Trust Deed + Letters of Authority, or Signed Constitution)",
+      "type": "pdf",
+      "documentKind": "moi",
+      "inNameOf": "entity",
+      "mustBeCertified": true,
+      "alternatives": [
+        "Trust deed with Master Letters of Authority",
+        "Signed constitution of a voluntary association"
+      ],
+      "isRequired": true,
+      "helpText": "Upload the complete signed and certified founding document (NPC MOI, Trust Deed, or Constitution).",
+      "aiHint": "Complete, signed founding document: NPC MOI (with CIPC CoR14.3), trust deed plus Letters of Authority, or an association constitution. Check it contains the s30(3) clauses."
+    },
+    {
+      "id": "req_29ty04gi",
+      "label": "CIPC Registration Certificate (CoR 14.3) & DSD NPO Certificate (If Registered as an NPC / NPO)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate (and DSD NPO certificate if held).",
+      "aiHint": "Official CIPC CoR14.3 registration certificate of the Non-Profit Company."
+    },
+    {
+      "id": "req_99e9ujuf",
+      "label": "Certified SA ID / Passport Copies (< 3 Months) for All Directors / Trustees / Office Bearers (Min 3 Unconnected Persons)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "alternatives": [
+        "Certified passport for foreign office bearers"
+      ],
+      "isRequired": true,
+      "helpText": "Upload certified ID copies (< 3 months) for all fiduciaries (at least 3 unconnected directors/trustees/office bearers).",
+      "aiHint": "Mandatory CIPC/SARS KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS. Foreign nationals may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_vma16yx5",
+      "label": "Proof of Residential Address (< 3 Months) for All Fiduciaries (Directors / Trustees / Office Bearers)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload proof of residential address (< 3 months) for each director/trustee/office bearer.",
+      "aiHint": "Proof of residential street address dated within 90 days for every fiduciary."
+    },
+    {
+      "id": "req_pbo_fiduciaries_schedule",
+      "label": "Fiduciaries Schedule — Full Names, Personal SARS Income Tax Numbers, Email Addresses & Cellphone Numbers for All 3+ Office Bearers",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "List every director/trustee/office bearer with their full name, 10-digit personal SARS Income Tax number, email address, cellphone number, and confirm they are not connected persons (not related to each other)."
+    },
+    {
+      "id": "req_9lz5nfi9",
+      "label": "Proof of Physical Address for the Organisation (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "alternatives": [
+        "Signed lease agreement",
+        "Letter from property owner + their utility bill"
+      ],
+      "isRequired": true,
+      "helpText": "Upload proof of physical address (< 3 months) for the organisation.",
+      "aiHint": "Proof of the organisation physical address dated within 3 months."
+    },
+    {
+      "id": "req_isbjj8ct",
+      "label": "Valid Bank Confirmation Letter in the Name of the NPC / Trust / NPO (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload an official bank confirmation letter (< 3 months) in the organisation name.",
+      "aiHint": "Official bank account confirmation letter from a registered SA bank in the NPC/Trust/NPO name dated within 90 days."
+    },
+    {
+      "id": "req_g1yoobqy",
+      "label": "Latest Audited / Reviewed Annual Financial Statements OR 12-Month Income & Expenditure Budget (for New Organisations)",
+      "type": "pdf",
+      "documentKind": "afs",
+      "inNameOf": "entity",
+      "alternatives": [
+        "12-month projected income & expenditure budget for a newly formed organisation"
+      ],
+      "isRequired": true,
+      "helpText": "Upload your latest signed Annual Financial Statements, or a 12-month projected budget if newly formed.",
+      "aiHint": "Signed AFS for the last financial year or a 12-month projected income and expenditure budget."
+    },
+    {
+      "id": "req_op5rudpy",
+      "label": "Organisation 10-Digit SARS Income Tax Reference Number & Primary Contact Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the organisation 10-digit SARS Income Tax reference number and primary telephone number."
+    },
+    {
+      "id": "req_kxn9zjf7",
+      "label": "Detailed Narrative of Public Benefit Activities, Beneficiaries, Funding Sources & Whether Section 18A Donor Deductible Status Is Requested",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe in detail what activities the organisation performs, who the beneficiaries are, where activities take place, how they are funded, and whether you are also applying for Section 18A tax-deductible donor receipt approval."
+    },
+    {
+      "id": "req_pbo_signed_ei1_pack",
+      "label": "Signed SARS Form EI1, EI2 Written Undertaking & Special Power of Attorney (Once Drafted for Signature)",
+      "type": "pdf",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Once we draft the SARS EI1 application, EI2 fiduciary undertaking, and Power of Attorney, have the three unconnected fiduciaries sign and upload the PDF pack here.",
+      "aiHint": "Signed SARS Form EI1, signed EI2 Written Undertaking signed by three unconnected fiduciaries, and signed SARS Power of Attorney."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -45,7 +160,11 @@
       "title": "Draft EI1 hand-off sheet, written motivation and cover letter",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet", "cover_letter", "power_of_attorney"],
+      "templateIds": [
+        "handoff_sheet",
+        "cover_letter",
+        "power_of_attorney"
+      ],
       "estimatedDays": 2,
       "doneCriteria": "EI1 field values, a written motivation describing the activities against the Ninth Schedule, cover letter and POA drafted and posted for Kevin's review",
       "aiInstructions": "EI1 (Application for exemption from income tax) fields: organisation details and tax number, entity type, founding document type, physical/postal address, fiduciaries with ID numbers, PBA paragraph numbers applied for, s18A yes/no with Part II paragraphs, funding sources, financial year end, bank details. Fill from verified facts only. The motivation is a factual description of each activity, beneficiaries, and funding with references to the attached evidence — no marketing language. POA authorises My Accountant to deal with the TEU. ⚠ verify the current EI1 form version on the SARS website before filling."
@@ -76,7 +195,11 @@
       "title": "Wait for TEU decision and follow up",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [30, 60, 90],
+      "followUpAfterDays": [
+        30,
+        60,
+        90
+      ],
       "estimatedDays": 90,
       "doneCriteria": "PBO approval letter (with PBO reference and, where applied for, s18A approval) or a TEU query received",
       "aiInstructions": "Draft a polite status-request email quoting the TEU reference at each follow-up point (TEU contact centre as an alternative). If the TEU raises a query (commonly: founding document amendments, clearer activity descriptions, confirmation of unconnected fiduciaries), create a proposal for Kevin with the query text and the documents it concerns, and a plain client message with what to supply. If a founding document amendment is required, route to the CIPC special resolution / MOI amendment service."
@@ -86,7 +209,9 @@
       "title": "Deliver PBO approval letter and compliance note",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["pbo_approval_letter"],
+      "deliverArtefacts": [
+        "pbo_approval_letter"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Approval letter, PBO/s18A reference numbers and obligations note posted to Communication History",
       "aiInstructions": "Explain in plain English: annual IT12EI income tax return is still required; s18A receipts must contain the prescribed details and reference number and annual s18A donation reporting to SARS applies (⚠ verify current third-party data submission requirement); any change to the founding document must be sent to the TEU; trading income above the thresholds may be taxable. Offer the annual IT12EI and AFS services."

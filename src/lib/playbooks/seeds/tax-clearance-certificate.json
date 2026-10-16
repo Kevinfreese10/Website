@@ -15,44 +15,76 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "taxpayer_name_and_tax_ref",
+      "label": "Company / Taxpayer Name & SARS Income Tax Reference Number",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name (or the individual's full name) as on the SARS profile, with the income tax reference number."
+      "helpText": "Registered company name or individual full name, plus 10-digit SARS Income Tax reference number.",
+      "aiHint": "Company or individual taxpayer name and 10-digit SARS Income Tax reference number."
     },
     {
+      "id": "tcs_reason",
+      "label": "Reason for Requiring the TCS PIN (Good Standing / Tender / Foreign Investment)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Specify whether the TCS PIN is required for Good Standing, Tender, or Foreign Investment Allowance (FIA).",
+      "aiHint": "Purpose of the SARS TCS PIN request (Good Standing, Tender, or FIA)."
+    },
+    {
+      "id": "cor14_3_or_id",
+      "label": "Company Registration Certificate (CoR 14.3) or Individual SA ID",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 registration certificate (for a company) or SA ID (for an individual).",
+      "aiHint": "CIPC CoR 14.3 registration certificate or individual SA ID."
+    },
+    {
+      "id": "signed_poa_optional",
+      "label": "Signed Power of Attorney (optional if using eFiling login)",
+      "type": "pdf",
+      "documentKind": "power_of_attorney",
+      "inNameOf": "either",
+      "isRequired": false,
+      "helpText": "Upload signed Power of Attorney if required.",
+      "aiHint": "Signed Power of Attorney authorizing My Accountant to request the SARS TCS PIN."
+    },
+    {
+      "id": "sars_efiling_username",
       "label": "SARS eFiling Username",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
     },
     {
+      "id": "sars_efiling_password",
       "label": "SARS eFiling Password",
       "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "Company Registration Certificate",
-      "documentKind": "cor14_3",
-      "inNameOf": "entity",
-      "alternatives": [
-        "SA ID for an individual applicant"
-      ],
       "isRequired": true,
-      "aiHint": "CIPC CoR14.3 or registration certificate for a company; certified ID for an individual. Used to match the SARS profile and public officer details."
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
     },
     {
-      "label": "Reason for requiring the Tax Clearance Certificate (e.g., tender, emigration)",
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
       "type": "text",
-      "isRequired": true
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
     },
     {
-      "label": "Signed power of attorney allowing My Accountant to act on your behalf",
-      "documentKind": "power_of_attorney",
-      "inNameOf": "entity",
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
       "isRequired": false,
-      "aiHint": "SARS special power of attorney or our POA template signed by the taxpayer / public officer. Only needed if the request is made from our practitioner profile rather than the client's own login."
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -63,7 +95,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Credentials, registration document and TCS purpose on file",
-      "aiInstructions": "Ask what the TCS is for: Good Standing (tenders, general) or Foreign Investment Allowance / Emigration (individuals — these need extra supporting documents and are a different request type; raise a proposal if selected). Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Ask what the TCS is for: Good Standing (tenders, general) or Foreign Investment Allowance / Emigration (individuals — these need extra supporting documents and are a different request type; raise a proposal if selected). Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "tcs_status",
@@ -75,7 +109,9 @@
       "submitMode": "stage",
       "estimatedDays": 1,
       "doneCriteria": "My Compliance Profile reviewed; each tax type shows Compliant, or the outstanding items are listed",
-      "aiInstructions": "Tax Status → Tax Compliance Status → My Compliance Profile. Check registration, submissions, debt and relevant supporting documents for every tax type. If anything is red, do NOT request the TCS: draft a client message listing exactly which returns/payments are outstanding and offer the relevant filing services. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Tax Status → Tax Compliance Status → My Compliance Profile. Check registration, submissions, debt and relevant supporting documents for every tax type. If anything is red, do NOT request the TCS: draft a client message listing exactly which returns/payments are outstanding and offer the relevant filing services. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 2,
+      "stepType": "portal_filing"
     },
     {
       "id": "tcs_request",
@@ -87,7 +123,9 @@
       "submitMode": "stage",
       "estimatedDays": 1,
       "doneCriteria": "TCS request approved and PIN issued",
-      "aiInstructions": "Tax Status → Tax Compliance Status → Tax Compliance Status Request → select \"Good Standing\" (⚠ verify: \"Tender\" type was merged into Good Standing). Complete the request and submit; the PIN usually issues immediately when compliant. Stage the request for approval before submitting. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet."
+      "aiInstructions": "Tax Status → Tax Compliance Status → Tax Compliance Status Request → select \"Good Standing\" (⚠ verify: \"Tender\" type was merged into Good Standing). Complete the request and submit; the PIN usually issues immediately when compliant. Stage the request for approval before submitting. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet.",
+      "stepNumber": 3,
+      "stepType": "portal_filing"
     },
     {
       "id": "tcs_verify_pin",
@@ -96,7 +134,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "PIN verified via the eFiling TCS verification screen and the printout/letter saved",
-      "aiInstructions": "Use Tax Compliance Status Verification (or the SARS public verification page) with the taxpayer's reference number and PIN to confirm it shows Compliant, and save the TCS letter PDF from the request screen. Note the PIN validity (⚠ verify: 12 months) and that status is live — it can change if a return becomes overdue."
+      "aiInstructions": "Use Tax Compliance Status Verification (or the SARS public verification page) with the taxpayer's reference number and PIN to confirm it shows Compliant, and save the TCS letter PDF from the request screen. Note the PIN validity (⚠ verify: 12 months) and that status is live — it can change if a return becomes overdue.",
+      "stepNumber": 4,
+      "stepType": "verify"
     },
     {
       "id": "tcs_deliver",
@@ -108,7 +148,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "PIN, TCS letter and plain-English explanation posted to Communication History",
-      "aiInstructions": "Explain that there is no paper certificate any more: the PIN lets a third party (tender board, bank) verify the status online, it stays valid only while the taxpayer remains compliant, and the same PIN can be shared with multiple parties. Offer ongoing compliance monitoring."
+      "aiInstructions": "Explain that there is no paper certificate any more: the PIN lets a third party (tender board, bank) verify the status online, it stays valid only while the taxpayer remains compliant, and the same PIN can be shared with multiple parties. Offer ongoing compliance monitoring.",
+      "stepNumber": 5,
+      "stepType": "deliver"
     },
     {
       "id": "tcs_signoff",
@@ -116,7 +158,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 6,
+      "stepType": "signoff"
     }
   ]
 }

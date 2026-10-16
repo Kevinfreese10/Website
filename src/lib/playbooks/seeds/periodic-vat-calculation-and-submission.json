@@ -15,63 +15,88 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "company_name_and_vat_period",
+      "label": "Company Name, 10-Digit SARS VAT Number & VAT Period (YYYY-MM)",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name as on the SARS profile with the VAT registration number."
+      "helpText": "Registered company name, 10-digit SARS VAT reference number (starting with 4), and the VAT period to be calculated and submitted (e.g., 2026-08).",
+      "aiHint": "Company name, 10-digit SARS VAT registration number, and VAT201 period (YYYY-MM)."
     },
     {
-      "label": "SARS eFiling Username",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "SARS eFiling Password",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "Access to sales records (invoices, sales reports)",
-      "documentKind": "invoice",
-      "inNameOf": "entity",
-      "alternatives": [
-        "Accounting system sales report",
-        "Export from invoicing app"
-      ],
-      "isRequired": true,
-      "aiHint": "All tax invoices issued in the period or a sales report by VAT type (standard, zero-rated, exempt). Check invoice dates fall within the period (invoice basis) and that the VAT number appears on invoices."
-    },
-    {
-      "label": "Access to purchase records (supplier invoices, expense reports)",
-      "documentKind": "invoice",
-      "inNameOf": "entity",
-      "alternatives": [
-        "Accounting system purchases report",
-        "Expense report"
-      ],
-      "isRequired": true,
-      "aiHint": "Supplier tax invoices for the period. Only valid tax invoices addressed to the vendor support input VAT (over R5,000 must show the recipient's name and VAT number). Flag entertainment and passenger vehicle expenses."
-    },
-    {
-      "label": "Bank statements for the relevant VAT period",
+      "id": "bank_statements_vat_period",
+      "label": "Business Bank Statements for the Full VAT Period (PDF / CSV)",
+      "type": "pdf",
       "documentKind": "bank_statement",
       "inNameOf": "entity",
       "isRequired": true,
-      "aiHint": "Business bank statements covering the VAT period, used to reconcile sales and to catch unrecorded income or expenses."
+      "helpText": "Upload complete bank statements for all business accounts covering the full VAT period.",
+      "aiHint": "Business bank statements covering the full VAT period."
     },
     {
-      "label": "Current SARS eFiling login details (or authorisation to act)",
-      "type": "text",
-      "isRequired": true
+      "id": "sales_tax_invoices",
+      "label": "Sales Tax Invoices & Sales Summary for the VAT Period",
+      "type": "pdf",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload all customer tax invoices or sales reports (indicating standard-rated, zero-rated, or exempt supplies) for the period.",
+      "aiHint": "Sales tax invoices and sales schedule for output VAT calculation."
     },
     {
-      "label": "Previous VAT return (if applicable)",
+      "id": "purchase_tax_invoices",
+      "label": "Supplier Tax Invoices & Expense Receipts for the VAT Period",
+      "type": "pdf",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload all valid s20 supplier tax invoices and capital purchase invoices to support your input VAT deduction.",
+      "aiHint": "Supplier tax invoices and capital goods invoices for s20 input VAT audit and calculation."
+    },
+    {
+      "id": "prior_vat201_optional",
+      "label": "Previous Period VAT201 Return (if new client)",
+      "type": "pdf",
       "documentKind": "other",
       "inNameOf": "entity",
       "isRequired": false,
-      "aiHint": "Last filed VAT201 or eFiling statement of account — for continuity, prior-period adjustments and to confirm the tax period category."
+      "helpText": "Upload the prior VAT201 return if this is your first VAT period with My Accountant.",
+      "aiHint": "Prior period VAT201 return for continuity check."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -82,7 +107,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Sales records, purchase records, bank statements and credentials for the period on file",
-      "aiInstructions": "Confirm the tax period and the vendor's category (2-monthly or monthly). Ask for the accounting system VAT report if the client uses one; otherwise invoices and statements. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Confirm the tax period and the vendor's category (2-monthly or monthly). Ask for the accounting system VAT report if the client uses one; otherwise invoices and statements. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "vatcalc_verify",
@@ -91,7 +118,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Records cover the full period; input invoices pass tax-invoice checks; bank deposits reconcile to sales",
-      "aiInstructions": "Check each supplier invoice has the supplier VAT number, \"Tax invoice\" wording, date, description and VAT amount; over R5,000 needs the recipient's name/VAT number. Exclude entertainment, passenger vehicle purchases and private items (s17(2)). Compare sales total to bank deposits and list unexplained deposits."
+      "aiInstructions": "Check each supplier invoice has the supplier VAT number, \"Tax invoice\" wording, date, description and VAT amount; over R5,000 needs the recipient's name/VAT number. Exclude entertainment, passenger vehicle purchases and private items (s17(2)). Compare sales total to bank deposits and list unexplained deposits.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "vatcalc_calc",
@@ -100,7 +129,9 @@
       "owner": "staff",
       "estimatedDays": 1,
       "doneCriteria": "VAT computation prepared in the AI Accountant module and reviewed by Kevin",
-      "aiInstructions": "Pull from the AI Accountant module: standard-rated supplies (15%), zero-rated, exempt, output VAT; input VAT on goods/services and capital goods; adjustments (bad debts, change in use). Apportionment for mixed supplies is Kevin's call. Kevin reviews before it goes to the handoff sheet."
+      "aiInstructions": "Pull from the AI Accountant module: standard-rated supplies (15%), zero-rated, exempt, output VAT; input VAT on goods/services and capital goods; adjustments (bad debts, change in use). Apportionment for mixed supplies is Kevin's call. Kevin reviews before it goes to the handoff sheet.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "vatcalc_handoff",
@@ -113,7 +144,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Computation and field-by-field VAT201 values (fields 1–20) with sources",
-      "aiInstructions": "Reconcile the computation to the accounting system VAT report where one exists and explain differences. Show amount payable/refundable and due date."
+      "aiInstructions": "Reconcile the computation to the accounting system VAT report where one exists and explain differences. Show amount payable/refundable and due date.",
+      "stepNumber": 4,
+      "stepType": "draft_document"
     },
     {
       "id": "vatcalc_file",
@@ -125,7 +158,9 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "VAT201 submitted; confirmation and PRN saved",
-      "aiInstructions": "Returns → VAT201 → select the tax period. Enter each field from the handoff sheet and confirm the calculated net VAT equals the computation. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+      "aiInstructions": "Returns → VAT201 → select the tax period. Enter each field from the handoff sheet and confirm the calculated net VAT equals the computation. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin.",
+      "stepNumber": 5,
+      "stepType": "portal_filing"
     },
     {
       "id": "vatcalc_deliver",
@@ -138,7 +173,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Computation, filed VAT201, PRN, amount and due date posted to Communication History",
-      "aiInstructions": "Give the amount payable with the PRN and due date (last business day of the following month for eFiling ⚠ verify), or explain a refund and that SARS may request invoices before paying. Note any invoices excluded and why, so the client fixes supplier invoices going forward."
+      "aiInstructions": "Give the amount payable with the PRN and due date (last business day of the following month for eFiling ⚠ verify), or explain a refund and that SARS may request invoices before paying. Note any invoices excluded and why, so the client fixes supplier invoices going forward.",
+      "stepNumber": 6,
+      "stepType": "deliver"
     },
     {
       "id": "vatcalc_signoff",
@@ -146,7 +183,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 7,
+      "stepType": "signoff"
     }
   ]
 }

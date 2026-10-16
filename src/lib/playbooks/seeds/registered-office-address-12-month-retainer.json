@@ -1,0 +1,124 @@
+{
+  "slug": "registered-office-address-12-month-retainer",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Signed 12-Month Registered Office & Domicilium Address Confirmation Letter (for CIPC CoR 21.1 and SARS RAV01 proof of address)",
+    "Active Mail-Scanning & Digital Forwarding Profile configured for 12 months"
+  ],
+  "playbookCommonFailures": [
+    "FICA KYC documents (Director certified ID or residential proof of address) are missing or older than 3 months",
+    "Primary contact email or WhatsApp number for urgent statutory mail forwarding (SARS/CIPC/Sheriff notices) is not confirmed"
+  ],
+  "informationToProvide": [
+    {
+      "id": "company_name_and_reg",
+      "label": "Company Name, CIPC Registration Number & SARS Tax Reference Number",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the registered company name, CIPC registration number, and SARS Income Tax reference number.",
+      "aiHint": "Registered company name, CIPC registration number, and SARS Income Tax reference number."
+    },
+    {
+      "id": "mail_forwarding_contact",
+      "label": "Primary Contact Person Name, Email Address & WhatsApp/Cell Number for Mail Forwarding",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide the full name, email address, and cellphone number where scanned official correspondence should be forwarded immediately upon receipt.",
+      "aiHint": "Authorized contact person name, email, and phone number for digital mail forwarding."
+    },
+    {
+      "id": "cipc_cor14_3",
+      "label": "Company Registration Certificate (CIPC CoR 14.3 / CoR 39)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the CIPC CoR 14.3 or CoR 39 registration certificate.",
+      "aiHint": "CIPC CoR 14.3 or CoR 39 registration certificate of the company."
+    },
+    {
+      "id": "director_id",
+      "label": "Certified Copy of Director(s) South African ID or Passport (FICA KYC)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "isRequired": true,
+      "mustBeCertified": true,
+      "helpText": "Upload a clear certified copy of the primary director's SA ID or Passport.",
+      "aiHint": "Certified South African ID document or passport of the company director for FICA compliance."
+    },
+    {
+      "id": "director_proof_of_address",
+      "label": "Director Proof of Residential Address (Not Older Than 3 Months, FICA KYC)",
+      "type": "pdf",
+      "documentKind": "proof_of_address",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "helpText": "Upload the director's personal residential proof of address (municipal utility bill, bank statement, or lease agreement < 3 months old) for FICA compliance.",
+      "aiHint": "Director residential proof of address dated within the last 90 days for FICA compliance."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "roa_collect",
+      "stepNumber": 1,
+      "title": "Collect CoR 14.3, director FICA KYC documents and mail-forwarding contact details",
+      "type": "collect",
+      "stepType": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Company CoR 14.3, certified director ID, director residential proof of address (<90 days), and forwarding contact details are on file",
+      "aiInstructions": "Ensure all FICA KYC documents are on file before issuing a Registered Office Address confirmation letter."
+    },
+    {
+      "id": "roa_verify",
+      "stepNumber": 2,
+      "title": "Verify FICA KYC compliance and CIPC company registration details",
+      "type": "verify",
+      "stepType": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Director ID and residential proof of address verified against CIPC CoR 14.3",
+      "aiInstructions": "Verify that the director on the ID and residential proof of address is an active director listed on the company's CIPC CoR 14.3."
+    },
+    {
+      "id": "roa_draft_letter",
+      "stepNumber": 3,
+      "title": "Draft 12-Month Registered Office Address Confirmation & Mandate Letter",
+      "type": "draft_document",
+      "stepType": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "registered_office_confirmation_letter"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Official Registered Office Address Confirmation Letter (valid 12 months) drafted for CIPC and SARS use",
+      "aiInstructions": "Generate the official Registered Office Address Confirmation Letter on letterhead confirming the physical address, erf/municipality details, and 12-month retainer validity period for CIPC CoR 21.1 and SARS RAV01 purposes."
+    },
+    {
+      "id": "roa_deliver",
+      "stepNumber": 4,
+      "title": "Deliver Registered Office Address Confirmation Letter to client",
+      "type": "deliver",
+      "stepType": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "registered_office_confirmation_letter"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Signed Registered Office Address Confirmation Letter posted to Communication History",
+      "aiInstructions": "Deliver the signed Registered Office Address Confirmation Letter and confirm the 12-month renewal date and mail forwarding email address."
+    },
+    {
+      "id": "roa_signoff",
+      "stepNumber": 5,
+      "title": "Final sign-off",
+      "type": "signoff",
+      "stepType": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the Registered Office Address Retainer order is complete"
+    }
+  ]
+}

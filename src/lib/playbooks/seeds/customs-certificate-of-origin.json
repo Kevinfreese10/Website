@@ -1,0 +1,112 @@
+{
+  "slug": "customs-certificate-of-origin",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "SARS RLA Trade Agreement Producer/Exporter Registration (DA 185.4A2 / DA 185.4A7) & Origin Motivation Pack",
+    "Completed & Validated Certificate of Origin (SADC / EUR.1 / AfCFTA) Dossier Ready for Customs / Chamber Stamping"
+  ],
+  "playbookCommonFailures": [
+    "Exporter is registered for a basic Customs Code (DA 185.4A2) but has not activated the specific Trade Agreement annexure (SADC / EPA / AfCFTA) on SARS RLA",
+    "Imported raw material percentage exceeds the maximum non-originating content threshold for the HS tariff heading"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_exporter_code",
+      "label": "SARS Customs Exporter Code Number, Target Trade Agreement (SADC / EUR.1 / AfCFTA / AGOA) & Destination Country",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide your 8-digit SARS Customs Exporter Code, which preferential trade agreement Certificate of Origin is needed (SADC, EUR.1/EPA, AfCFTA, or AGOA), and the destination country."
+    },
+    {
+      "id": "req_hs_codes",
+      "label": "Export Product Description & 8-Digit Harmonized System (HS) Tariff Codes",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe the goods being exported and list their 8-digit SARS Customs HS tariff codes."
+    },
+    {
+      "id": "req_coo_commercial_invoice",
+      "label": "Commercial Export Invoice & Packing List",
+      "type": "pdf",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the commercial export invoice and packing list showing consignee details, quantities, weights, and invoice values.",
+      "aiHint": "Commercial export invoice and packing list in the exporter name showing consignee, HS codes, quantities, weights, and FOB/CIF values."
+    },
+    {
+      "id": "req_cost_breakdown",
+      "label": "Manufacturing Cost Breakdown / Bill of Materials / Local Producer Declaration Proving SA Origin",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the manufacturing cost breakdown or supplier origin declarations proving the goods are wholly obtained or sufficiently worked in South Africa.",
+      "aiHint": "Bill of materials, manufacturing cost breakdown, or supplier declaration proving South African originating status under the trade agreement rules of origin."
+    },
+    {
+      "id": "req_coo_efiling_user",
+      "label": "SARS eFiling / RLA Customs Username",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Your SARS eFiling username linked to Registration, Licensing and Accreditation (RLA) for Trade Agreements."
+    },
+    {
+      "id": "req_coo_efiling_pass",
+      "label": "SARS eFiling / RLA Customs Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true,
+      "helpText": "Your SARS eFiling password (stored encrypted)."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "coo_collect",
+      "title": "Collect exporter code, HS tariff codes, and costing files",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Origin rules verified against specific trade agreement"
+    },
+    {
+      "id": "coo_draft",
+      "title": "Compile DA 185, DA 185.4A2, and origin motivation",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Customs application forms and local content schedules drafted",
+      "templateIds": [
+        "da185_trade_agreement",
+        "certificate_of_origin_draft",
+        "origin_costing_schedule"
+      ]
+    },
+    {
+      "id": "coo_file",
+      "title": "Submit application via SARS eFiling / Customs Hub",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "estimatedDays": 2,
+      "doneCriteria": "Submitted to SARS Customs Trade Agreements division",
+      "submitMode": "stage"
+    },
+    {
+      "id": "coo_deliver",
+      "title": "Deliver trade agreement registration confirmation & certificate template",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Delivered to client with instructions on stamping certificates for export shipments"
+    },
+    {
+      "id": "coo_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

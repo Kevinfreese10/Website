@@ -16,57 +16,88 @@
   ],
   "informationToProvide": [
     {
-      "label": "Company Name",
+      "id": "company_name_and_tax_ref",
+      "label": "Company Name, Registration Number & Tax Year",
       "type": "text",
       "isRequired": true,
-      "aiHint": "Registered company name as on the CoR14.3 and the SARS profile, with registration number and income tax reference number."
+      "helpText": "Registered company name, CIPC registration number, 10-digit SARS Income Tax number, and the tax year to be filed.",
+      "aiHint": "Company name, CIPC number, SARS Income Tax reference number, and financial year-end."
     },
     {
-      "label": "SARS eFiling Username",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "SARS eFiling Password",
-      "type": "text",
-      "isSecret": true,
-      "isRequired": true
-    },
-    {
-      "label": "Audited or unaudited annual financial statements (AFS).",
+      "id": "signed_afs",
+      "label": "Signed Annual Financial Statements (AFS)",
+      "type": "pdf",
       "documentKind": "afs",
       "inNameOf": "entity",
       "isRequired": true,
-      "aiHint": "Signed AFS for the financial year being filed (year-end must match the SARS financial year). Look for the accounting officer / auditor report and director signature page. If no AFS exist, offer the AFS compilation service before filing."
+      "helpText": "Audited, independently reviewed, or compiled Annual Financial Statements (AFS) signed by the directors for the tax year.",
+      "aiHint": "Signed Annual Financial Statements (AFS) for the company covering the tax year."
     },
     {
-      "label": "Signed management accounts for the relevant tax period.",
+      "id": "trial_balance_or_management_accounts",
+      "label": "Final Trial Balance or Management Accounts (if separate from AFS)",
+      "type": "pdf",
       "documentKind": "management_accounts",
       "inNameOf": "entity",
-      "alternatives": [
-        "Trial balance from the accounting system"
-      ],
       "isRequired": false,
-      "aiHint": "Income statement and balance sheet (or trial balance) for the year — used to complete the ITR14 financial fields and to reconcile the AFS."
+      "helpText": "Upload the final trial balance or management accounts if not already included in the AFS pack.",
+      "aiHint": "Trial balance or management accounts for the relevant tax period."
     },
     {
-      "label": "Company bank statements for the full tax year.",
+      "id": "company_bank_statements",
+      "label": "Company Bank Statements for the Financial Year",
+      "type": "pdf",
       "documentKind": "bank_statement",
       "inNameOf": "entity",
       "isRequired": false,
-      "aiHint": "All business accounts covering the financial year; used to spot-check turnover and to reconcile if the AFS are draft."
+      "helpText": "Upload full-year company bank statements (used if SARS selects the ITR14 for verification).",
+      "aiHint": "Company bank statements for the financial year."
     },
     {
-      "label": "Previous year's ITR14 submission details.",
+      "id": "prior_itr14_or_ita34",
+      "label": "Previous Year ITR14 / ITA34 Assessment (if new client)",
+      "type": "pdf",
       "documentKind": "other",
       "inNameOf": "entity",
-      "alternatives": [
-        "Prior ITA34",
-        "Prior tax computation"
-      ],
       "isRequired": false,
-      "aiHint": "Prior year ITA34 or return copy — needed for assessed loss brought forward, capital allowances continuity and consistency of accounting policies."
+      "helpText": "Upload the prior year ITA34 assessment to verify assessed loss brought forward and wear-and-tear allowances.",
+      "aiHint": "Prior year SARS ITA34 assessment or ITR14 return."
+    },
+    {
+      "id": "sars_efiling_username",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Your SARS eFiling login username (or confirm if My Accountant already has Registered Representative / Tax Practitioner shared access).",
+      "aiHint": "SARS eFiling username for the taxpayer profile or confirmation of shared Tax Practitioner access."
+    },
+    {
+      "id": "sars_efiling_password",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": true,
+      "helpText": "Encrypted and restricted to authorized filing staff and the SARS eFiling automation worker.",
+      "aiHint": "Encrypted SARS eFiling password."
+    },
+    {
+      "id": "sars_efiling_otp_required",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "isRequired": true,
+      "isSecret": false,
+      "helpText": "Does logging into your SARS eFiling profile trigger a One-Time PIN (OTP) to your cellphone or email?",
+      "aiHint": "Whether 2FA OTP relay is required when logging into SARS eFiling."
+    },
+    {
+      "id": "sars_efiling_otp_datetime",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "isRequired": false,
+      "isSecret": false,
+      "helpText": "Select a date and time window when you will be available to relay the real-time SARS OTP within the 10-minute eFiling timeout.",
+      "aiHint": "Preferred date/time window to coordinate real-time SARS eFiling OTP relay."
     }
   ],
   "fulfillmentChecklist": [
@@ -77,7 +108,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "Signed AFS (or TB + management accounts), prior-year assessment and eFiling credentials on file",
-      "aiInstructions": "Ask for the signed AFS by name and explain the ITR14 is completed from them. Confirm the financial year-end and which year is being filed. Do not promise a turnaround shorter than 1–2 working days."
+      "aiInstructions": "Ask for the signed AFS by name and explain the ITR14 is completed from them. Confirm the financial year-end and which year is being filed. Do not promise a turnaround shorter than 1–2 working days.",
+      "stepNumber": 1,
+      "stepType": "collect"
     },
     {
       "id": "itr14t_verify",
@@ -86,7 +119,9 @@
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "AFS entity name, registration number and year-end match the SARS profile; AFS are signed",
-      "aiInstructions": "Entity is the company. Check the year-end against the SARS financial year (mismatch means a change of year-end must be registered first — raise a proposal). Check the AFS are for the right year and signed. Cross-check turnover to VAT201s filed for the year where the company is a VAT vendor."
+      "aiInstructions": "Entity is the company. Check the year-end against the SARS financial year (mismatch means a change of year-end must be registered first — raise a proposal). Check the AFS are for the right year and signed. Cross-check turnover to VAT201s filed for the year where the company is a VAT vendor.",
+      "stepNumber": 2,
+      "stepType": "verify"
     },
     {
       "id": "itr14t_calc",
@@ -95,7 +130,9 @@
       "owner": "kevin",
       "estimatedDays": 1,
       "doneCriteria": "Tax computation reconciles accounting profit to taxable income and Kevin has reviewed it",
-      "aiInstructions": "Pull from the AI Accountant module: accounting profit, add back non-deductible items (depreciation, provisions, penalties, donations above limit), deduct wear-and-tear (IN47), s12 allowances, assessed loss b/f, exempt income (local dividends). Apply the 27% rate (or SBC tables if the company qualifies — Kevin decides SBC status). Deduct IRP6 payments made. ⚠ verify current rate, SBC thresholds and IN47 periods."
+      "aiInstructions": "Pull from the AI Accountant module: accounting profit, add back non-deductible items (depreciation, provisions, penalties, donations above limit), deduct wear-and-tear (IN47), s12 allowances, assessed loss b/f, exempt income (local dividends). Apply the 27% rate (or SBC tables if the company qualifies — Kevin decides SBC status). Deduct IRP6 payments made. ⚠ verify current rate, SBC thresholds and IN47 periods.",
+      "stepNumber": 3,
+      "stepType": "calculate"
     },
     {
       "id": "itr14t_handoff",
@@ -108,7 +145,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "Handoff sheet lists every ITR14 section value (company info, balance sheet, income statement, tax computation, contributed capital, dormancy answers)",
-      "aiInstructions": "The ITR14 is long: map AFS balance sheet and income statement lines to the ITR14 financial fields (the layout differs by turnover band — micro / small / medium-large). Note whether AFS must be attached (⚠ verify: required for companies above the small-business turnover band / where the return asks). List directors and shareholding for the \"company structure\" section."
+      "aiInstructions": "The ITR14 is long: map AFS balance sheet and income statement lines to the ITR14 financial fields (the layout differs by turnover band — micro / small / medium-large). Note whether AFS must be attached (⚠ verify: required for companies above the small-business turnover band / where the return asks). List directors and shareholding for the \"company structure\" section.",
+      "stepNumber": 4,
+      "stepType": "draft_document"
     },
     {
       "id": "itr14t_file",
@@ -120,7 +159,9 @@
       "submitMode": "manual",
       "estimatedDays": 1,
       "doneCriteria": "ITR14 submitted; confirmation and summary screenshot saved; AFS uploaded where required",
-      "aiInstructions": "Returns Issued → Income Tax (ITR14) → select the year. Answer the wizard (dormant = No, trading = Yes, turnover band) from the handoff sheet, complete financial sections, tax computation section and upload the AFS PDF if required. Agent drives to the summary; Kevin reviews and presses Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin. If the company is not activated for Income Tax or has no public officer, stop and raise a proposal."
+      "aiInstructions": "Returns Issued → Income Tax (ITR14) → select the year. Answer the wizard (dormant = No, trading = Yes, turnover band) from the handoff sheet, complete financial sections, tax computation section and upload the AFS PDF if required. Agent drives to the summary; Kevin reviews and presses Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin. If the company is not activated for Income Tax or has no public officer, stop and raise a proposal.",
+      "stepNumber": 5,
+      "stepType": "portal_filing"
     },
     {
       "id": "itr14t_assessment",
@@ -133,7 +174,9 @@
       ],
       "estimatedDays": 2,
       "doneCriteria": "ITA34 received or verification documents uploaded",
-      "aiInstructions": "If SARS issues a verification letter, propose the bundle (AFS, tax computation, TB, IRP6 proof) for Kevin and upload via eFiling within the window on the letter (⚠ verify: 21 business days)."
+      "aiInstructions": "If SARS issues a verification letter, propose the bundle (AFS, tax computation, TB, IRP6 proof) for Kevin and upload via eFiling within the window on the letter (⚠ verify: 21 business days).",
+      "stepNumber": 6,
+      "stepType": "wait_external"
     },
     {
       "id": "itr14t_deliver",
@@ -147,7 +190,9 @@
       ],
       "estimatedDays": 1,
       "doneCriteria": "ITA34, computation and plain-English note posted to Communication History",
-      "aiInstructions": "State the tax payable and due date on the ITA34 (PRN for payment via eFiling/EFT), or the refund. Remind the client the next IRP6 estimate should be based on this assessment and offer the IRP6 service."
+      "aiInstructions": "State the tax payable and due date on the ITA34 (PRN for payment via eFiling/EFT), or the refund. Remind the client the next IRP6 estimate should be based on this assessment and offer the IRP6 service.",
+      "stepNumber": 7,
+      "stepType": "deliver"
     },
     {
       "id": "itr14t_signoff",
@@ -155,7 +200,9 @@
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms the order can be completed",
+      "stepNumber": 8,
+      "stepType": "signoff"
     }
   ]
 }

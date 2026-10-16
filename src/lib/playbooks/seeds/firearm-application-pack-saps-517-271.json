@@ -1,0 +1,110 @@
+{
+  "slug": "firearm-application-pack-saps-517-271",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Completed SAPS 271 (Licence to Possess a Firearm) & SAPS 517 (Competency) Application Forms",
+    "Comprehensive Custom Section 13 / 15 / 16 / 20 Firearm Motivation Dossier, Safe Affidavit & Character Reference Letters"
+  ],
+  "playbookCommonFailures": [
+    "Firearm serial number or dealer SAPS 350(a) details do not match SAPS Central Firearms Register (CFR) records",
+    "Photographs of the firearm safe do not clearly show the internal rawl bolts anchoring the safe to a permanent wall/floor"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_licence_section",
+      "label": "Licence Category / Purpose (Self-Defence, Sport, Business)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Section 13 (self-defence), Section 15 (occasional sport), or Section 16/business.",
+      "alternatives": []
+    },
+    {
+      "id": "req_pftc_cert",
+      "label": "PFTC Firearm Training Provider Statement of Results",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Training certificate showing proficiency in Knowledge of the Act and specific firearm category (Handgun/Shotgun/Rifle).",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "alternatives": []
+    },
+    {
+      "id": "req_fap_id_and_poa",
+      "label": "Certified SA ID Copy (< 3 Months) & Proof of Residential Address (< 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "either",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload your certified SA ID copy (< 3 months) and municipal utility bill / proof of residential address (< 3 months).",
+      "aiHint": "Certified South African ID (< 90 days) and proof of residential street address (< 90 days)."
+    },
+    {
+      "id": "req_fap_competency_and_350a",
+      "label": "SAPS Competency Certificate (If Already Issued) & Dealer Stock Return (SAPS 350a) / Firearm Make, Model, Calibre & Serial Number",
+      "type": "pdf",
+      "documentKind": "other",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload the firearm dealer SAPS 350(a) form / invoice showing the firearm make, model, calibre, action, and serial number, plus your SAPS Competency Certificate if already issued.",
+      "aiHint": "Firearm dealer invoice / SAPS 350(a) showing firearm particulars (type, action, calibre, make, model, serial number) and SAPS Competency Certificate."
+    },
+    {
+      "id": "req_fap_safe_photos",
+      "label": "Colour Photographs of Installed SABS-Approved Gun Safe (Showing Open Door, Locking Mechanism & Rawl Bolts Into Wall/Floor)",
+      "type": "image",
+      "documentKind": "photo",
+      "inNameOf": "either",
+      "isRequired": true,
+      "helpText": "Upload clear photographs of your installed SABS-approved firearm safe showing it bolted into brick/concrete wall and floor.",
+      "aiHint": "Clear photographs of an SABS-approved firearm safe installed and bolted to the wall/floor."
+    },
+    {
+      "id": "req_fap_motivation_facts",
+      "label": "Personal Motivation Background & Two Character References (Spouse/Partner + Friend/Colleague Full Names, ID Numbers & Contact Details)",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Describe your personal risk profile / business duties / sport club membership for the comprehensive motivation letter, and provide the names, ID numbers, relationship, and phone numbers of at least 2 character references."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "fap_collect",
+      "title": "Review firearm category and personal motivation details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Category, training certificate, and motivation factors collected"
+    },
+    {
+      "id": "fap_draft",
+      "title": "Draft customized motivation document and SAPS checklists",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Motivation, safe affidavit, and referee letters compiled",
+      "templateIds": [
+        "saps_271_form",
+        "saps_517_form",
+        "firearm_motivation_dossier"
+      ]
+    },
+    {
+      "id": "fap_deliver",
+      "title": "Deliver pack and DFO police station lodgement guide",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack delivered to client for physical submission at local police station"
+    },
+    {
+      "id": "fap_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}

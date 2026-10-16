@@ -14,10 +14,72 @@
     "Client's eFiling profile is a personal profile that does not have the company organisation linked"
   ],
   "informationToProvide": [
-    { "label": "SARS eFiling login Username", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "SARS eFiling login Password", "type": "text", "isSecret": true, "isRequired": true },
-    { "label": "The registered name of the entity", "type": "text", "isRequired": true, "aiHint": "Registered name exactly as on the CIPC CoR14.3, including '(Pty) Ltd'. Cross-check against the company already linked on eFiling before requesting the PAYE tax type." },
-    { "label": "Nature of Business", "type": "text", "isRequired": true, "aiHint": "Main business activity in plain words (e.g. 'plumbing contractor'). Used to pick the SIC/SETA classification on the RAV01 — never guess the SETA; if unclear, ask the client what industry body they fall under." }
+    {
+      "id": "req_paye_cor143",
+      "label": "Company Registration Certificate (CIPC CoR 14.3)",
+      "type": "pdf",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Upload the company CoR 14.3 registration certificate.",
+      "aiHint": "Official CIPC CoR14.3 showing the registered enterprise name, enterprise number, and active directors."
+    },
+    {
+      "id": "req_paye_facts",
+      "label": "Payroll Liability Start Date (First Salary Date), Number of Employees, Estimated Annual Payroll (for SDL > R500k check), UIF Election & Nature of Business / SETA Sector",
+      "type": "text",
+      "isRequired": true,
+      "helpText": "Provide: (1) Exact date the first salary was or will be paid, (2) Number of employees, (3) Estimated total annual payroll in Rands (determines whether Skills Development Levy / SDL applies above R500,000/year), (4) Whether SARS UIF & SDL should be activated simultaneously, and (5) Main business activity / SETA sector.",
+      "aiHint": "Payroll start date, employee count, annual payroll estimate, SDL/UIF flags, and nature of business / SETA classification."
+    },
+    {
+      "id": "req_sars_paye_user",
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "helpText": "Primary eFiling username for your personal or company profile. Please ensure the username is active.",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login username.",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_paye_pass",
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "helpText": "⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "SARS eFiling login password.",
+      "isSecret": true,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_paye_otp_flag",
+      "label": "SARS eFiling OTP Required? (Yes / No)",
+      "type": "text",
+      "helpText": "Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).",
+      "isConditional": false,
+      "conditionalQuestion": "",
+      "isRequired": true,
+      "aiHint": "Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).",
+      "isSecret": false,
+      "alternatives": []
+    },
+    {
+      "id": "req_sars_paye_otp_time",
+      "label": "Best Time to Contact for SARS OTP",
+      "type": "datetime",
+      "helpText": "Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.",
+      "isConditional": true,
+      "conditionalQuestion": "If OTP is required, when is the best time and number to contact you?",
+      "isRequired": false,
+      "aiHint": "Client preferred date, time window, and contact number for live OTP coordination.",
+      "isSecret": false,
+      "alternatives": []
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -55,7 +117,9 @@
       "title": "Prepare RAV01 / PAYE registration hand-off sheet",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["handoff_sheet"],
+      "templateIds": [
+        "handoff_sheet"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Hand-off sheet lists every field value for the 'Register for PAYE' screen and is posted for Kevin's review",
       "aiInstructions": "Fields: registered name, registration number, income tax number, payroll start date (liability date), number of employees, estimated annual payroll, SDL yes/no with reason, UIF yes/no, SETA classification, business address, banking details already on SARS record. Leave anything unknown blank and flag it — never invent a liability date; SARS back-dates penalties to it."
@@ -77,7 +141,9 @@
       "title": "Wait for SARS Notice of Registration",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [2],
+      "followUpAfterDays": [
+        2
+      ],
       "estimatedDays": 2,
       "doneCriteria": "Notice of Registration for PAYE downloaded from eFiling (Notices > Notice of Registration)",
       "aiInstructions": "If no notice after 2 working days, check the eFiling work page for a 'supporting documents required' status before contacting the SARS Contact Centre. Log every SARS case number."
@@ -87,7 +153,9 @@
       "title": "Deliver PAYE reference number and Notice of Registration",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["sars_notice_of_registration"],
+      "deliverArtefacts": [
+        "sars_notice_of_registration"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "PAYE reference, notice and first-EMP201 guidance posted to Communication History",
       "aiInstructions": "Explain in plain English: EMP201 is due by the 7th of the following month (earlier if the 7th falls on a weekend/holiday), payslips must show the PAYE reference, and EMP501 reconciliations fall in April/May and October/November. Offer the monthly EMP201 service."

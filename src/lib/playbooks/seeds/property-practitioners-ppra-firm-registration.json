@@ -1,0 +1,125 @@
+{
+  "slug": "property-practitioners-ppra-firm-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "PPRA Firm Registration & Principal Fidelity Fund Certificate (FFC) Application Dossier",
+    "Auditor / Trust Account Exemption Resolution & Affidavit Pack",
+    "MyPPRA Portal Submission Receipt & Statutory Fee Voucher"
+  ],
+  "playbookCommonFailures": [
+    "Missing or expired B-BBEE Certificate or SARS TCS PIN (both are hard statutory blocks under Section 50 of the Property Practitioners Act)",
+    "Bank account confirmation letter does not explicitly designate the account as a Section 54(1) Trust Account when the firm intends to hold client deposits"
+  ],
+  "informationToProvide": [
+    {
+      "id": "req_cipc_docs",
+      "label": "CIPC Company Registration Documents (CoR14.3)",
+      "type": "pdf",
+      "isRequired": true,
+      "aiHint": "Official CIPC registration certificate.",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_principal_ffc",
+      "label": "Principal Agent Full Name, ID & Personal FFC / Qualifications",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Details of the principal property practitioner holding NQF 5 / PDE 5 credentials.",
+      "alternatives": []
+    },
+    {
+      "id": "req_auditor_letter",
+      "label": "Auditor / Accounting Officer Appointment Letter",
+      "type": "pdf",
+      "isRequired": false,
+      "aiHint": "If holding a trust account, auditor confirmation letter. If exempt, we draft the exemption affidavit.",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": []
+    },
+    {
+      "id": "req_ppra_director_ids",
+      "label": "Certified SA ID Copies of All Principal Property Practitioners & Directors (Not Older Than 3 Months)",
+      "type": "pdf",
+      "documentKind": "sa_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "mustBeCertified": true,
+      "isRequired": true,
+      "helpText": "Upload certified SA ID copies (< 3 months) for all principals and directors of the property firm.",
+      "aiHint": "Mandatory CIPC KYC Invariant: South African citizens MUST submit a certified SA ID (Smart ID Card front AND back, or Green Barcoded ID Book) certified within the last 3 months by a Commissioner of Oaths or SAPS — passports are NOT accepted for SA citizens. Foreign nationals ONLY may submit a certified/apostilled foreign passport accompanied by a valid visa/permit. Verify legible ID/passport number, full legal names, and certification stamp date within 90 days."
+    },
+    {
+      "id": "req_ppra_tcs_and_bee",
+      "label": "Valid SARS Tax Compliance Status (TCS) PIN Letter & Valid B-BBEE Certificate / Sworn Affidavit",
+      "type": "pdf",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "helpText": "Under Section 50 of the Property Practitioners Act, the PPRA strictly requires both a valid SARS Tax Clearance PIN and a valid B-BBEE Certificate/Affidavit before issuing a Fidelity Fund Certificate (FFC).",
+      "aiHint": "Valid SARS TCS PIN letter and signed B-BBEE Sworn Affidavit or SANAS B-BBEE Certificate in the property firm name."
+    },
+    {
+      "id": "req_ppra_trust_bank",
+      "label": "Section 54(1) Trust Account Bank Confirmation Letter (< 3 Months) OR Confirmation That the Firm Will Apply for a Trust Account Exemption",
+      "type": "pdf",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": false,
+      "helpText": "Upload your dedicated Section 54(1) Trust Account bank confirmation letter (< 3 months), or leave blank if the firm will not hold trust monies and requires us to draft the PPRA Trust Account Exemption Affidavit & Resolution.",
+      "aiHint": "Bank confirmation letter specifically referencing a Section 54(1) Property Practitioners Trust Account in the firm name."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ppra_collect",
+      "title": "Collect firm, principal practitioner, and auditor documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CIPC, tax PIN, principal FFC, and trust bank status verified"
+    },
+    {
+      "id": "ppra_draft",
+      "title": "Draft PPRA statutory declarations and exemption affidavits",
+      "type": "draft_document",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "FIC compliance check and trust exemption affidavit prepared",
+      "templateIds": [
+        "ppra_firm_application",
+        "ppra_trust_exemption_affidavit",
+        "board_resolution"
+      ]
+    },
+    {
+      "id": "ppra_file",
+      "title": "Lodge firm registration on MyPPRA portal",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "other",
+      "estimatedDays": 1,
+      "doneCriteria": "Firm profile registered on MyPPRA and reference number generated",
+      "submitMode": "stage"
+    },
+    {
+      "id": "ppra_deliver",
+      "title": "Deliver filing proof and PPRA fee voucher to client",
+      "type": "deliver",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Submission receipt and next steps sent to client"
+    },
+    {
+      "id": "ppra_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms order completion"
+    }
+  ]
+}
